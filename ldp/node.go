@@ -2,6 +2,7 @@ package ldp
 
 import "time"
 import "ldpserver/fileio"
+import "ldpserver/rdf"
 import "io"
 import "os"
 import "errors"
@@ -13,8 +14,8 @@ type Node struct {
 	IsRdf   bool
 	Uri     string
 	Headers map[string]string
-	Graph   RdfGraph
-	Binary  string // should be []byte or reader
+	Graph   rdf.RdfGraph // TODO: should this be an embedded type?
+	Binary  string       // should be []byte or reader
 }
 
 func (node Node) Content() string {
@@ -28,90 +29,26 @@ func (node Node) String() string {
 	return node.Uri
 }
 
-func CreateRdfSource(settings Settings, triples string, parentPath string) (Node, error) {
-	parentUri, err := getContainerUri(settings, parentPath)
-	if err != nil {
-		return Node{}, err
-	}
-
-	node, err := createRdfNode(settings, triples, parentUri)
-	if err != nil {
-		return node, err
-	}
-	addChildToContainer(settings, node.Uri, parentUri)
-	return node, nil
-}
-
-func CreateNonRdfSource(settings Settings, reader io.ReadCloser, parentPath string) (Node, error) {
-	parentUri, err := getContainerUri(settings, parentPath)
-	if err != nil {
-		return Node{}, err
-	}
-
-	node, err := createNonRdfNode(settings, reader, parentUri)
-	if err != nil {
-		return node, err
-	}
-	addChildToContainer(settings, node.Uri, parentUri)
-	return node, nil
+func (node Node) IsBasicContainer() bool {
+	return node.Graph.IsBasicContainer(node.Uri)
 }
 
 func GetNode(settings Settings, path string) (Node, error) {
-	metaOnDisk, dataOnDisk := FileNamesForPath(settings, path)
-	log.Printf("Reading %s", metaOnDisk)
-	if !fileio.FileExists(metaOnDisk) {
-		var emptyNode Node
-		return emptyNode, errors.New(NodeNotFound)
-	}
-
-	uri := UriConcat(settings.rootUrl, path)
-	meta, err := fileio.ReadFile(metaOnDisk)
-	if err != nil {
-		var emptyNode Node
-		return emptyNode, err
-	}
-
-	graph, err := StringToGraph(meta, uri)
-	if err != nil {
-		var emptyNode Node
-		return emptyNode, err
-	}
-
-	// RDF
-	if graph.IsRdfSource(uri) {
-		node := newRdfNode(uri, graph)
-		return node, nil
-	}
-
-	// non-RDF
-	content, err := fileio.ReadFile(dataOnDisk)
-	if err != nil {
-		var emptyNode Node
-		return emptyNode, err
-	}
-
-	node := newNonRdfNode(uri, graph, content)
-	return node, nil
+	return getNode(settings, path, true)
 }
 
-func PatchNode(settings Settings, path string, triples string) (Node, error) {
-	node, err := GetNode(settings, path)
-	if err != nil {
-		return node, err
-	}
+func GetHead(settings Settings, path string) (Node, error) {
+	return getNode(settings, path, false)
+}
 
+func (node *Node) Patch(settings Settings, triples string) error {
 	if !node.IsRdf {
-		return node, errors.New("Cannot PATCH non-RDF Source")
+		return errors.New("Cannot PATCH non-RDF Source")
 	}
 
-	if len(triples) == 0 {
-		// Should we return a different status (e.g. nothing done)
-		return node, nil
-	}
-
-	graph, err := StringToGraph(triples, node.Uri)
+	graph, err := rdf.StringToGraph(triples, node.Uri)
 	if err != nil {
-		return node, err
+		return err
 	}
 
 	// This is pretty useless as-is since it does not allow to update
@@ -120,70 +57,76 @@ func PatchNode(settings Settings, path string, triples string) (Node, error) {
 
 	// write it to disk
 	if err := node.writeToDisk(settings, nil); err != nil {
-		return node, err
+		return err
 	}
 
+	return nil
+}
+
+// TODO: move disk operations to a repo type
+func getNode(settings Settings, path string, isIncludeBody bool) (Node, error) {
+	node, err := getMeta(settings, path)
+	if err != nil {
+		return Node{}, err
+	}
+
+	if node.IsRdf || isIncludeBody == false {
+		return node, nil
+	}
+
+	_, dataOnDisk := FileNamesForPath(settings, path)
+	node.Binary, err = fileio.ReadFile(dataOnDisk)
+	if err != nil {
+		return Node{}, err
+	}
 	return node, nil
 }
 
-func GetHead(settings Settings, path string) (Node, error) {
+// TODO: move disk operations to a repo type
+func getMeta(settings Settings, path string) (Node, error) {
 	metaOnDisk, _ := FileNamesForPath(settings, path)
+	log.Printf("Reading %s", metaOnDisk)
 	if !fileio.FileExists(metaOnDisk) {
-		var emptyNode Node
-		return emptyNode, errors.New(NodeNotFound)
+		return Node{}, errors.New(NodeNotFound)
 	}
 
 	uri := UriConcat(settings.rootUrl, path)
 	meta, err := fileio.ReadFile(metaOnDisk)
 	if err != nil {
-		var emptyNode Node
-		return emptyNode, err
+		return Node{}, err
 	}
 
-	// RDF
-	graph, _ := StringToGraph(meta, uri)
+	graph, err := rdf.StringToGraph(meta, uri)
+	if err != nil {
+		return Node{}, err
+	}
+
+	var node Node
 	if graph.IsRdfSource(uri) {
-		node := newRdfNode(uri, graph)
-		return node, nil
+		node = newRdfNodeFromGraph(uri, graph)
+	} else {
+		node = newNonRdfNode(uri, graph, "")
 	}
-
-	// non-RDF
-	node := newNonRdfNode(uri, graph, "")
 	return node, nil
 }
 
-func getContainerUri(settings Settings, parentPath string) (string, error) {
-	if parentPath == "" || parentPath == "/" {
-		return settings.rootUrl, nil
-	}
-
-	// Make sure the parent node exists and it's a container
-	parentNode, err := GetNode(settings, parentPath)
-	if err != nil {
-		return "", err
-	} else if !parentNode.Graph.IsBasicContainer(parentNode.Uri) {
-		return "", errors.New("Parent is not a container")
-	}
-	return parentNode.Uri, nil
-}
-
-func createRdfNode(settings Settings, triples string, parentUri string) (Node, error) {
+func NewRdfNode(settings Settings, triples string, parentUri string) (Node, error) {
 	newUri := MintNextUri(settings, "blog")
 	fullUri := UriConcat(parentUri, newUri)
-	userGraph, err := StringToGraph(triples, fullUri)
+	userGraph, err := rdf.StringToGraph(triples, fullUri)
 	if err != nil {
 		return Node{}, err
 	}
 	graph := defaultGraph(fullUri)
 	graph.Append(userGraph)
-	node := newRdfNode(fullUri, graph)
+	node := newRdfNodeFromGraph(fullUri, graph)
 	if err := node.writeToDisk(settings, nil); err != nil {
 		return node, err
 	}
 	return node, nil
 }
 
-func createNonRdfNode(settings Settings, reader io.ReadCloser, parentUri string) (Node, error) {
+func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentUri string) (Node, error) {
 	newUri := MintNextUri(settings, "blog")
 	fullUri := UriConcat(parentUri, newUri)
 	graph := defaultNonRdfGraph(fullUri)
@@ -192,6 +135,16 @@ func createNonRdfNode(settings Settings, reader io.ReadCloser, parentUri string)
 		return node, err
 	}
 	return node, nil
+}
+
+func AddChildToContainer(settings Settings, childUri string, parentUri string) {
+	triple := rdf.NewTriple(parentUri, rdf.LdpContainsUri, childUri)
+	metaOnDisk, _ := FileNamesForUri(settings, parentUri)
+	err := fileio.AppendToFile(metaOnDisk, triple.StringLn())
+	if err != nil {
+		log.Printf("%s", err)
+		panic("Could not append child to container " + parentUri)
+	}
 }
 
 func (node Node) writeToDisk(settings Settings, reader io.ReadCloser) error {
@@ -216,43 +169,43 @@ func (node Node) writeToDisk(settings Settings, reader io.ReadCloser) error {
 	return out.Close()
 }
 
-func defaultGraph(subject string) RdfGraph {
+func defaultGraph(subject string) rdf.RdfGraph {
 	// define the triples
-	resource := NewTriple(subject, RdfTypeUri, LdpResourceUri)
-	rdfSource := NewTriple(subject, RdfTypeUri, LdpRdfSourceUri)
+	resource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
+	rdfSource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpRdfSourceUri)
 	// TODO: Not all RDFs resources should be containers
-	basicContainer := NewTriple(subject, RdfTypeUri, LdpBasicContainerUri)
-	title := NewTriple(subject, DcTitleUri, "This is a new entry")
+	basicContainer := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpBasicContainerUri)
+	title := rdf.NewTriple(subject, rdf.DcTitleUri, "This is a new entry")
 	nowString := time.Now().Format(time.RFC3339)
-	created := NewTriple(subject, DcCreatedUri, nowString)
+	created := rdf.NewTriple(subject, rdf.DcCreatedUri, nowString)
 	// create the graph
-	graph := RdfGraph{resource, rdfSource, basicContainer, title, created}
+	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created}
 	return graph
 }
 
-func defaultNonRdfGraph(subject string) RdfGraph {
+func defaultNonRdfGraph(subject string) rdf.RdfGraph {
 	// define the triples
-	resource := NewTriple(subject, RdfTypeUri, LdpResourceUri)
-	nonRdfSource := NewTriple(subject, RdfTypeUri, LdpNonRdfSourceUri)
-	title := NewTriple(subject, DcTitleUri, "This is a new entry")
+	resource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
+	nonRdfSource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpNonRdfSourceUri)
+	title := rdf.NewTriple(subject, rdf.DcTitleUri, "This is a new entry")
 	nowString := time.Now().Format(time.RFC3339)
-	created := NewTriple(subject, DcCreatedUri, nowString)
+	created := rdf.NewTriple(subject, rdf.DcCreatedUri, nowString)
 	// create the graph
-	graph := RdfGraph{resource, nonRdfSource, title, created}
+	graph := rdf.RdfGraph{resource, nonRdfSource, title, created}
 	return graph
 }
 
-func newRdfNode(uri string, graph RdfGraph) Node {
+func newRdfNodeFromGraph(uri string, graph rdf.RdfGraph) Node {
 	var node Node
 	node.IsRdf = true
 	node.Uri = uri
 	node.Graph = graph
 	node.Headers = make(map[string]string)
-	node.Headers["Link"] = LdpResourceLink
+	node.Headers["Link"] = rdf.LdpResourceLink
 	node.Headers["Content-Type"] = "text/plain"
 	if graph.IsBasicContainer(uri) {
-		node.Headers["Link"] = LdpContainerLink
-		node.Headers["Link"] = LdpBasicContainerLink
+		node.Headers["Link"] = rdf.LdpContainerLink
+		node.Headers["Link"] = rdf.LdpBasicContainerLink
 		node.Headers["Allow"] = "GET, HEAD, POST"
 	} else {
 		node.Headers["Allow"] = "GET, HEAD"
@@ -261,7 +214,7 @@ func newRdfNode(uri string, graph RdfGraph) Node {
 	return node
 }
 
-func newNonRdfNode(uri string, graph RdfGraph, binary string) Node {
+func newNonRdfNode(uri string, graph rdf.RdfGraph, binary string) Node {
 	// TODO Figure out a way to pass the binary as a stream
 	var node Node
 	node.IsRdf = false
@@ -269,18 +222,8 @@ func newNonRdfNode(uri string, graph RdfGraph, binary string) Node {
 	node.Graph = graph
 	node.Binary = binary
 	node.Headers = make(map[string]string)
-	node.Headers["Link"] = LdpNonRdfSourceLink
+	node.Headers["Link"] = rdf.LdpNonRdfSourceLink
 	node.Headers["Allow"] = "GET, HEAD"
 	// TODO: guess the content-type from meta
 	return node
-}
-
-func addChildToContainer(settings Settings, childUri string, parentUri string) {
-	triple := NewTriple(parentUri, LdpContainsUri, childUri)
-	metaOnDisk, _ := FileNamesForUri(settings, parentUri)
-	err := fileio.AppendToFile(metaOnDisk, triple.StringLn())
-	if err != nil {
-		log.Printf("%s", err)
-		panic("Could not append child to container " + parentUri)
-	}
 }

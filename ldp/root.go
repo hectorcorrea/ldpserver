@@ -1,6 +1,7 @@
 package ldp
 
 import "ldpserver/fileio"
+import "ldpserver/rdf"
 import "log"
 import "time"
 
@@ -21,15 +22,15 @@ func CreateRoot(settings Settings) {
 	log.Printf("Root node created on disk at : %s\n", settings.rootNodeOnDisk)
 }
 
-func defaultRootRdfGraph(subject string) RdfGraph {
+func defaultRootRdfGraph(subject string) rdf.RdfGraph {
 	// define the triples
-	resource := NewTriple(subject, RdfTypeUri, LdpResourceUri)
-	rdfSource := NewTriple(subject, RdfTypeUri, LdpRdfSourceUri)
-	basicContainer := NewTriple(subject, RdfTypeUri, LdpBasicContainerUri)
-	title := NewTriple(subject, DcTitleUri, "Root node")
+	resource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
+	rdfSource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpRdfSourceUri)
+	basicContainer := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpBasicContainerUri)
+	title := rdf.NewTriple(subject, rdf.DcTitleUri, "Root node")
 	nowString := time.Now().Format(time.RFC3339)
-	created := NewTriple(subject, DcCreatedUri, nowString)
+	created := rdf.NewTriple(subject, rdf.DcCreatedUri, nowString)
 	// create the graph
-	graph := RdfGraph{resource, rdfSource, basicContainer, title, created}
+	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created}
 	return graph
 }

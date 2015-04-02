@@ -1,4 +1,4 @@
-package ldp
+package rdf
 
 import "strings"
 import "regexp"

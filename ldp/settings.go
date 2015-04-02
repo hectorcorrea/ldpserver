@@ -13,3 +13,7 @@ func SettingsNew(datapath, rootUrl string) Settings {
 	sett.rootNodeOnDisk = PathConcat(sett.dataPath, "meta.rdf")
 	return sett
 }
+
+func (settings Settings) RootUrl() string {
+	return settings.rootUrl
+}

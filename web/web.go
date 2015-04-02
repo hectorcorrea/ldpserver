@@ -4,8 +4,10 @@ import "fmt"
 import "log"
 import "net/http"
 import "strings"
+import "ldpserver/rdf"
 import "ldpserver/ldp"
 import "ldpserver/fileio"
+import "ldpserver/server"
 
 var sett ldp.Settings
 
@@ -70,7 +72,7 @@ func handlePost(sett ldp.Settings, resp http.ResponseWriter, req *http.Request) 
 		// We should pass some hints too
 		// (e.g. application type, file name)
 		log.Printf("Creating Non-RDF Source")
-		node, err = ldp.CreateNonRdfSource(sett, req.Body, path)
+		node, err = server.CreateNonRdfSource(sett, req.Body, path)
 	} else {
 		log.Printf("Creating RDF Source")
 		triples, err = fileio.ReaderToString(req.Body)
@@ -79,7 +81,7 @@ func handlePost(sett ldp.Settings, resp http.ResponseWriter, req *http.Request) 
 			log.Printf(err.Error())
 			return
 		}
-		node, err = ldp.CreateRdfSource(sett, triples, path)
+		node, err = server.CreateRdfSource(sett, triples, path)
 	}
 
 	if err != nil {
@@ -98,7 +100,7 @@ func handlePost(sett ldp.Settings, resp http.ResponseWriter, req *http.Request) 
 
 func isNonRdfPost(header http.Header) bool {
 	for _, value := range header["Link"] {
-		if strings.Contains(value, ldp.LdpNonRdfSourceUri) {
+		if strings.Contains(value, rdf.LdpNonRdfSourceUri) {
 			return true
 		}
 	}
