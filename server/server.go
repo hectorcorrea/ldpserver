@@ -3,14 +3,7 @@ package server
 import "io"
 import "errors"
 import "ldpserver/ldp"
-
-// type Server struct {
-// 	settings Settings
-// }
-
-// func New(settings ldp.Settings) {
-// 	return Server{Settings: settings}
-// }
+import "fmt"
 
 func GetNode(settings ldp.Settings, path string) (ldp.Node, error) {
 	return ldp.GetNode(settings, path)
@@ -21,31 +14,36 @@ func GetHead(settings ldp.Settings, path string) (ldp.Node, error) {
 }
 
 func CreateRdfSource(settings ldp.Settings, triples string, parentPath string) (ldp.Node, error) {
-	parentUri, err := getContainerUri(settings, parentPath)
+	container, err := getContainer(settings, parentPath)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	node, err := ldp.NewRdfNode(settings, triples, parentUri)
+	node, err := ldp.NewRdfNode(settings, triples, parentPath)
 	if err != nil {
-		return node, err
+		return ldp.Node{}, err
 	}
 
-	ldp.AddChildToContainer(settings, node.Uri, parentUri)
+	if err := container.AddChild(node); err != nil {
+		return ldp.Node{}, err
+	}
 	return node, nil
 }
 
 func CreateNonRdfSource(settings ldp.Settings, reader io.ReadCloser, parentPath string) (ldp.Node, error) {
-	parentUri, err := getContainerUri(settings, parentPath)
+	container, err := getContainer(settings, parentPath)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	node, err := ldp.NewNonRdfNode(settings, reader, parentUri)
+	node, err := ldp.NewNonRdfNode(settings, reader, parentPath)
 	if err != nil {
 		return node, err
 	}
-	ldp.AddChildToContainer(settings, node.Uri, parentUri)
+
+	if err := container.AddChild(node); err != nil {
+		return node, err
+	}
 	return node, nil
 }
 
@@ -54,12 +52,28 @@ func PatchNode(settings ldp.Settings, path string, triples string) error {
 	if err != nil {
 		return err
 	}
-	return node.Patch(settings, triples)
+	return node.Patch(triples)
+}
+
+func getContainer(settings ldp.Settings, path string) (ldp.Node, error) {
+	if path == "" || path == "/" {
+		// Shortcut since we know for sure this is a container
+		return ldp.GetHead(settings, "/")
+	}
+
+	node, err := ldp.GetNode(settings, path)
+	if err != nil {
+		return node, err
+	} else if !node.IsBasicContainer() {
+		errorMsg := fmt.Sprintf("%s is not a container", path)
+		return node, errors.New(errorMsg)
+	}
+	return node, nil
 }
 
 func getContainerUri(settings ldp.Settings, parentPath string) (string, error) {
 	if parentPath == "" || parentPath == "/" {
-		return settings.RootUrl(), nil
+		return settings.RootUri(), nil
 	}
 
 	// Make sure the parent node exists and it's a container

@@ -15,7 +15,7 @@ func CreateRoot(settings Settings) {
 		panic("Could not create root ID file at " + settings.rootNodeOnDisk + ".id " + err.Error())
 	}
 
-	content := defaultRootRdfGraph(settings.rootUrl).String()
+	content := defaultRootRdfGraph(settings.rootUri).String()
 	if err := fileio.WriteFile(settings.rootNodeOnDisk, content); err != nil {
 		panic("Could not create root file at " + settings.rootNodeOnDisk)
 	}

@@ -75,11 +75,11 @@ func TestCreateRdfWithTriples(t *testing.T) {
 		t.Errorf("err %v, uri %s", err, node.Uri)
 	}
 
-	if !node.Graph.Is(node.Uri, "b", "c") {
+	if !node.Is("b", "c") {
 		t.Errorf("Blank node not handled correctly %s", node.Uri)
 	}
 
-	if node.Graph.Is(node.Uri, "x", "z") {
+	if node.Is("x", "z") {
 		t.Errorf("Unexpected tripled for new subject %s", node.Uri)
 	}
 }
@@ -111,18 +111,15 @@ func TestPatchRdf(t *testing.T) {
 	node, _ := CreateRdfSource(settings, triples, "/")
 	path := node.Uri[len(rootUrl):]
 	node, _ = GetNode(settings, path)
-	if !node.Graph.Is(node.Uri, "p1", "o1") ||
-		!node.Graph.Is(node.Uri, "p2", "o2") {
+	if !node.Is("p1", "o1") || !node.Is("p2", "o2") {
 		t.Errorf("Expected triple not found %s", node.Content())
 	}
 
 	newTriples := "<> <p3> <o3> .\n"
-	err := node.Patch(settings, newTriples)
+	err := node.Patch(newTriples)
 	if err != nil {
 		t.Errorf("Error during Patch %s", err)
-	} else if !node.Graph.Is(node.Uri, "p1", "o1") ||
-		!node.Graph.Is(node.Uri, "p2", "o2") ||
-		!node.Graph.Is(node.Uri, "p3", "o3") {
+	} else if !node.Is("p1", "o1") || !node.Is("p2", "o2") || !node.Is("p3", "o3") {
 		t.Errorf("Expected triple not after patch found %s", node.Content())
 	}
 }
@@ -136,7 +133,7 @@ func TestPatchNonRdf(t *testing.T) {
 		t.Errorf("Unexpected non-RDF content found %s", node.Content())
 	}
 
-	if err := node.Patch(settings, "whatever"); err == nil {
+	if err := node.Patch("whatever"); err == nil {
 		t.Errorf("Shouldn't be able to patch non-RDF")
 	}
 }

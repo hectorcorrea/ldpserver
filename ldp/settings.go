@@ -2,18 +2,18 @@ package ldp
 
 type Settings struct {
 	dataPath       string
-	rootUrl        string
+	rootUri        string
 	rootNodeOnDisk string
 }
 
-func SettingsNew(datapath, rootUrl string) Settings {
+func SettingsNew(datapath, rootUri string) Settings {
 	var sett Settings
 	sett.dataPath = PathConcat(datapath, "/")
-	sett.rootUrl = StripSlash(rootUrl)
+	sett.rootUri = StripSlash(rootUri)
 	sett.rootNodeOnDisk = PathConcat(sett.dataPath, "meta.rdf")
 	return sett
 }
 
-func (settings Settings) RootUrl() string {
-	return settings.rootUrl
+func (settings Settings) RootUri() string {
+	return settings.rootUri
 }

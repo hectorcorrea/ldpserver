@@ -32,18 +32,6 @@ func StripSlash(path string) string {
 	return path
 }
 
-func FileNamesForUri(settings Settings, fullUri string) (string, string) {
-	path := fullUri[len(settings.rootUrl):]
-	return FileNamesForPath(settings, path)
-}
-
-func FileNamesForPath(settings Settings, path string) (string, string) {
-	pathOnDisk := PathConcat(settings.dataPath, path)
-	metaOnDisk := PathConcat(pathOnDisk, "meta.rdf")
-	dataOnDisk := PathConcat(pathOnDisk, "data.txt")
-	return metaOnDisk, dataOnDisk
-}
-
 // Used for testing
 type FakeReaderCloser struct {
 	Text string
