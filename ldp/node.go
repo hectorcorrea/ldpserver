@@ -144,6 +144,12 @@ func (node *Node) loadNode(isIncludeBody bool) error {
 		return nil
 	}
 
+	err2 := node.loadBinary()
+	return err2
+}
+
+func (node *Node) loadBinary() error {
+	var err error
 	node.Binary, err = fileio.ReadFile(node.dataOnDisk)
 	return err
 }
