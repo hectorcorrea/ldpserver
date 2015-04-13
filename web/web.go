@@ -9,11 +9,10 @@ import "ldpserver/ldp"
 import "ldpserver/fileio"
 import "ldpserver/server"
 
-var sett ldp.Settings
-var minter chan string
+var theServer server.Server
 
 func Start(address, dataPath string) {
-	sett, minter = server.NewServer("http://"+address, dataPath)
+	theServer = server.NewServer("http://"+address, dataPath)
 	log.Printf("Listening for requests at %s\n", "http://"+address)
 	log.Printf("Data folder: %s\n", dataPath)
 	http.HandleFunc("/", homePage)
@@ -25,25 +24,26 @@ func Start(address, dataPath string) {
 
 func homePage(resp http.ResponseWriter, req *http.Request) {
 	if req.Method == "GET" {
-		handleGet(sett, true, resp, req)
+		handleGet(true, resp, req)
 	} else if req.Method == "POST" {
-		handlePost(sett, resp, req)
+		handlePost(resp, req)
 	} else if req.Method == "HEAD" {
-		handleGet(sett, false, resp, req)
+		handleGet(false, resp, req)
 	} else {
 		log.Print("UNK request type")
 	}
 }
 
-func handleGet(sett ldp.Settings, includeBody bool, resp http.ResponseWriter, req *http.Request) {
+func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 	var node ldp.Node
 	var err error
 	path := safePath(req.URL.Path)
-	log.Printf("GET request %s", path)
 	if includeBody {
-		node, err = server.GetNode(sett, path)
+		log.Printf("GET request %s", path)
+		node, err = theServer.GetNode(path)
 	} else {
-		node, err = server.GetHead(sett, path)
+		log.Printf("HEAD request %s", path)
+		node, err = theServer.GetHead(path)
 	}
 	if err != nil {
 		if err.Error() == "Not found" {
@@ -62,7 +62,7 @@ func handleGet(sett ldp.Settings, includeBody bool, resp http.ResponseWriter, re
 	fmt.Fprint(resp, node.Content())
 }
 
-func handlePost(sett ldp.Settings, resp http.ResponseWriter, req *http.Request) {
+func handlePost(resp http.ResponseWriter, req *http.Request) {
 	var node ldp.Node
 	var triples string
 	var err error
@@ -72,7 +72,7 @@ func handlePost(sett ldp.Settings, resp http.ResponseWriter, req *http.Request) 
 		// We should pass some hints too
 		// (e.g. application type, file name)
 		log.Printf("Creating Non-RDF Source")
-		node, err = server.CreateNonRdfSource(sett, req.Body, path, minter)
+		node, err = theServer.CreateNonRdfSource(req.Body, path)
 	} else {
 		log.Printf("Creating RDF Source")
 		triples, err = fileio.ReaderToString(req.Body)
@@ -81,7 +81,7 @@ func handlePost(sett ldp.Settings, resp http.ResponseWriter, req *http.Request) 
 			log.Printf(err.Error())
 			return
 		}
-		node, err = server.CreateRdfSource(sett, triples, path, minter)
+		node, err = theServer.CreateRdfSource(triples, path)
 	}
 
 	if err != nil {

@@ -1,11 +1,11 @@
 package ldp
 
-import ( 
+import (
+	"fmt"
 	"ldpserver/fileio"
 	"ldpserver/rdf"
 	"log"
 	"time"
-	"fmt"
 )
 
 func CreateRoot(settings Settings) {

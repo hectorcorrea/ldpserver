@@ -4,7 +4,7 @@ type Settings struct {
 	dataPath       string
 	rootUri        string
 	rootNodeOnDisk string
-	idFile				 string
+	idFile         string
 }
 
 func SettingsNew(rootUri, datapath string) Settings {
@@ -21,5 +21,5 @@ func (settings Settings) RootUri() string {
 }
 
 func (settings Settings) IdFile() string {
-  return settings.idFile
+	return settings.idFile
 }

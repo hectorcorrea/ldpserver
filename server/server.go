@@ -5,29 +5,35 @@ import "errors"
 import "ldpserver/ldp"
 import "fmt"
 
-func NewServer(rootUri, dataPath string) (ldp.Settings, chan string) {
-	sett := ldp.SettingsNew(rootUri, dataPath)
-	ldp.CreateRoot(sett)
-	minter := CreateMinter(sett.IdFile())
-	return sett, minter
+type Server struct {
+	settings ldp.Settings
+	minter   chan string
 }
 
-func GetNode(settings ldp.Settings, path string) (ldp.Node, error) {
-	return ldp.GetNode(settings, path)
+func NewServer(rootUri string, dataPath string) Server {
+	var server Server
+	server.settings = ldp.SettingsNew(rootUri, dataPath)
+	ldp.CreateRoot(server.settings)
+	server.minter = CreateMinter(server.settings.IdFile())
+	return server
 }
 
-func GetHead(settings ldp.Settings, path string) (ldp.Node, error) {
-	return ldp.GetHead(settings, path)
+func (server Server) GetNode(path string) (ldp.Node, error) {
+	return ldp.GetNode(server.settings, path)
 }
 
-func CreateRdfSource(settings ldp.Settings, triples string, parentPath string, minter chan string) (ldp.Node, error) {
-	container, err := getContainer(settings, parentPath)
+func (server Server) GetHead(path string) (ldp.Node, error) {
+	return ldp.GetHead(server.settings, path)
+}
+
+func (server Server) CreateRdfSource(triples string, parentPath string) (ldp.Node, error) {
+	container, err := server.getContainer(parentPath)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	newPath := MintNextUri("blog", minter)
-	node, err := ldp.NewRdfNode(settings, triples, parentPath, newPath)
+	newPath := MintNextUri("blog", server.minter)
+	node, err := ldp.NewRdfNode(server.settings, triples, parentPath, newPath)
 	if err != nil {
 		return ldp.Node{}, err
 	}
@@ -38,14 +44,14 @@ func CreateRdfSource(settings ldp.Settings, triples string, parentPath string, m
 	return node, nil
 }
 
-func CreateNonRdfSource(settings ldp.Settings, reader io.ReadCloser, parentPath string, minter chan string) (ldp.Node, error) {
-	container, err := getContainer(settings, parentPath)
+func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string) (ldp.Node, error) {
+	container, err := server.getContainer(parentPath)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	newPath := MintNextUri("blog", minter)
-	node, err := ldp.NewNonRdfNode(settings, reader, parentPath, newPath)
+	newPath := MintNextUri("blog", server.minter)
+	node, err := ldp.NewNonRdfNode(server.settings, reader, parentPath, newPath)
 	if err != nil {
 		return node, err
 	}
@@ -56,21 +62,21 @@ func CreateNonRdfSource(settings ldp.Settings, reader io.ReadCloser, parentPath 
 	return node, nil
 }
 
-func PatchNode(settings ldp.Settings, path string, triples string) error {
-	node, err := ldp.GetNode(settings, path)
+func (server Server) PatchNode(path string, triples string) error {
+	node, err := ldp.GetNode(server.settings, path)
 	if err != nil {
 		return err
 	}
 	return node.Patch(triples)
 }
 
-func getContainer(settings ldp.Settings, path string) (ldp.Node, error) {
-	if path == "" || path == "/" {
-		// Shortcut since we know for sure this is a container
-		return ldp.GetHead(settings, "/")
+func (server Server) getContainer(path string) (ldp.Node, error) {
+	if isRootPath(path) {
+		// Shortcut. We know for sure this is a container
+		return ldp.GetHead(server.settings, "/")
 	}
 
-	node, err := ldp.GetNode(settings, path)
+	node, err := ldp.GetNode(server.settings, path)
 	if err != nil {
 		return node, err
 	} else if !node.IsBasicContainer() {
@@ -80,17 +86,21 @@ func getContainer(settings ldp.Settings, path string) (ldp.Node, error) {
 	return node, nil
 }
 
-func getContainerUri(settings ldp.Settings, parentPath string) (string, error) {
-	if parentPath == "" || parentPath == "/" {
-		return settings.RootUri(), nil
+func (server Server) getContainerUri(parentPath string) (string, error) {
+	if isRootPath(parentPath) {
+		return server.settings.RootUri(), nil
 	}
 
 	// Make sure the parent node exists and it's a container
-	parentNode, err := ldp.GetNode(settings, parentPath)
+	parentNode, err := ldp.GetNode(server.settings, parentPath)
 	if err != nil {
 		return "", err
 	} else if !parentNode.IsBasicContainer() {
 		return "", errors.New("Parent is not a container")
 	}
 	return parentNode.Uri, nil
+}
+
+func isRootPath(path string) bool {
+	return path == "" || path == "/"
 }
