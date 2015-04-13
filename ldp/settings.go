@@ -6,10 +6,10 @@ type Settings struct {
 	rootNodeOnDisk string
 }
 
-func SettingsNew(datapath, rootUri string) Settings {
+func SettingsNew(rootUri, datapath string) Settings {
 	var sett Settings
-	sett.dataPath = PathConcat(datapath, "/")
 	sett.rootUri = StripSlash(rootUri)
+	sett.dataPath = PathConcat(datapath, "/")
 	sett.rootNodeOnDisk = PathConcat(sett.dataPath, "meta.rdf")
 	return sett
 }

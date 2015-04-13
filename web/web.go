@@ -13,13 +13,9 @@ var sett ldp.Settings
 var minter chan string
 
 func Start(address, dataPath string) {
-	sett = ldp.SettingsNew(dataPath, "http://"+address)
-	ldp.CreateRoot(sett)
+	sett, minter = server.NewServer("http://"+address, dataPath)
 	log.Printf("Listening for requests at %s\n", "http://"+address)
 	log.Printf("Data folder: %s\n", dataPath)
-
-	minter = ldp.CreateMinter(sett)
-
 	http.HandleFunc("/", homePage)
 	err := http.ListenAndServe(address, nil)
 	if err != nil {
@@ -45,9 +41,9 @@ func handleGet(sett ldp.Settings, includeBody bool, resp http.ResponseWriter, re
 	path := safePath(req.URL.Path)
 	log.Printf("GET request %s", path)
 	if includeBody {
-		node, err = ldp.GetNode(sett, path)
+		node, err = server.GetNode(sett, path)
 	} else {
-		node, err = ldp.GetHead(sett, path)
+		node, err = server.GetHead(sett, path)
 	}
 	if err != nil {
 		if err.Error() == "Not found" {

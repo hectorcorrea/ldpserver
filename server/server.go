@@ -5,6 +5,13 @@ import "errors"
 import "ldpserver/ldp"
 import "fmt"
 
+func NewServer(rootUri, dataPath string) (ldp.Settings, chan string) {
+	sett := ldp.SettingsNew(rootUri, dataPath)
+	ldp.CreateRoot(sett)
+	minter := ldp.CreateMinter(sett)
+	return sett, minter
+}
+
 func GetNode(settings ldp.Settings, path string) (ldp.Node, error) {
 	return ldp.GetNode(settings, path)
 }

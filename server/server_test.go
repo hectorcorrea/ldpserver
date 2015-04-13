@@ -10,9 +10,7 @@ var settings ldp.Settings
 var minter chan string
 
 func init() {
-	settings = ldp.SettingsNew(dataPath, rootUrl)
-	ldp.CreateRoot(settings)
-	minter = ldp.CreateMinter(settings)
+	settings, minter = NewServer(rootUrl, dataPath)
 }
 
 func TestCreateRdf(t *testing.T) {
