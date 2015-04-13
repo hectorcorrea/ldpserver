@@ -13,13 +13,13 @@ func GetHead(settings ldp.Settings, path string) (ldp.Node, error) {
 	return ldp.GetHead(settings, path)
 }
 
-func CreateRdfSource(settings ldp.Settings, triples string, parentPath string) (ldp.Node, error) {
+func CreateRdfSource(settings ldp.Settings, triples string, parentPath string, minter chan string) (ldp.Node, error) {
 	container, err := getContainer(settings, parentPath)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	node, err := ldp.NewRdfNode(settings, triples, parentPath)
+	node, err := ldp.NewRdfNode(settings, triples, parentPath, minter)
 	if err != nil {
 		return ldp.Node{}, err
 	}
@@ -30,13 +30,13 @@ func CreateRdfSource(settings ldp.Settings, triples string, parentPath string) (
 	return node, nil
 }
 
-func CreateNonRdfSource(settings ldp.Settings, reader io.ReadCloser, parentPath string) (ldp.Node, error) {
+func CreateNonRdfSource(settings ldp.Settings, reader io.ReadCloser, parentPath string, minter chan string) (ldp.Node, error) {
 	container, err := getContainer(settings, parentPath)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	node, err := ldp.NewNonRdfNode(settings, reader, parentPath)
+	node, err := ldp.NewNonRdfNode(settings, reader, parentPath, minter)
 	if err != nil {
 		return node, err
 	}

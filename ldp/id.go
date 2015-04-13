@@ -3,9 +3,22 @@ package ldp
 import "ldpserver/fileio"
 import "strconv"
 
+func CreateMinter(settings Settings) chan string {
+	nextId := make(chan string)
+	go func(settings Settings) {
+		for {
+			nextId <- mintNextId(settings)
+		}
+	}(settings)
+	return nextId
+}
+
+func MintNextUri(slug string, minter chan string) string {
+	nextId := <-minter
+	return slug + nextId
+}
+
 func mintNextId(settings Settings) string {
-	// TODO: handle concurrency if more than one call
-	// come at the same time
 	lastText, err := fileio.ReadFile(settings.rootNodeOnDisk + ".id")
 	if err != nil {
 		panic("Could not read last id")
@@ -22,8 +35,4 @@ func mintNextId(settings Settings) string {
 		panic("Error writting next id")
 	}
 	return nextId
-}
-
-func MintNextUri(settings Settings, slug string) string {
-	return slug + mintNextId(settings)
 }

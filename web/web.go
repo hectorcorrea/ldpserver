@@ -10,12 +10,16 @@ import "ldpserver/fileio"
 import "ldpserver/server"
 
 var sett ldp.Settings
+var minter chan string
 
 func Start(address, dataPath string) {
 	sett = ldp.SettingsNew(dataPath, "http://"+address)
 	ldp.CreateRoot(sett)
 	log.Printf("Listening for requests at %s\n", "http://"+address)
 	log.Printf("Data folder: %s\n", dataPath)
+
+	minter = ldp.CreateMinter(sett)
+
 	http.HandleFunc("/", homePage)
 	err := http.ListenAndServe(address, nil)
 	if err != nil {
@@ -72,7 +76,7 @@ func handlePost(sett ldp.Settings, resp http.ResponseWriter, req *http.Request) 
 		// We should pass some hints too
 		// (e.g. application type, file name)
 		log.Printf("Creating Non-RDF Source")
-		node, err = server.CreateNonRdfSource(sett, req.Body, path)
+		node, err = server.CreateNonRdfSource(sett, req.Body, path, minter)
 	} else {
 		log.Printf("Creating RDF Source")
 		triples, err = fileio.ReaderToString(req.Body)
@@ -81,7 +85,7 @@ func handlePost(sett ldp.Settings, resp http.ResponseWriter, req *http.Request) 
 			log.Printf(err.Error())
 			return
 		}
-		node, err = server.CreateRdfSource(sett, triples, path)
+		node, err = server.CreateRdfSource(sett, triples, path, minter)
 	}
 
 	if err != nil {
