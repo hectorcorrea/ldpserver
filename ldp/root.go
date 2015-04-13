@@ -1,9 +1,12 @@
 package ldp
 
-import "ldpserver/fileio"
-import "ldpserver/rdf"
-import "log"
-import "time"
+import ( 
+	"ldpserver/fileio"
+	"ldpserver/rdf"
+	"log"
+	"time"
+	"fmt"
+)
 
 func CreateRoot(settings Settings) {
 	if fileio.FileExists(settings.rootNodeOnDisk) {
@@ -11,14 +14,16 @@ func CreateRoot(settings Settings) {
 		return
 	}
 
-	if err := fileio.WriteFile(settings.rootNodeOnDisk+".id", "0"); err != nil {
-		panic("Could not create root ID file at " + settings.rootNodeOnDisk + ".id " + err.Error())
+	if err := fileio.WriteFile(settings.idFile, "0"); err != nil {
+		errorMsg := fmt.Sprintf("Could not create root ID file at %s. %s", settings.idFile, err.Error())
+		panic(errorMsg)
 	}
 
 	graph := defaultRootRdfGraph(settings.rootUri)
 	content := graph.String()
 	if err := fileio.WriteFile(settings.rootNodeOnDisk, content); err != nil {
-		panic("Could not create root file at " + settings.rootNodeOnDisk)
+		errorMsg := fmt.Sprintf("Could not create root file at %s.", settings.rootNodeOnDisk)
+		panic(errorMsg)
 	}
 	log.Printf("Root node created on disk at : %s\n", settings.rootNodeOnDisk)
 }

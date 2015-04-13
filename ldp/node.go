@@ -82,8 +82,7 @@ func (node *Node) Patch(triples string) error {
 	return nil
 }
 
-func NewRdfNode(settings Settings, triples string, parentPath string, minter chan string) (Node, error) {
-	newPath := MintNextUri("blog", minter)
+func NewRdfNode(settings Settings, triples string, parentPath string, newPath string) (Node, error) {
 	path := UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
 
@@ -99,8 +98,7 @@ func NewRdfNode(settings Settings, triples string, parentPath string, minter cha
 	return node, err
 }
 
-func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, minter chan string) (Node, error) {
-	newPath := MintNextUri("blog", minter)
+func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, newPath string) (Node, error) {
 	path := UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
 	graph := defaultNonRdfGraph(node.Uri)

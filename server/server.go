@@ -8,7 +8,7 @@ import "fmt"
 func NewServer(rootUri, dataPath string) (ldp.Settings, chan string) {
 	sett := ldp.SettingsNew(rootUri, dataPath)
 	ldp.CreateRoot(sett)
-	minter := ldp.CreateMinter(sett)
+	minter := CreateMinter(sett.IdFile())
 	return sett, minter
 }
 
@@ -26,7 +26,8 @@ func CreateRdfSource(settings ldp.Settings, triples string, parentPath string, m
 		return ldp.Node{}, err
 	}
 
-	node, err := ldp.NewRdfNode(settings, triples, parentPath, minter)
+	newPath := MintNextUri("blog", minter)
+	node, err := ldp.NewRdfNode(settings, triples, parentPath, newPath)
 	if err != nil {
 		return ldp.Node{}, err
 	}
@@ -43,7 +44,8 @@ func CreateNonRdfSource(settings ldp.Settings, reader io.ReadCloser, parentPath 
 		return ldp.Node{}, err
 	}
 
-	node, err := ldp.NewNonRdfNode(settings, reader, parentPath, minter)
+	newPath := MintNextUri("blog", minter)
+	node, err := ldp.NewNonRdfNode(settings, reader, parentPath, newPath)
 	if err != nil {
 		return node, err
 	}

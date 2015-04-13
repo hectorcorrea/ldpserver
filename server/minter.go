@@ -1,25 +1,27 @@
-package ldp
+package server
 
 import "ldpserver/fileio"
 import "strconv"
 
-func CreateMinter(settings Settings) chan string {
+func CreateMinter(idFile string) chan string {
 	nextId := make(chan string)
-	go func(settings Settings) {
+	go func(idFile string) {
 		for {
-			nextId <- mintNextId(settings)
+			nextId <- mintNextId(idFile)
 		}
-	}(settings)
+	}(idFile)
 	return nextId
 }
 
+// Uses a synchronous channel to force sequential process
+// of this code.
 func MintNextUri(slug string, minter chan string) string {
 	nextId := <-minter
 	return slug + nextId
 }
 
-func mintNextId(settings Settings) string {
-	lastText, err := fileio.ReadFile(settings.rootNodeOnDisk + ".id")
+func mintNextId(idFile string) string {
+	lastText, err := fileio.ReadFile(idFile)
 	if err != nil {
 		panic("Could not read last id")
 	}
@@ -30,7 +32,7 @@ func mintNextId(settings Settings) string {
 	}
 
 	nextId := strconv.Itoa(int(lastId + 1))
-	err = fileio.WriteFile(settings.rootNodeOnDisk+".id", nextId)
+	err = fileio.WriteFile(idFile, nextId)
 	if err != nil {
 		panic("Error writting next id")
 	}
