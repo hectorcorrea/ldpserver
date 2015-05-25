@@ -21,7 +21,7 @@ POST to the root (the slug is fixed to "blog")
 
 Fetch the node created
 
-    curl -X POST localhost:9001/blog1
+    curl localhost:9001/blog1
 
 POST a non-RDF to the root
 
@@ -31,7 +31,7 @@ POST a non-RDF to the root
 
 Fetch the non-RDF created
 
-    curl -X POST localhost:9001/blog2
+    curl localhost:9001/blog2
 
 HTTP HEAD operations are supported
 
@@ -86,6 +86,6 @@ A lot.
 
 * Provide a mechanism to fetch the meta data for a non-RDF (e.g. via a query string or an HTTP header parameter)
 
+* Use BagIt file format to store data (http://en.wikipedia.org/wiki/BagIt)
 
-
-
+* Make sure the proper links are included in the HTTP response for all kind of resources. 
