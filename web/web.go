@@ -1,13 +1,15 @@
 package web
 
-import "fmt"
-import "log"
-import "net/http"
-import "strings"
-import "ldpserver/rdf"
-import "ldpserver/ldp"
-import "ldpserver/fileio"
-import "ldpserver/server"
+import (
+	"fmt"
+	"ldpserver/fileio"
+	"ldpserver/ldp"
+	"ldpserver/rdf"
+	"ldpserver/server"
+	"log"
+	"net/http"
+	"strings"
+)
 
 var theServer server.Server
 
