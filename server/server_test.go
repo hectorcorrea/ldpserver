@@ -1,35 +1,41 @@
 package server
 
-import "testing"
-import "strings"
-import "ldpserver/ldp"
+import (
+	"ldpserver/util"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
-var dataPath = "/Users/hector/dev/gotest/src/ldpserver/data_test"
-var rootUrl = "http://localhost:9001/"
+var dataPath string
 var theServer Server
+var rootUrl = "http://localhost:9001/"
+var slug = "blog"
 
 func init() {
+	dataPath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	theServer = NewServer(rootUrl, dataPath)
 }
 
 func TestCreateRdf(t *testing.T) {
-	node, _ := theServer.CreateRdfSource("", "/")
+	node, _ := theServer.CreateRdfSource("", "/", slug)
 	if !node.IsRdf {
 		t.Errorf("Error creating RDF")
 	}
 
 	path := node.Uri[len(rootUrl):] // /blog8
 	node, err := theServer.GetNode(path)
-	if err != nil || node.Uri != ldp.UriConcat(rootUrl, path) {
+	if err != nil || node.Uri != util.UriConcat(rootUrl, path) {
 		t.Errorf("err %s, uri %s", err, node.Uri)
 	}
 }
 
 func TestCreateChildRdf(t *testing.T) {
-	parentNode, _ := theServer.CreateRdfSource("", "/")
+	parentNode, _ := theServer.CreateRdfSource("", "/", slug)
 	parentPath := parentNode.Uri[len(rootUrl):] // /blog8
 
-	rdfNode, err := theServer.CreateRdfSource("", parentPath)
+	rdfNode, err := theServer.CreateRdfSource("", parentPath, slug)
 	if err != nil {
 		t.Errorf("Error creating child RDF node under %s", err, parentNode.Uri)
 	}
@@ -39,13 +45,13 @@ func TestCreateChildRdf(t *testing.T) {
 	}
 
 	invalidPath := parentPath + "/invalid"
-	invalidNode, err := theServer.CreateRdfSource("", invalidPath)
+	invalidNode, err := theServer.CreateRdfSource("", invalidPath, slug)
 	if err == nil {
 		t.Errorf("A node was added to an invalid path %s %s", err, invalidNode.Uri)
 	}
 
-	reader := ldp.FakeReaderCloser{Text: "HELLO"}
-	nonRdfNode, err := theServer.CreateNonRdfSource(reader, parentPath)
+	reader := util.FakeReaderCloser{Text: "HELLO"}
+	nonRdfNode, err := theServer.CreateNonRdfSource(reader, parentPath, slug)
 	if err != nil {
 		t.Errorf("Error creating child non-RDF node under %s", err, parentNode.Uri)
 	}
@@ -55,7 +61,7 @@ func TestCreateChildRdf(t *testing.T) {
 	}
 
 	nonRdfPath := nonRdfNode.Uri[len(rootUrl):] // /blog8/blog9
-	_, err = theServer.CreateRdfSource("", nonRdfPath)
+	_, err = theServer.CreateRdfSource("", nonRdfPath, slug)
 	if err == nil {
 		t.Errorf("A child was added to a non-RDF node! %s", nonRdfNode.Uri)
 	}
@@ -63,14 +69,14 @@ func TestCreateChildRdf(t *testing.T) {
 
 func TestCreateRdfWithTriples(t *testing.T) {
 	triples := "<> <b> <c> .\r\n<x> <y> <z> ."
-	node, err := theServer.CreateRdfSource(triples, "/")
+	node, err := theServer.CreateRdfSource(triples, "/", slug)
 	if err != nil || !node.IsRdf {
 		t.Errorf("Error creating RDF")
 	}
 
 	path := node.Uri[len(rootUrl):] // /blog8
 	node, err = theServer.GetNode(path)
-	if err != nil || node.Uri != ldp.UriConcat(rootUrl, path) {
+	if err != nil || node.Uri != util.UriConcat(rootUrl, path) {
 		t.Errorf("err %v, uri %s", err, node.Uri)
 	}
 
@@ -84,15 +90,15 @@ func TestCreateRdfWithTriples(t *testing.T) {
 }
 
 func TestCreateNonRdf(t *testing.T) {
-	reader := ldp.FakeReaderCloser{Text: "HELLO"}
-	node, err := theServer.CreateNonRdfSource(reader, "/")
+	reader := util.FakeReaderCloser{Text: "HELLO"}
+	node, err := theServer.CreateNonRdfSource(reader, "/", slug)
 	if err != nil || node.IsRdf {
 		t.Errorf("Error creating Non RDF")
 	}
 
 	path := node.Uri[len(rootUrl):] // /blog8
 	node, err = theServer.GetNode(path)
-	if err != nil || node.Uri != ldp.UriConcat(rootUrl, path) {
+	if err != nil || node.Uri != util.UriConcat(rootUrl, path) {
 		t.Errorf("err %v, uri %s", err, node.Uri)
 	}
 
@@ -107,7 +113,7 @@ func TestCreateNonRdf(t *testing.T) {
 
 func TestPatchRdf(t *testing.T) {
 	triples := "<> <p1> <o1> .\n<> <p2> <o2> .\n"
-	node, _ := theServer.CreateRdfSource(triples, "/")
+	node, _ := theServer.CreateRdfSource(triples, "/", slug)
 	path := node.Uri[len(rootUrl):]
 	node, _ = theServer.GetNode(path)
 	if !node.Is("p1", "o1") || !node.Is("p2", "o2") {
@@ -124,8 +130,8 @@ func TestPatchRdf(t *testing.T) {
 }
 
 func TestPatchNonRdf(t *testing.T) {
-	reader1 := ldp.FakeReaderCloser{Text: "HELLO"}
-	node, _ := theServer.CreateNonRdfSource(reader1, "/")
+	reader1 := util.FakeReaderCloser{Text: "HELLO"}
+	node, _ := theServer.CreateNonRdfSource(reader1, "/", slug)
 	path := node.Uri[len(rootUrl):]
 	node, _ = theServer.GetNode(path)
 	if node.Content() != "HELLO" {

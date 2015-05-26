@@ -1,7 +1,8 @@
-package ldp
+package util
 
 import "strings"
 import "io"
+import "regexp"
 
 // import "log"
 
@@ -30,6 +31,12 @@ func StripSlash(path string) string {
 		return path[0 : len(path)-1]
 	}
 	return path
+}
+
+func IsAlphaNumeric(str string) bool {
+	// Source: https://www.socketloop.com/tutorials/golang-regular-expression-alphanumeric-underscore
+	re := regexp.MustCompile("^[a-zA-Z0-9_-]*$")
+	return re.MatchString(str)
 }
 
 // Used for testing

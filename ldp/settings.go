@@ -1,5 +1,7 @@
 package ldp
 
+import "ldpserver/util"
+
 type Settings struct {
 	dataPath       string
 	rootUri        string
@@ -9,9 +11,9 @@ type Settings struct {
 
 func SettingsNew(rootUri, datapath string) Settings {
 	var sett Settings
-	sett.rootUri = StripSlash(rootUri)
-	sett.dataPath = PathConcat(datapath, "/")
-	sett.rootNodeOnDisk = PathConcat(sett.dataPath, "meta.rdf")
+	sett.rootUri = util.StripSlash(rootUri)
+	sett.dataPath = util.PathConcat(datapath, "/")
+	sett.rootNodeOnDisk = util.PathConcat(sett.dataPath, "meta.rdf")
 	sett.idFile = sett.rootNodeOnDisk + ".id"
 	return sett
 }

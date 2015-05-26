@@ -1,6 +1,7 @@
 package ldp
 
 import "time"
+import "ldpserver/util"
 import "ldpserver/fileio"
 import "ldpserver/rdf"
 import "io"
@@ -83,7 +84,7 @@ func (node *Node) Patch(triples string) error {
 }
 
 func NewRdfNode(settings Settings, triples string, parentPath string, newPath string) (Node, error) {
-	path := UriConcat(parentPath, newPath)
+	path := util.UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
 
 	userGraph, err := rdf.StringToGraph(triples, node.Uri)
@@ -99,7 +100,7 @@ func NewRdfNode(settings Settings, triples string, parentPath string, newPath st
 }
 
 func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, newPath string) (Node, error) {
-	path := UriConcat(parentPath, newPath)
+	path := util.UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
 	graph := defaultNonRdfGraph(node.Uri)
 	// TODO: pass the reader to make so that save can use it
@@ -124,11 +125,11 @@ func newNode(settings Settings, path string) Node {
 	}
 	var node Node
 	node.dataPath = settings.dataPath
-	node.nodeOnDisk = PathConcat(node.dataPath, path)
-	node.metaOnDisk = PathConcat(node.nodeOnDisk, "meta.rdf")
-	node.dataOnDisk = PathConcat(node.nodeOnDisk, "data.txt")
+	node.nodeOnDisk = util.PathConcat(node.dataPath, path)
+	node.metaOnDisk = util.PathConcat(node.nodeOnDisk, "meta.rdf")
+	node.dataOnDisk = util.PathConcat(node.nodeOnDisk, "data.txt")
 	node.rootUri = settings.RootUri()
-	node.Uri = UriConcat(node.rootUri, path)
+	node.Uri = util.UriConcat(node.rootUri, path)
 	return node
 }
 

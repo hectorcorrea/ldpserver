@@ -15,7 +15,7 @@ Fetch the root
 
     curl locahost:9001
 
-POST to the root (the slug is fixed to "blog")
+POST to the root (the Slug defaults to "blog")
 
     curl -X POST localhost:9001
 
@@ -50,6 +50,10 @@ See that the child was added
 Fetch the child
 
     curl localhost:9001/blog1/blog3
+
+POST to the root (with a custom Slug)
+
+    curl -X POST --header "Slug: demo" localhost:9001
 
 
 ## Storage

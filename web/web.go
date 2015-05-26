@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"ldpserver/util"
 	"ldpserver/fileio"
 	"ldpserver/ldp"
 	"ldpserver/rdf"
@@ -118,11 +119,11 @@ func safePath(rawPath string) string {
 	return rawPath + "/"
 }
 
-
 func getSlug(header http.Header) string {
 	for _, value := range header["Slug"] {
-		// TODO: Make sure it's an alphanumeric value only.
-		return value
+		if util.IsAlphaNumeric(value) {
+			return value
+		}
 	}
 	return "blog"
 }
