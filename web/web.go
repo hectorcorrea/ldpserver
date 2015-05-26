@@ -68,13 +68,15 @@ func handlePost(resp http.ResponseWriter, req *http.Request) {
 	var node ldp.Node
 	var triples string
 	var err error
+
+	slug := getSlug(req.Header)
 	path := safePath(req.URL.Path)
 
 	if isNonRdfPost(req.Header) {
 		// We should pass some hints too
 		// (e.g. application type, file name)
 		log.Printf("Creating Non-RDF Source")
-		node, err = theServer.CreateNonRdfSource(req.Body, path)
+		node, err = theServer.CreateNonRdfSource(req.Body, path, slug)
 	} else {
 		log.Printf("Creating RDF Source")
 		triples, err = fileio.ReaderToString(req.Body)
@@ -83,7 +85,7 @@ func handlePost(resp http.ResponseWriter, req *http.Request) {
 			log.Printf(err.Error())
 			return
 		}
-		node, err = theServer.CreateRdfSource(triples, path)
+		node, err = theServer.CreateRdfSource(triples, path, slug)
 	}
 
 	if err != nil {
@@ -114,4 +116,13 @@ func safePath(rawPath string) string {
 		return rawPath
 	}
 	return rawPath + "/"
+}
+
+
+func getSlug(header http.Header) string {
+	for _, value := range header["Slug"] {
+		// TODO: Make sure it's an alphanumeric value only.
+		return value
+	}
+	return "blog"
 }

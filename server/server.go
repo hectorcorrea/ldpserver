@@ -26,13 +26,13 @@ func (server Server) GetHead(path string) (ldp.Node, error) {
 	return ldp.GetHead(server.settings, path)
 }
 
-func (server Server) CreateRdfSource(triples string, parentPath string) (ldp.Node, error) {
+func (server Server) CreateRdfSource(triples string, parentPath string, slug string) (ldp.Node, error) {
 	container, err := server.getContainer(parentPath)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	newPath := MintNextUri("blog", server.minter)
+	newPath := MintNextUri(slug, server.minter)
 	node, err := ldp.NewRdfNode(server.settings, triples, parentPath, newPath)
 	if err != nil {
 		return ldp.Node{}, err
@@ -44,13 +44,13 @@ func (server Server) CreateRdfSource(triples string, parentPath string) (ldp.Nod
 	return node, nil
 }
 
-func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string) (ldp.Node, error) {
+func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string, slug string) (ldp.Node, error) {
 	container, err := server.getContainer(parentPath)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	newPath := MintNextUri("blog", server.minter)
+	newPath := MintNextUri(slug, server.minter)
 	node, err := ldp.NewNonRdfNode(server.settings, reader, parentPath, newPath)
 	if err != nil {
 		return node, err
