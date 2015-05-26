@@ -27,7 +27,7 @@ POST a non-RDF to the root
 
     curl -X POST --header "Link: http://www.w3.org/ns/ldp#NonRDFSource; rel=\"type\"" --data "hello world" localhost:9001
 
-    curl -X POST --header "Link: http://www.w3.org/ns/ldp#NonRDFSource; rel=\"type\"" --binary-data "@filename" localhost:9001
+    curl -X POST --header "Link: http://www.w3.org/ns/ldp#NonRDFSource; rel=\"type\"" --data-binary "@filename" localhost:9001
 
 Fetch the non-RDF created
 
@@ -51,9 +51,17 @@ Fetch the child
 
     curl localhost:9001/blog1/blog3
 
-POST to the root (with a custom Slug)
+Create a node with a custom Slug
 
     curl -X POST --header "Slug: demo" localhost:9001
+
+Fetch node created
+
+    curl localhost:9001/demo4
+
+Create a direct container (notice the $'text' syntax to preserve carriage returns in the triples) 
+
+    curl -X POST -d $'<> <http://www.w3.org/ns/ldp#hasMemberRelation> <someRel> .\n<> <http://www.w3.org/ns/ldp#membershipResource> <someRes> .\n' localhost:9001
 
 
 ## Storage
@@ -72,9 +80,7 @@ For example, if we have two nodes (blog1 and blog2) and blog1 is an RDF node and
 
 
 ## Misc Notes
-I am currently using n-triples rather than turtle because n-triples require less parsing (e.g. no prefixes to be aware of). This should eventually be changed to support and default to turtle.
-
-Blank nodes are only accepted in POST and they are immediately converted to an actual node.
+Empty subjects <> are only accepted when creating new nodes (via HTTP POST) and they are immediately converted to the actual URI that they represent.
 
 
 ## TODO
@@ -84,7 +90,7 @@ A lot.
 
 * Support HTTP PUT, PATCH, and DELETE. 
 
-* Support turtle as the default RDF serialization format.
+* I am currently using n-triples rather than turtle because n-triples require less parsing (e.g. no prefixes to be aware of). This should eventually be changed to support and default to turtle.
 
 * Make sure the ntriples pass a minimum validation. For starters take a look at this set: http://www.w3.org/2000/10/rdf-tests/rdfcore/ntriples/test.nt
 

@@ -2,11 +2,11 @@ package web
 
 import (
 	"fmt"
-	"ldpserver/util"
 	"ldpserver/fileio"
 	"ldpserver/ldp"
 	"ldpserver/rdf"
 	"ldpserver/server"
+	"ldpserver/util"
 	"log"
 	"net/http"
 	"strings"
@@ -49,7 +49,7 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 		node, err = theServer.GetHead(path)
 	}
 	if err != nil {
-		if err.Error() == "Not found" {
+		if err.Error() == ldp.NodeNotFound {
 			log.Printf("Not found %s", path)
 			http.NotFound(resp, req)
 		} else {
@@ -59,8 +59,10 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	for k, v := range node.Headers {
-		resp.Header().Add(k, v)
+	for key, header := range node.Headers {
+		for _, value := range header {
+			resp.Header().Add(key, value)
+		}
 	}
 	fmt.Fprint(resp, node.Content())
 }

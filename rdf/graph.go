@@ -14,17 +14,6 @@ func (triples RdfGraph) String() string {
 	return theString
 }
 
-func splitLines(text string) []string {
-	allLines := strings.Split(text, "\n")
-	lines := make([]string, len(allLines))
-	for _, line := range allLines {
-		if len(line) > 0 && line != "\n" {
-			lines = append(lines, line)
-		}
-	}
-	return lines
-}
-
 func StringToGraph(theString, rootUri string) (RdfGraph, error) {
 	var graph RdfGraph
 	if len(theString) == 0 {
@@ -60,6 +49,23 @@ func (graph RdfGraph) IsBasicContainer(subject string) bool {
 	return graph.Is(subject, RdfTypeUri, LdpBasicContainerUri)
 }
 
+func (graph RdfGraph) IsDirectContainer() bool {
+	// TODO: validate only one instance of each these predicates is found on the graph
+	memResourceFound := false
+	memRelationFound := false
+	for _, triple := range graph {
+		if triple.predicate == LdpMembershipResource {
+			memResourceFound = true
+		} else if triple.predicate == LdpHasMemberRelation {
+			memRelationFound = true
+		}
+		if memRelationFound && memResourceFound {
+			break
+		}
+	}
+	return memResourceFound && memRelationFound
+}
+
 func (graph RdfGraph) Is(subject, predicate, object string) bool {
 	for _, triple := range graph {
 		if triple.subject == subject && triple.predicate == predicate && triple.object == object {
@@ -67,4 +73,15 @@ func (graph RdfGraph) Is(subject, predicate, object string) bool {
 		}
 	}
 	return false
+}
+
+func splitLines(text string) []string {
+	allLines := strings.Split(text, "\n")
+	lines := make([]string, len(allLines))
+	for _, line := range allLines {
+		if len(line) > 0 && line != "\n" {
+			lines = append(lines, line)
+		}
+	}
+	return lines
 }

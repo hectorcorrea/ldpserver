@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+	"ldpserver/rdf"
 	"ldpserver/util"
 	"os"
 	"path/filepath"
@@ -28,6 +30,27 @@ func TestCreateRdf(t *testing.T) {
 	node, err := theServer.GetNode(path)
 	if err != nil || node.Uri != util.UriConcat(rootUrl, path) {
 		t.Errorf("err %s, uri %s", err, node.Uri)
+	}
+}
+
+func TestCreateDirectContainer(t *testing.T) {
+	triples := fmt.Sprintf("<> <%s> <someresource> \n<> <%s> <somerelation>\n", rdf.LdpMembershipResource, rdf.LdpHasMemberRelation)
+	node, err := theServer.CreateRdfSource(triples, "/", slug)
+	if err != nil {
+		t.Errorf("Error creating direct container", err)
+	}
+
+	path := node.Uri[len(rootUrl):]
+	node, err = theServer.GetNode(path)
+	if err != nil {
+		t.Errorf("Error fetching direct container", err)
+	}
+
+	if !node.IsBasicContainer() {
+		t.Errorf("Direct container fetched but not marked as a BASIC container %s", node.Content())
+	}
+	if !node.IsDirectContainer() {
+		t.Errorf("Direct container fetched but not marked as a DIRECT container %s", node.Content())
 	}
 }
 

@@ -15,8 +15,8 @@ const NodeNotFound = "Not Found"
 type Node struct {
 	IsRdf   bool
 	Uri     string
-	Headers map[string]string
-	Graph   rdf.RdfGraph // TODO: should this be an embedded type?
+	Headers map[string][]string
+	Graph   rdf.RdfGraph // TODO: should this be an embedded type? (even better, maybe it should be private)
 	Binary  string       // should be []byte or reader
 
 	dataPath   string // /xyz/data/
@@ -43,6 +43,10 @@ func (node Node) Path() string {
 
 func (node Node) IsBasicContainer() bool {
 	return node.Graph.IsBasicContainer(node.Uri)
+}
+
+func (node Node) IsDirectContainer() bool {
+	return node.Graph.IsDirectContainer()
 }
 
 func (node Node) Is(predicate, object string) bool {
@@ -227,16 +231,25 @@ func defaultNonRdfGraph(subject string) rdf.RdfGraph {
 func (node *Node) makeRdf(graph rdf.RdfGraph) {
 	node.IsRdf = true
 	node.Graph = graph
-	node.Headers = make(map[string]string)
-	node.Headers["Link"] = rdf.LdpResourceLink
-	node.Headers["Content-Type"] = "text/plain"
+	node.Headers = make(map[string][]string)
+	node.Headers["Content-Type"] = []string{"text/plain"}
+
 	if graph.IsBasicContainer(node.Uri) {
-		node.Headers["Link"] = rdf.LdpContainerLink
-		node.Headers["Link"] = rdf.LdpBasicContainerLink
-		node.Headers["Allow"] = "GET, HEAD, POST"
+		node.Headers["Allow"] = []string{"GET, HEAD, POST"}
 	} else {
-		node.Headers["Allow"] = "GET, HEAD"
+		node.Headers["Allow"] = []string{"GET, HEAD"}
 	}
+
+	links := make([]string, 0)
+	links = append(links, rdf.LdpResourceLink)
+	if graph.IsBasicContainer(node.Uri) {
+		links = append(links, rdf.LdpContainerLink)
+		links = append(links, rdf.LdpBasicContainerLink)
+		if graph.IsDirectContainer() {
+			links = append(links, rdf.LdpDirectContainerLink)
+		}
+	}
+	node.Headers["Link"] = links
 }
 
 func (node *Node) makeNonRdf(graph rdf.RdfGraph) {
@@ -244,8 +257,8 @@ func (node *Node) makeNonRdf(graph rdf.RdfGraph) {
 	node.IsRdf = false
 	node.Graph = graph
 	node.Binary = ""
-	node.Headers = make(map[string]string)
-	node.Headers["Link"] = rdf.LdpNonRdfSourceLink
-	node.Headers["Allow"] = "GET, HEAD"
+	node.Headers = make(map[string][]string)
+	node.Headers["Link"] = []string{rdf.LdpNonRdfSourceLink}
+	node.Headers["Allow"] = []string{"GET, HEAD"}
 	// TODO: guess the content-type from meta
 }
