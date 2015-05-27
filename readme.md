@@ -86,7 +86,9 @@ Empty subjects <> are only accepted when creating new nodes (via HTTP POST) and 
 ## TODO
 A lot. 
 
-* Support Direct and Indirect Containers. Currently only Basic Containers are supported.
+* Support isMemberOfRelation in Direct Containers.
+
+* Support Indirect Containers. Currently only Basic Containers are supported.
 
 * Support HTTP PUT, PATCH, and DELETE. 
 
