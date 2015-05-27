@@ -83,9 +83,11 @@ func (node *Node) Patch(triples string) error {
 		return err
 	}
 
-	// This is pretty useless as-is since it does not allow to update
+	// TODO: support <> in subject.
+	//
+	// Also, this is pretty useless as-is since it does not allow to update
 	// a triple. It always adds triples.
-	// Also, there are some triples that can exist only once (e.g. direct container triples)
+	// Furthermore, there are some triples that can exist only once (e.g. direct container triples)
 	// and this code does not validate them.
 	node.Graph.Append(graph)
 

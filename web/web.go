@@ -28,12 +28,14 @@ func Start(address, dataPath string) {
 func homePage(resp http.ResponseWriter, req *http.Request) {
 	if req.Method == "GET" {
 		handleGet(true, resp, req)
-	} else if req.Method == "POST" {
-		handlePost(resp, req)
 	} else if req.Method == "HEAD" {
 		handleGet(false, resp, req)
+	} else if req.Method == "POST" {
+		handlePost(resp, req)
+	} else if req.Method == "PATCH" {
+		handlePatch(resp, req)
 	} else {
-		log.Print("UNK request type")
+		log.Printf("Unknown request type %s", req.Method)
 	}
 }
 
@@ -78,10 +80,10 @@ func handlePost(resp http.ResponseWriter, req *http.Request) {
 	if isNonRdfPost(req.Header) {
 		// We should pass some hints too
 		// (e.g. application type, file name)
-		log.Printf("Creating Non-RDF Source")
+		log.Printf("Creating Non-RDF Source at %s", path)
 		node, err = theServer.CreateNonRdfSource(req.Body, path, slug)
 	} else {
-		log.Printf("Creating RDF Source")
+		log.Printf("Creating RDF Source at %s", path)
 		triples, err = fileio.ReaderToString(req.Body)
 		if err != nil {
 			http.Error(resp, "Invalid request body received", 400)
@@ -103,6 +105,33 @@ func handlePost(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	fmt.Fprint(resp, node.Uri)
+}
+
+func handlePatch(resp http.ResponseWriter, req *http.Request) {
+
+	path := safePath(req.URL.Path)
+	log.Printf("Patching %s", path)
+
+	triples, err := fileio.ReaderToString(req.Body)
+	if err != nil {
+		http.Error(resp, "Invalid request body received", 400)
+		log.Printf(err.Error())
+		return
+	}
+
+	err = theServer.PatchNode(path, triples)
+	if err != nil {
+		errorMsg := err.Error()
+		if errorMsg == ldp.NodeNotFound {
+			log.Printf("Not found %s", path)
+			http.NotFound(resp, req)
+		} else {
+			http.Error(resp, errorMsg, 500)
+		}
+		return
+	}
+
+	fmt.Fprint(resp, req.URL.Path)
 }
 
 func isNonRdfPost(header http.Header) bool {
