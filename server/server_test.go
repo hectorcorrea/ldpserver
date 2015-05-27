@@ -22,14 +22,13 @@ func init() {
 
 func TestCreateRdf(t *testing.T) {
 	node, _ := theServer.CreateRdfSource("", "/", slug)
-	if !node.IsRdf {
+	if !node.IsRdf() {
 		t.Errorf("Error creating RDF")
 	}
 
-	path := node.Uri[len(rootUrl):] // /blog8
-	node, err := theServer.GetNode(path)
-	if err != nil || node.Uri != util.UriConcat(rootUrl, path) {
-		t.Errorf("err %s, uri %s", err, node.Uri)
+	node, err := theServer.GetNode(node.Path())
+	if err != nil || node.Uri() != util.UriConcat(rootUrl, node.Path()) {
+		t.Errorf("err %s, uri %s", err, node.Uri())
 	}
 }
 
@@ -38,7 +37,7 @@ func TestCreateDirectContainer(t *testing.T) {
 	helperNode, err := theServer.CreateRdfSource("", "/", "other")
 
 	// Create the direct container (pointing to the helper node)
-	dcTriple1 := fmt.Sprintf("<> <%s> <%s> .\n", rdf.LdpMembershipResource, helperNode.Uri)
+	dcTriple1 := fmt.Sprintf("<> <%s> <%s> .\n", rdf.LdpMembershipResource, helperNode.Uri())
 	dcTriple2 := fmt.Sprintf("<> <%s> <hasXYZ> .\n", rdf.LdpHasMemberRelation)
 	dcTriples := dcTriple1 + dcTriple2
 	dcNode, err := theServer.CreateRdfSource(dcTriples, "/", "dc")
@@ -66,83 +65,79 @@ func TestCreateDirectContainer(t *testing.T) {
 
 	// Reload our helper node and make sure the child is referenced on it.
 	helperNode, err = theServer.GetNode(helperNode.Path())
-	if !helperNode.HasTriple("hasXYZ", childNode.Uri) {
+	if !helperNode.HasTriple("hasXYZ", childNode.Uri()) {
 		t.Error("Helper node did not get new triple when adding to a Direct Container")
 	}
 }
 
 func TestCreateChildRdf(t *testing.T) {
 	parentNode, _ := theServer.CreateRdfSource("", "/", slug)
-	parentPath := parentNode.Uri[len(rootUrl):] // /blog8
 
-	rdfNode, err := theServer.CreateRdfSource("", parentPath, slug)
+	rdfNode, err := theServer.CreateRdfSource("", parentNode.Path(), slug)
 	if err != nil {
-		t.Errorf("Error creating child RDF node under %s", err, parentNode.Uri)
+		t.Errorf("Error creating child RDF node under %s", err, parentNode.Uri())
 	}
 
-	if !strings.HasPrefix(rdfNode.Uri, parentNode.Uri) || rdfNode.Uri == parentNode.Uri {
-		t.Errorf("Child URI %s does not seem to be under the parent URI %s", rdfNode.Uri, parentNode.Uri)
+	if !strings.HasPrefix(rdfNode.Uri(), parentNode.Uri()) || rdfNode.Uri() == parentNode.Uri() {
+		t.Errorf("Child URI %s does not seem to be under the parent URI %s", rdfNode.Uri(), parentNode.Uri())
 	}
 
-	invalidPath := parentPath + "/invalid"
+	invalidPath := parentNode.Path() + "/invalid"
 	invalidNode, err := theServer.CreateRdfSource("", invalidPath, slug)
 	if err == nil {
-		t.Errorf("A node was added to an invalid path %s %s", err, invalidNode.Uri)
+		t.Errorf("A node was added to an invalid path %s %s", err, invalidNode.Uri())
 	}
 
 	reader := util.FakeReaderCloser{Text: "HELLO"}
-	nonRdfNode, err := theServer.CreateNonRdfSource(reader, parentPath, slug)
+	nonRdfNode, err := theServer.CreateNonRdfSource(reader, parentNode.Path(), slug)
 	if err != nil {
-		t.Errorf("Error creating child non-RDF node under %s", err, parentNode.Uri)
+		t.Errorf("Error creating child non-RDF node under %s", err, parentNode.Uri())
 	}
 
-	if !strings.HasPrefix(nonRdfNode.Uri, parentNode.Uri) || nonRdfNode.Uri == parentNode.Uri {
-		t.Errorf("Child URI %s does not seem to be under the parent URI %s", nonRdfNode.Uri, parentNode.Uri)
+	if !strings.HasPrefix(nonRdfNode.Uri(), parentNode.Uri()) || nonRdfNode.Uri() == parentNode.Uri() {
+		t.Errorf("Child URI %s does not seem to be under the parent URI %s", nonRdfNode.Uri(), parentNode.Uri())
 	}
 
-	nonRdfPath := nonRdfNode.Uri[len(rootUrl):] // /blog8/blog9
-	_, err = theServer.CreateRdfSource("", nonRdfPath, slug)
+	_, err = theServer.CreateRdfSource("", nonRdfNode.Path(), slug)
 	if err == nil {
-		t.Errorf("A child was added to a non-RDF node! %s", nonRdfNode.Uri)
+		t.Errorf("A child was added to a non-RDF node! %s", nonRdfNode.Uri())
 	}
 }
 
 func TestCreateRdfWithTriples(t *testing.T) {
 	triples := "<> <b> <c> .\r\n<x> <y> <z> ."
 	node, err := theServer.CreateRdfSource(triples, "/", slug)
-	if err != nil || !node.IsRdf {
+	if err != nil || !node.IsRdf() {
 		t.Errorf("Error creating RDF")
 	}
 
-	path := node.Uri[len(rootUrl):] // /blog8
-	node, err = theServer.GetNode(path)
-	if err != nil || node.Uri != util.UriConcat(rootUrl, path) {
-		t.Errorf("err %v, uri %s", err, node.Uri)
+	node, err = theServer.GetNode(node.Path())
+	if err != nil || node.Uri() != util.UriConcat(rootUrl, node.Path()) {
+		t.Errorf("err %v, uri %s", err, node.Uri())
 	}
 
 	if !node.HasTriple("b", "c") {
-		t.Errorf("Blank node not handled correctly %s", node.Uri)
+		t.Errorf("Blank node not handled correctly %s", node.Uri())
 	}
 
 	if node.HasTriple("x", "z") {
-		t.Errorf("Unexpected tripled for new subject %s", node.Uri)
+		t.Errorf("Unexpected tripled for new subject %s", node.Uri())
 	}
 }
 
 func TestCreateNonRdf(t *testing.T) {
 	reader := util.FakeReaderCloser{Text: "HELLO"}
 	node, err := theServer.CreateNonRdfSource(reader, "/", slug)
-	if err != nil || node.IsRdf {
+	if err != nil || node.IsRdf() {
 		t.Errorf("Error creating Non RDF")
 	}
 
-	path := node.Uri[len(rootUrl):] // /blog8
-	node, err = theServer.GetNode(path)
-	if err != nil || node.Uri != util.UriConcat(rootUrl, path) {
-		t.Errorf("err %v, uri %s", err, node.Uri)
+	node, err = theServer.GetNode(node.Path())
+	if err != nil || node.Uri() != util.UriConcat(rootUrl, node.Path()) {
+		t.Errorf("err %v, uri %s", err, node.Uri())
 	}
 
-	if node.IsRdf {
+	if node.IsRdf() {
 		t.Errorf("Node created as RDF instead of Non-RDF")
 	}
 
@@ -154,8 +149,7 @@ func TestCreateNonRdf(t *testing.T) {
 func TestPatchRdf(t *testing.T) {
 	triples := "<> <p1> <o1> .\n<> <p2> <o2> .\n"
 	node, _ := theServer.CreateRdfSource(triples, "/", slug)
-	path := node.Uri[len(rootUrl):]
-	node, _ = theServer.GetNode(path)
+	node, _ = theServer.GetNode(node.Path())
 	if !node.HasTriple("p1", "o1") || !node.HasTriple("p2", "o2") {
 		t.Errorf("Expected triple not found %s", node.Content())
 	}
@@ -172,8 +166,7 @@ func TestPatchRdf(t *testing.T) {
 func TestPatchNonRdf(t *testing.T) {
 	reader1 := util.FakeReaderCloser{Text: "HELLO"}
 	node, _ := theServer.CreateNonRdfSource(reader1, "/", slug)
-	path := node.Uri[len(rootUrl):]
-	node, _ = theServer.GetNode(path)
+	node, _ = theServer.GetNode(node.Path())
 	if node.Content() != "HELLO" {
 		t.Errorf("Unexpected non-RDF content found %s", node.Content())
 	}

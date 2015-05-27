@@ -99,7 +99,7 @@ func (server Server) getContainerUri(parentPath string) (string, error) {
 	} else if !parentNode.IsBasicContainer() {
 		return "", errors.New("Parent is not a container")
 	}
-	return parentNode.Uri, nil
+	return parentNode.Uri(), nil
 }
 
 func isRootPath(path string) bool {

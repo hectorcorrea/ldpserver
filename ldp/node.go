@@ -13,11 +13,11 @@ import "strings"
 const NodeNotFound = "Not Found"
 
 type Node struct {
-	IsRdf   bool
-	Uri     string
-	Headers map[string][]string
-	Graph   rdf.RdfGraph // TODO: should this be an embedded type? (even better, maybe it should be private)
-	Binary  string       // should be []byte or reader
+	isRdf   bool
+	uri     string
+	headers map[string][]string
+	graph   rdf.RdfGraph
+	binary  string // should be []byte or reader
 
 	settings Settings
 
@@ -35,18 +35,26 @@ type Node struct {
 }
 
 func (node Node) Content() string {
-	if node.IsRdf {
-		return node.Graph.String()
+	if node.isRdf {
+		return node.graph.String()
 	}
-	return node.Binary
+	return node.binary
 }
 
 func (node Node) String() string {
-	return node.Uri
+	return node.uri
 }
 
 func (node Node) Path() string {
-	return util.PathFromUri(node.rootUri, node.Uri)
+	return util.PathFromUri(node.rootUri, node.uri)
+}
+
+func (node Node) Headers() map[string][]string {
+	return node.headers
+}
+
+func (node Node) IsRdf() bool {
+	return node.isRdf
 }
 
 func (node Node) IsBasicContainer() bool {
@@ -58,7 +66,11 @@ func (node Node) IsDirectContainer() bool {
 }
 
 func (node Node) HasTriple(predicate, object string) bool {
-	return node.Graph.HasTriple(node.Uri, predicate, object)
+	return node.graph.HasTriple(node.uri, predicate, object)
+}
+
+func (node Node) Uri() string {
+	return node.uri
 }
 
 func GetNode(settings Settings, path string) (Node, error) {
@@ -74,22 +86,20 @@ func GetHead(settings Settings, path string) (Node, error) {
 }
 
 func (node *Node) Patch(triples string) error {
-	if !node.IsRdf {
+	if !node.isRdf {
 		return errors.New("Cannot PATCH non-RDF Source")
 	}
 
-	graph, err := rdf.StringToGraph(triples, node.Uri)
+	graph, err := rdf.StringToGraph(triples, node.uri)
 	if err != nil {
 		return err
 	}
 
-	// TODO: support <> in subject.
-	//
-	// Also, this is pretty useless as-is since it does not allow to update
+	// This is pretty useless as-is since it does not allow to update
 	// a triple. It always adds triples.
-	// Furthermore, there are some triples that can exist only once (e.g. direct container triples)
+	// Also, there are some triples that can exist only once (e.g. direct container triples)
 	// and this code does not validate them.
-	node.Graph.Append(graph)
+	node.graph.Append(graph)
 
 	// write it to disk
 	if err := node.writeToDisk(nil); err != nil {
@@ -103,12 +113,12 @@ func NewRdfNode(settings Settings, triples string, parentPath string, newPath st
 	path := util.UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
 
-	userGraph, err := rdf.StringToGraph(triples, node.Uri)
+	userGraph, err := rdf.StringToGraph(triples, node.uri)
 	if err != nil {
 		return node, err
 	}
 
-	graph := defaultGraph(node.Uri)
+	graph := defaultGraph(node.uri)
 	graph.Append(userGraph)
 	node.setAsRdf(graph)
 	err = node.writeToDisk(nil)
@@ -118,14 +128,14 @@ func NewRdfNode(settings Settings, triples string, parentPath string, newPath st
 func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, newPath string) (Node, error) {
 	path := util.UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
-	graph := defaultNonRdfGraph(node.Uri)
+	graph := defaultNonRdfGraph(node.uri)
 	node.setAsNonRdf(graph)
 	err := node.writeToDisk(reader)
 	return node, err
 }
 
 func (node Node) AddChild(child Node) error {
-	triple := rdf.NewTriple(node.Uri, rdf.LdpContainsUri, child.Uri)
+	triple := rdf.NewTriple(node.uri, rdf.LdpContainsUri, child.uri)
 	err := fileio.AppendToFile(node.metaOnDisk, triple.StringLn())
 	if err != nil {
 		log.Printf("%s", err)
@@ -148,10 +158,10 @@ func (node Node) addDirectContainerChild(child Node) error {
 		return err
 	}
 
-	tripleForTarget := rdf.NewTriple(targetNode.Uri, node.hasMemberRelation, child.Uri)
+	tripleForTarget := rdf.NewTriple(targetNode.uri, node.hasMemberRelation, child.uri)
 	err = fileio.AppendToFile(targetNode.metaOnDisk, tripleForTarget.StringLn())
 	if err != nil {
-		log.Printf("Error appending child %s to %s. %s", child.Uri, targetNode.Uri, err)
+		log.Printf("Error appending child %s to %s. %s", child.uri, targetNode.uri, err)
 		return err
 	}
 	return nil
@@ -168,7 +178,7 @@ func newNode(settings Settings, path string) Node {
 	node.metaOnDisk = util.PathConcat(node.nodeOnDisk, "meta.rdf")
 	node.dataOnDisk = util.PathConcat(node.nodeOnDisk, "data.txt")
 	node.rootUri = settings.RootUri()
-	node.Uri = util.UriConcat(node.rootUri, path)
+	node.uri = util.UriConcat(node.rootUri, path)
 	return node
 }
 
@@ -178,7 +188,7 @@ func (node *Node) loadNode(isIncludeBody bool) error {
 		return err
 	}
 
-	if node.IsRdf || isIncludeBody == false {
+	if node.isRdf || isIncludeBody == false {
 		return nil
 	}
 
@@ -188,7 +198,7 @@ func (node *Node) loadNode(isIncludeBody bool) error {
 
 func (node *Node) loadBinary() error {
 	var err error
-	node.Binary, err = fileio.ReadFile(node.dataOnDisk)
+	node.binary, err = fileio.ReadFile(node.dataOnDisk)
 	return err
 }
 
@@ -203,12 +213,12 @@ func (node *Node) loadMeta() error {
 		return err
 	}
 
-	graph, err := rdf.StringToGraph(meta, node.Uri)
+	graph, err := rdf.StringToGraph(meta, node.uri)
 	if err != nil {
 		return err
 	}
 
-	if graph.IsRdfSource(node.Uri) {
+	if graph.IsRdfSource(node.uri) {
 		node.setAsRdf(graph)
 	} else {
 		node.setAsNonRdf(graph)
@@ -218,12 +228,12 @@ func (node *Node) loadMeta() error {
 
 func (node Node) writeToDisk(reader io.ReadCloser) error {
 	// Write the RDF metadata
-	err := fileio.WriteFile(node.metaOnDisk, node.Graph.String())
+	err := fileio.WriteFile(node.metaOnDisk, node.graph.String())
 	if err != nil {
 		return err
 	}
 
-	if node.IsRdf {
+	if node.isRdf {
 		return nil
 	}
 
@@ -264,20 +274,20 @@ func defaultNonRdfGraph(subject string) rdf.RdfGraph {
 }
 
 func (node *Node) setAsRdf(graph rdf.RdfGraph) {
-	node.IsRdf = true
-	node.Graph = graph
-	node.Headers = make(map[string][]string)
-	node.Headers["Content-Type"] = []string{"text/plain"}
+	node.isRdf = true
+	node.graph = graph
+	node.headers = make(map[string][]string)
+	node.headers["Content-Type"] = []string{"text/plain"}
 
-	if graph.IsBasicContainer(node.Uri) {
-		node.Headers["Allow"] = []string{"GET, HEAD, POST"}
+	if graph.IsBasicContainer(node.uri) {
+		node.headers["Allow"] = []string{"GET, HEAD, POST"}
 	} else {
-		node.Headers["Allow"] = []string{"GET, HEAD"}
+		node.headers["Allow"] = []string{"GET, HEAD"}
 	}
 
 	links := make([]string, 0)
 	links = append(links, rdf.LdpResourceLink)
-	if graph.IsBasicContainer(node.Uri) {
+	if graph.IsBasicContainer(node.uri) {
 		node.isBasicContainer = true
 		links = append(links, rdf.LdpContainerLink)
 		links = append(links, rdf.LdpBasicContainerLink)
@@ -287,16 +297,16 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 			links = append(links, rdf.LdpDirectContainerLink)
 		}
 	}
-	node.Headers["Link"] = links
+	node.headers["Link"] = links
 }
 
 func (node *Node) setAsNonRdf(graph rdf.RdfGraph) {
 	// TODO Figure out a way to pass the binary as a stream
-	node.IsRdf = false
-	node.Graph = graph
-	node.Binary = ""
-	node.Headers = make(map[string][]string)
-	node.Headers["Link"] = []string{rdf.LdpNonRdfSourceLink}
-	node.Headers["Allow"] = []string{"GET, HEAD"}
+	node.isRdf = false
+	node.graph = graph
+	node.binary = ""
+	node.headers = make(map[string][]string)
+	node.headers["Link"] = []string{rdf.LdpNonRdfSourceLink}
+	node.headers["Allow"] = []string{"GET, HEAD"}
 	// TODO: guess the content-type from meta
 }

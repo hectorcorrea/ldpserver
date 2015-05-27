@@ -33,7 +33,7 @@ curl -X PATCH -d "${TRIPLE2}" ${COMMENTS_URI}
 COMMENT1_URI="$(curl -X POST --header 'Slug: comment' -d $'<> <dc:description> <this is a comment> .\n' ${COMMENTS_URI})"
 COMMENT2_URI="$(curl -X POST --header "Slug: comment" -d $'<> <dc:description> <this is another comment> .\n' ${COMMENTS_URI})"
 
-echo "The following URIs were created:"
+echo "** The following URIs were created:"
 echo "  BLOG_URI     = ${BLOG_URI}"
 echo "  ENTRY_URI    = ${ENTRY_URI}"
 echo "  CONTENT_URI  = ${CONTENT_URI}"
@@ -41,8 +41,8 @@ echo "  COMMENTS_URI = ${COMMENTS_URI}"
 echo "  COMMENT1_URI = ${COMMENT1_URI}"
 echo "  COMMENT2_URI = ${COMMENT2_URI}"
 
-echo "Direct container:"
+echo "** Direct container:"
 curl ${COMMENTS_URI}
 
-echo "Blog entry:"
+echo "** Blog entry:"
 curl ${ENTRY_URI}
