@@ -24,8 +24,8 @@ CONTENT_URI="$(curl -X POST --header 'Slug: content' --header 'Link: http://www.
 
 # Add a direct container for comments (and bound to the entry)
 COMMENTS_URI="$(curl -X POST --header 'Slug: comments' ${ENTRY_URI})"
-TRIPLE1="<${COMMENTS_URI}> <http://www.w3.org/ns/ldp#hasMemberRelation> <hasComment> ."
-TRIPLE2="<${COMMENTS_URI}> <http://www.w3.org/ns/ldp#membershipResource> <${ENTRY_URI}> ."
+TRIPLE1="<> <http://www.w3.org/ns/ldp#hasMemberRelation> <hasComment> ."
+TRIPLE2="<> <http://www.w3.org/ns/ldp#membershipResource> <${ENTRY_URI}> ."
 curl -X PATCH -d "${TRIPLE1}" ${COMMENTS_URI}
 curl -X PATCH -d "${TRIPLE2}" ${COMMENTS_URI}
 
