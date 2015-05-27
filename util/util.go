@@ -33,6 +33,13 @@ func StripSlash(path string) string {
 	return path
 }
 
+func PathFromUri(rootUri, uri string) string {
+	if strings.HasPrefix(uri, rootUri) {
+		return uri[len(rootUri):]
+	}
+	return uri
+}
+
 func IsAlphaNumeric(str string) bool {
 	// Source: https://www.socketloop.com/tutorials/golang-regular-expression-alphanumeric-underscore
 	re := regexp.MustCompile("^[a-zA-Z0-9_-]*$")

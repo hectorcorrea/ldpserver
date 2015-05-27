@@ -34,9 +34,6 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 
 	newPath := MintNextUri(slug, server.minter)
 
-	// TODO: load parent, find out if it is basic or direct container,
-	//       execute different logic
-
 	node, err := ldp.NewRdfNode(server.settings, triples, parentPath, newPath)
 	if err != nil {
 		return ldp.Node{}, err

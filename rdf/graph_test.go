@@ -3,8 +3,6 @@ package rdf
 import "testing"
 import "fmt"
 
-// import "log"
-
 func TestGraphToString(t *testing.T) {
 	triple1 := Triple{subject: "a", predicate: "b", object: "c"}
 	triple2 := Triple{subject: "x", predicate: "y", object: "z"}
@@ -33,20 +31,27 @@ func TestStringToGraph(t *testing.T) {
 }
 
 func TestAppend(t *testing.T) {
-	// graph1, _ := StringToGraph("<a> <b> <c>.\n")
-	// graph2, _ := StringToGraph("<x> <y> <z>.\n")
-	var graph RdfGraph
+	var graph2 RdfGraph
 	t1 := Triple{subject: "s", predicate: "p", object: "o"}
 	graph1 := RdfGraph{t1}
 	for _, x := range graph1 {
-		graph = append(graph, x)
-
+		graph2 = append(graph2, x)
 	}
 
-	// graph =  append(graph, graph1)
-	// graph.Append(t1)
-	if len(graph) != 1 {
-		t.Errorf("Graph not appended: [%s]", graph)
+	if len(graph2) != 1 {
+		t.Errorf("Graph not appended: [%s]", graph2)
+	}
+}
+
+func TestHasTriple(t *testing.T) {
+	triple := Triple{subject: "s", predicate: "p", object: "o"}
+	graph := RdfGraph{triple}
+
+	if !graph.HasTriple("s", "p", "o") {
+		t.Errorf("Is() test failed for graph [%s]", graph)
 	}
 
+	if graph.HasTriple("s", "x", "o") {
+		t.Errorf("Is() test failed for graph [%s]", graph)
+	}
 }

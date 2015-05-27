@@ -19,11 +19,19 @@ type Node struct {
 	Graph   rdf.RdfGraph // TODO: should this be an embedded type? (even better, maybe it should be private)
 	Binary  string       // should be []byte or reader
 
+	settings Settings
+
 	dataPath   string // /xyz/data/
 	nodeOnDisk string // /xyz/data/blog1/
 	metaOnDisk string // /xyz/data/blog1/meta.rdf
 	dataOnDisk string // /xyz/data/blog1/data.txt
 	rootUri    string // http://localhost/
+
+	isBasicContainer   bool
+	isDirectContainer  bool
+	membershipResource string
+	hasMemberRelation  string
+	// isMemberOfRelation string
 }
 
 func (node Node) Content() string {
@@ -38,19 +46,19 @@ func (node Node) String() string {
 }
 
 func (node Node) Path() string {
-	return node.Uri[len(node.rootUri):]
+	return util.PathFromUri(node.rootUri, node.Uri)
 }
 
 func (node Node) IsBasicContainer() bool {
-	return node.Graph.IsBasicContainer(node.Uri)
+	return node.isBasicContainer
 }
 
 func (node Node) IsDirectContainer() bool {
-	return node.Graph.IsDirectContainer()
+	return node.isDirectContainer
 }
 
-func (node Node) Is(predicate, object string) bool {
-	return node.Graph.Is(node.Uri, predicate, object)
+func (node Node) HasTriple(predicate, object string) bool {
+	return node.Graph.HasTriple(node.Uri, predicate, object)
 }
 
 func GetNode(settings Settings, path string) (Node, error) {
@@ -77,6 +85,8 @@ func (node *Node) Patch(triples string) error {
 
 	// This is pretty useless as-is since it does not allow to update
 	// a triple. It always adds triples.
+	// Also, there are some triples that can exist only once (e.g. direct container triples)
+	// and this code does not validate them.
 	node.Graph.Append(graph)
 
 	// write it to disk
@@ -98,7 +108,7 @@ func NewRdfNode(settings Settings, triples string, parentPath string, newPath st
 
 	graph := defaultGraph(node.Uri)
 	graph.Append(userGraph)
-	node.makeRdf(graph)
+	node.setAsRdf(graph)
 	err = node.writeToDisk(nil)
 	return node, err
 }
@@ -107,8 +117,7 @@ func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, n
 	path := util.UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
 	graph := defaultNonRdfGraph(node.Uri)
-	// TODO: pass the reader to make so that save can use it
-	node.makeNonRdf(graph)
+	node.setAsNonRdf(graph)
 	err := node.writeToDisk(reader)
 	return node, err
 }
@@ -120,6 +129,29 @@ func (node Node) AddChild(child Node) error {
 		log.Printf("%s", err)
 		return err
 	}
+
+	if node.isDirectContainer {
+		return node.addDirectContainerChild(child)
+	}
+	return nil
+}
+
+func (node Node) addDirectContainerChild(child Node) error {
+	// TODO: account for isMemberOfRelation
+	targetUri := node.membershipResource
+	targetPath := util.PathFromUri(node.rootUri, targetUri)
+	targetNode, err := GetNode(node.settings, targetPath)
+	if err != nil {
+		log.Printf("Could not find target node %s.", targetPath)
+		return err
+	}
+
+	tripleForTarget := rdf.NewTriple(targetNode.Uri, node.hasMemberRelation, child.Uri)
+	err = fileio.AppendToFile(targetNode.metaOnDisk, tripleForTarget.StringLn())
+	if err != nil {
+		log.Printf("Error appending child %s to %s. %s", child.Uri, targetNode.Uri, err)
+		return err
+	}
 	return nil
 }
 
@@ -128,6 +160,7 @@ func newNode(settings Settings, path string) Node {
 		panic("newNode expects a path, received a URI: " + path)
 	}
 	var node Node
+	node.settings = settings
 	node.dataPath = settings.dataPath
 	node.nodeOnDisk = util.PathConcat(node.dataPath, path)
 	node.metaOnDisk = util.PathConcat(node.nodeOnDisk, "meta.rdf")
@@ -174,9 +207,9 @@ func (node *Node) loadMeta() error {
 	}
 
 	if graph.IsRdfSource(node.Uri) {
-		node.makeRdf(graph)
+		node.setAsRdf(graph)
 	} else {
-		node.makeNonRdf(graph)
+		node.setAsNonRdf(graph)
 	}
 	return nil
 }
@@ -228,7 +261,7 @@ func defaultNonRdfGraph(subject string) rdf.RdfGraph {
 	return graph
 }
 
-func (node *Node) makeRdf(graph rdf.RdfGraph) {
+func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 	node.IsRdf = true
 	node.Graph = graph
 	node.Headers = make(map[string][]string)
@@ -243,16 +276,19 @@ func (node *Node) makeRdf(graph rdf.RdfGraph) {
 	links := make([]string, 0)
 	links = append(links, rdf.LdpResourceLink)
 	if graph.IsBasicContainer(node.Uri) {
+		node.isBasicContainer = true
 		links = append(links, rdf.LdpContainerLink)
 		links = append(links, rdf.LdpBasicContainerLink)
-		if graph.IsDirectContainer() {
+		// TODO: validate membershipResource is a sub-URI of rootURI
+		node.membershipResource, node.hasMemberRelation, node.isDirectContainer = graph.GetDirectContainerInfo()
+		if node.isDirectContainer {
 			links = append(links, rdf.LdpDirectContainerLink)
 		}
 	}
 	node.Headers["Link"] = links
 }
 
-func (node *Node) makeNonRdf(graph rdf.RdfGraph) {
+func (node *Node) setAsNonRdf(graph rdf.RdfGraph) {
 	// TODO Figure out a way to pass the binary as a stream
 	node.IsRdf = false
 	node.Graph = graph

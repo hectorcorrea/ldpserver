@@ -87,3 +87,19 @@ func TestIsAlphaNumeric(t *testing.T) {
 		}
 	}
 }
+
+func TestPathFromUri(t *testing.T) {
+	rootUri := "http://somewhere.com/"
+
+	testA := "http://somewhere.com/hello/world"
+	resultA := PathFromUri(rootUri, testA)
+	if resultA != "hello/world" {
+		t.Errorf("PathFromUri failed for: %s, %s", testA, resultA)
+	}
+
+	testB := "http://different.com/hello/world"
+	resultB := PathFromUri(rootUri, testB)
+	if resultB != testB {
+		t.Errorf("PathFromUri failed for: %s, %s", testB, resultB)
+	}
+}

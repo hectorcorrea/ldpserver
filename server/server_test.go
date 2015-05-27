@@ -34,23 +34,40 @@ func TestCreateRdf(t *testing.T) {
 }
 
 func TestCreateDirectContainer(t *testing.T) {
-	triples := fmt.Sprintf("<> <%s> <someresource> \n<> <%s> <somerelation>\n", rdf.LdpMembershipResource, rdf.LdpHasMemberRelation)
-	node, err := theServer.CreateRdfSource(triples, "/", slug)
+	// Create a helper node
+	helperNode, err := theServer.CreateRdfSource("", "/", "other")
+
+	// Create the direct container (pointing to the helper node)
+	dcTriple1 := fmt.Sprintf("<> <%s> <%s> .\n", rdf.LdpMembershipResource, helperNode.Uri)
+	dcTriple2 := fmt.Sprintf("<> <%s> <hasXYZ> .\n", rdf.LdpHasMemberRelation)
+	dcTriples := dcTriple1 + dcTriple2
+	dcNode, err := theServer.CreateRdfSource(dcTriples, "/", "dc")
 	if err != nil {
 		t.Errorf("Error creating direct container", err)
 	}
 
-	path := node.Uri[len(rootUrl):]
-	node, err = theServer.GetNode(path)
+	dcNode, err = theServer.GetNode(dcNode.Path())
 	if err != nil {
 		t.Errorf("Error fetching direct container", err)
 	}
 
-	if !node.IsBasicContainer() {
-		t.Errorf("Direct container fetched but not marked as a BASIC container %s", node.Content())
+	if !dcNode.IsBasicContainer() {
+		t.Errorf("Direct container fetched but not marked as a BASIC container %s", dcNode.Content())
 	}
-	if !node.IsDirectContainer() {
-		t.Errorf("Direct container fetched but not marked as a DIRECT container %s", node.Content())
+	if !dcNode.IsDirectContainer() {
+		t.Errorf("Direct container fetched but not marked as a DIRECT container %s", dcNode.Content())
+	}
+
+	// Add a child to the direct container
+	childNode, err := theServer.CreateRdfSource("", dcNode.Path(), "child")
+	if err != nil {
+		t.Errorf("Error adding child to Direct Container", err)
+	}
+
+	// Reload our helper node and make sure the child is referenced on it.
+	helperNode, err = theServer.GetNode(helperNode.Path())
+	if !helperNode.HasTriple("hasXYZ", childNode.Uri) {
+		t.Error("Helper node did not get new triple when adding to a Direct Container")
 	}
 }
 
@@ -103,11 +120,11 @@ func TestCreateRdfWithTriples(t *testing.T) {
 		t.Errorf("err %v, uri %s", err, node.Uri)
 	}
 
-	if !node.Is("b", "c") {
+	if !node.HasTriple("b", "c") {
 		t.Errorf("Blank node not handled correctly %s", node.Uri)
 	}
 
-	if node.Is("x", "z") {
+	if node.HasTriple("x", "z") {
 		t.Errorf("Unexpected tripled for new subject %s", node.Uri)
 	}
 }
@@ -139,7 +156,7 @@ func TestPatchRdf(t *testing.T) {
 	node, _ := theServer.CreateRdfSource(triples, "/", slug)
 	path := node.Uri[len(rootUrl):]
 	node, _ = theServer.GetNode(path)
-	if !node.Is("p1", "o1") || !node.Is("p2", "o2") {
+	if !node.HasTriple("p1", "o1") || !node.HasTriple("p2", "o2") {
 		t.Errorf("Expected triple not found %s", node.Content())
 	}
 
@@ -147,7 +164,7 @@ func TestPatchRdf(t *testing.T) {
 	err := node.Patch(newTriples)
 	if err != nil {
 		t.Errorf("Error during Patch %s", err)
-	} else if !node.Is("p1", "o1") || !node.Is("p2", "o2") || !node.Is("p3", "o3") {
+	} else if !node.HasTriple("p1", "o1") || !node.HasTriple("p2", "o2") || !node.HasTriple("p3", "o3") {
 		t.Errorf("Expected triple not after patch found %s", node.Content())
 	}
 }

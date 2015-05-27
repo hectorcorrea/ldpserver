@@ -2,8 +2,6 @@ package rdf
 
 import "strings"
 
-// import "log"
-
 type RdfGraph []Triple
 
 func (triples RdfGraph) String() string {
@@ -36,37 +34,45 @@ func StringToGraph(theString, rootUri string) (RdfGraph, error) {
 func (graph *RdfGraph) Append(newGraph RdfGraph) {
 	// TODO: Is it OK to duplicate a triple (same subject, pred, and object)
 	// or should Append remove duplicates?
+	// TODO: There are some triples that cannot be duplicated (e.g. direct container definition triples)
+	//       but perhaps that should be validated in the LDP module, not on the RDF module.
 	for _, triple := range newGraph {
 		*graph = append(*graph, triple)
 	}
 }
 
 func (graph RdfGraph) IsRdfSource(subject string) bool {
-	return graph.Is(subject, RdfTypeUri, LdpRdfSourceUri)
+	return graph.HasTriple(subject, RdfTypeUri, LdpRdfSourceUri)
 }
 
 func (graph RdfGraph) IsBasicContainer(subject string) bool {
-	return graph.Is(subject, RdfTypeUri, LdpBasicContainerUri)
+	return graph.HasTriple(subject, RdfTypeUri, LdpBasicContainerUri)
 }
 
 func (graph RdfGraph) IsDirectContainer() bool {
-	// TODO: validate only one instance of each these predicates is found on the graph
-	memResourceFound := false
-	memRelationFound := false
-	for _, triple := range graph {
-		if triple.predicate == LdpMembershipResource {
-			memResourceFound = true
-		} else if triple.predicate == LdpHasMemberRelation {
-			memRelationFound = true
-		}
-		if memRelationFound && memResourceFound {
-			break
-		}
-	}
-	return memResourceFound && memRelationFound
+	_, _, isDirectContainer := graph.GetDirectContainerInfo()
+	return isDirectContainer
 }
 
-func (graph RdfGraph) Is(subject, predicate, object string) bool {
+func (graph RdfGraph) GetDirectContainerInfo() (string, string, bool) {
+	// TODO: validate only one instance of each these predicates is found on the graph
+	// (perhas the validation should only be when adding/updating triples)
+	membershipResource := ""
+	hasMemberRelation := ""
+	for _, triple := range graph {
+		if triple.predicate == LdpMembershipResource {
+			membershipResource = triple.object
+		} else if triple.predicate == LdpHasMemberRelation {
+			hasMemberRelation = triple.object
+		}
+		if membershipResource != "" && hasMemberRelation != "" {
+			return membershipResource, hasMemberRelation, true
+		}
+	}
+	return "", "", false
+}
+
+func (graph RdfGraph) HasTriple(subject, predicate, object string) bool {
 	for _, triple := range graph {
 		if triple.subject == subject && triple.predicate == predicate && triple.object == object {
 			return true
