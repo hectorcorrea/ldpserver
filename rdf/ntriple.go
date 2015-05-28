@@ -1,4 +1,5 @@
-// A rudimentary implementation to support RDF 1.1 N-Triples (http://www.w3.org/TR/n-triples/)
+// A rudimentary implementation to support N-Triples 
+// Full spec: http://www.w3.org/TR/n-triples/
 package rdf
 
 import "errors"

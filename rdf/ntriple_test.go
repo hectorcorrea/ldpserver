@@ -57,14 +57,14 @@ func TestIsLiteral(t *testing.T) {
 
 func TestNewNTripleFromString(t *testing.T) {
 
-	invalidStrings := []string{" .", "<s> <p> <o>", `<s> "p" "o" .`, `<s> <p> <o .`}
+	invalidStrings := []string{" .", "<s> <p> <o>", `<s> "p" "o" .`, `<s> <p> <o .`, `<s> <p> .`, `s p o .`}
 	for _, str := range invalidStrings {
 		if _, err := NewNTripleFromString(str); err == nil {
 			t.Errorf("NTriple failed to detect error in invalid string: %s", str)
 		}		
 	}
 
-	validStrings := []string{"<s> <p> <o> .", `<s> <p> "o" .`}
+	validStrings := []string{"<s> <p> <o> .", `<s> <p> "o" .`, `<s> <p> "" .`}
 	for _, str := range validStrings {
 		if _, err := NewNTripleFromString(str); err != nil {
 			t.Errorf("NTriple failed to detect valid string: %s. Error: %s", str, err)
