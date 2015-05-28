@@ -6,12 +6,34 @@ LDP stands for Linked Data Platform and the W3 spec for it can be found [here]( 
 
 
 ## Compile and run the server
+If Go is installed on your machine:
+
+    cd ~/src
+    git clone git@github.com:hectorcorrea/ldpserver.git
+    cd ldpserver
+    go build
+    ./ldpserver
+
+If you are new to Go follow these steps instead:
+
+    # Download and install Go from: http://golang.org/doc/install
+    # 
+    # Go is very picky about the location of the code (e.g. the code must be 
+    # inside an src folder.) Here is a setup that will work with minimal effort 
+    # and configuration on your part. You can skip the first step if you 
+    # already have an ~/src folder.
+    #
+    mkdir ~/src
+    export GOPATH=~/
+    cd ~/src
+    git clone git@github.com:hectorcorrea/ldpserver.git
+    cd ldpserver
     go build
     ./ldpserver
 
 
 ## Operations supported
-Fetch the root
+With the server running, you can use `cURL` to submit requests to it. For example, to fetch the root node
 
     curl locahost:9001
 
@@ -59,9 +81,20 @@ Fetch node created
 
     curl localhost:9001/demo4
 
-Create a direct container (notice the $'text' syntax to preserve carriage returns in the triples) 
+Create an *LDP Direct Container* that uses `/blog1` as its `membershipResource` (notice the `$'text'` syntax to preserve carriage returns in the triples) 
 
-    curl -X POST -d $'<> <http://www.w3.org/ns/ldp#hasMemberRelation> <someRel> .\n<> <http://www.w3.org/ns/ldp#membershipResource> <someRes> .\n' localhost:9001
+    curl -X POST -d $'<> <http://www.w3.org/ns/ldp#hasMemberRelation> <someRel> .\n<> <http://www.w3.org/ns/ldp#membershipResource> <http://localhost:9001/blog1> .\n' localhost:9001
+
+
+## Demo
+Take a look at `demo.sh` file for an example of a shell script that executes some of the operations supported. To run this demo make sure the LDP Server is running in a separate terminal window, for example:
+
+    # Run the LDP Server in one terminal window
+    ./ldpserver
+
+    # Run the demo script in a separate terminal window
+    chmod u+x demo.sh
+    ./demo.sh
 
 
 ## Storage

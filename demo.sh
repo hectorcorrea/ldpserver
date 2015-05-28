@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # This script shows how to create a blog with one entry 
 # and two comments for the entry. 
 #
