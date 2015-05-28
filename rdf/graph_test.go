@@ -17,14 +17,14 @@ func TestGraphToString(t *testing.T) {
 func TestStringToGraph(t *testing.T) {
 	var graph RdfGraph
 	var err error
-	triple1 := "<a> <b> <c>.\n"
-	triple2 := "<x> <y> <z>.\n"
-	graph, err = StringToGraph(triple1+triple2, "")
+	triple1 := "<a> <b> <c> .\n"
+	triple2 := "<x> <y> <z> .\n"
+	graph, err = StringToGraph(triple1 + triple2, "")
 	if err != nil || len(graph) != 2 {
 		t.Errorf("Unexpected number of triples found: %d %s", len(graph), err)
 	}
 
-	graph, err = StringToGraph("\n"+triple1+"\n"+triple2+"\n", "")
+	graph, err = StringToGraph("\n" + triple1 + "\n" + triple2 + "\n", "")
 	if err != nil || len(graph) != 2 {
 		t.Errorf("Failed to remove empty lines %d %s", len(graph), err)
 	}

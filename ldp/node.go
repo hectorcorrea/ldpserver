@@ -135,7 +135,7 @@ func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, n
 }
 
 func (node Node) AddChild(child Node) error {
-	triple := rdf.NewTriple(node.uri, rdf.LdpContainsUri, child.uri)
+	triple := rdf.NewTripleUri(node.uri, rdf.LdpContainsUri, child.uri)
 	err := fileio.AppendToFile(node.metaOnDisk, triple.StringLn())
 	if err != nil {
 		log.Printf("%s", err)
@@ -158,7 +158,7 @@ func (node Node) addDirectContainerChild(child Node) error {
 		return err
 	}
 
-	tripleForTarget := rdf.NewTriple(targetNode.uri, node.hasMemberRelation, child.uri)
+	tripleForTarget := rdf.NewTripleUri(targetNode.uri, node.hasMemberRelation, child.uri)
 	err = fileio.AppendToFile(targetNode.metaOnDisk, tripleForTarget.StringLn())
 	if err != nil {
 		log.Printf("Error appending child %s to %s. %s", child.uri, targetNode.uri, err)
@@ -249,13 +249,13 @@ func (node Node) writeToDisk(reader io.ReadCloser) error {
 
 func defaultGraph(subject string) rdf.RdfGraph {
 	// define the triples
-	resource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
-	rdfSource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpRdfSourceUri)
+	resource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
+	rdfSource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpRdfSourceUri)
 	// TODO: Not all RDFs resources should be containers
-	basicContainer := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpBasicContainerUri)
-	title := rdf.NewTriple(subject, rdf.DcTitleUri, "This is a new entry")
+	basicContainer := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpBasicContainerUri)
+	title := rdf.NewTripleLit(subject, rdf.DcTitleUri, "This is a new entry")
 	nowString := time.Now().Format(time.RFC3339)
-	created := rdf.NewTriple(subject, rdf.DcCreatedUri, nowString)
+	created := rdf.NewTripleLit(subject, rdf.DcCreatedUri, nowString)
 	// create the graph
 	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created}
 	return graph
@@ -263,11 +263,11 @@ func defaultGraph(subject string) rdf.RdfGraph {
 
 func defaultNonRdfGraph(subject string) rdf.RdfGraph {
 	// define the triples
-	resource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
-	nonRdfSource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpNonRdfSourceUri)
-	title := rdf.NewTriple(subject, rdf.DcTitleUri, "This is a new entry")
+	resource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
+	nonRdfSource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpNonRdfSourceUri)
+	title := rdf.NewTripleLit(subject, rdf.DcTitleUri, "This is a new entry")
 	nowString := time.Now().Format(time.RFC3339)
-	created := rdf.NewTriple(subject, rdf.DcCreatedUri, nowString)
+	created := rdf.NewTripleLit(subject, rdf.DcCreatedUri, nowString)
 	// create the graph
 	graph := rdf.RdfGraph{resource, nonRdfSource, title, created}
 	return graph

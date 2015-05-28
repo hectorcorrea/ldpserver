@@ -1,26 +1,41 @@
 package rdf
 
 import "strings"
-import "regexp"
-import "fmt"
-import "errors"
+import "log"
 
 type Triple struct {
-	subject   string
-	predicate string
-	object    string
+	subject   			string 			// always a URI
+	predicate 			string 			// always a URI
+	object    			string      // can be a URI or a literal
+	isObjectLiteral bool
 }
 
 var specialChars string = `"\<>`
 
-func NewTriple(subject, predicate, object string) Triple {
-	return Triple{subject: subject, predicate: predicate, object: object}
+func NewTripleUri(subject, predicate, object string) Triple {
+	return newTriple(subject, predicate, object, false)
+}
+
+func NewTripleLit(subject, predicate, object string) Triple {
+	return newTriple(subject, predicate, object, true)
+}
+
+func newTripleFromNTriple(ntriple NTriple) Triple {
+	return newTriple(ntriple.Subject(), ntriple.Predicate(), ntriple.Object(), ntriple.IsObjectLiteral()) 
+}
+
+func newTriple(subject, predicate, object string, isObjectLiteral bool) Triple {
+	return Triple{subject: subject, predicate: predicate, object: object, isObjectLiteral: isObjectLiteral}
 }
 
 func (t Triple) String() string {
-	return "<" + encode(t.subject) + "> " +
-		"<" + encode(t.predicate) + "> " +
-		"<" + encode(t.object) + "> ."
+	str := "<" + encode(t.subject) + "> <" + encode(t.predicate) + "> "
+	if t.isObjectLiteral {
+		str += `"` + encode(t.object) + `" .`
+	} else {
+		str += "<" + encode(t.object) + "> ."
+	}
+	return str
 }
 
 func (t Triple) StringLn() string {
@@ -34,20 +49,15 @@ func stripDelimiters(text string) string {
 // Creates a triple from a string in the following format
 //    <subject> <predicate> <object> .
 func StringToTriple(line, blank string) (Triple, error) {
-	var triple Triple
 	if len(blank) > 0 {
 		line = strings.Replace(line, "<>", "<"+blank+">", -1)
 	}
-	re := regexp.MustCompile("<([^>]+)>")
-	matches := re.FindAllString(line, -1)
-	if len(matches) == 3 {
-		triple.subject = stripDelimiters(matches[0])
-		triple.predicate = stripDelimiters(matches[1])
-		triple.object = stripDelimiters(matches[2])
-		return triple, nil
+	ntriple, err := NewNTripleFromString(line)
+	if err != nil {
+		log.Printf("Error parsing %s. Error: %s", line, err)
+		return Triple{}, err
 	}
-	errorMsg := fmt.Sprintf("%d elements found in triple %s", len(matches), line)
-	return triple, errors.New(errorMsg)
+	return newTripleFromNTriple(ntriple), nil
 }
 
 func encode(value string) string {

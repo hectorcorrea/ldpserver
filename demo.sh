@@ -17,7 +17,7 @@
 BLOG_URI="$(curl -X POST --header 'Slug: blog' localhost:9001)"
 
 # Add an entry to the blog
-ENTRY_URI="$(curl -X POST --header 'Slug: entry' -d '<> <dc:title> <blog one title> .' ${BLOG_URI})"
+ENTRY_URI="$(curl -X POST --header 'Slug: entry' -d '<> <dc:title> "blog one title" .' ${BLOG_URI})"
 
 # Add the content for the blog (non-RDF)
 CONTENT_URI="$(curl -X POST --header 'Slug: content' --header 'Link: http://www.w3.org/ns/ldp#NonRDFSource; rel=\"type\"' --data 'content of the blog entry' ${BLOG_URI})"
@@ -29,9 +29,9 @@ TRIPLE2="<> <http://www.w3.org/ns/ldp#membershipResource> <${ENTRY_URI}> ."
 curl -X PATCH -d "${TRIPLE1}" ${COMMENTS_URI}
 curl -X PATCH -d "${TRIPLE2}" ${COMMENTS_URI}
 
-# Add a couple of comments to the direct container 
-COMMENT1_URI="$(curl -X POST --header 'Slug: comment' -d $'<> <dc:description> <this is a comment> .\n' ${COMMENTS_URI})"
-COMMENT2_URI="$(curl -X POST --header "Slug: comment" -d $'<> <dc:description> <this is another comment> .\n' ${COMMENTS_URI})"
+# # Add a couple of comments to the direct container 
+COMMENT1_URI="$(curl -X POST --header 'Slug: comment' -d $'<> <dc:description> "this is a comment" .' ${COMMENTS_URI})"
+COMMENT2_URI="$(curl -X POST --header "Slug: comment" -d $'<> <dc:description> "this is another comment" .' ${COMMENTS_URI})"
 
 echo "** The following URIs were created:"
 echo "  BLOG_URI     = ${BLOG_URI}"

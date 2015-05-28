@@ -3,8 +3,6 @@ package rdf
 import "testing"
 import "fmt"
 
-// import "log"
-
 func TestTripleToString(t *testing.T) {
 	triple := Triple{subject: "a", predicate: "b", object: "c"}
 	str := fmt.Sprintf("%s", triple)
@@ -21,55 +19,29 @@ func TestEncode(t *testing.T) {
 	}
 }
 
-func TestStringToTriple1(t *testing.T) {
-	test := "<a> <b> <c>.\n"
-	triple, err := StringToTriple(test, "")
-	if err != nil {
-		t.Errorf("Triple for %s failed: %s", test, err)
-	} else if triple.subject != "a" || triple.predicate != "b" || triple.object != "c" {
-		t.Errorf("Triple %s incorrectly parsed", test)
+func TestStringToTriple(t *testing.T) {
+	validTests := []string{`<a> <b> <c> .`, `<a> <b> "c" .`}
+	for _, test := range validTests {
+		_, err := StringToTriple(test, "")
+		if err != nil {
+			t.Errorf("Failed to parse valid triple %s. Err: %s", test, err)
+		}
 	}
-}
 
-func TestStringToTriple2(t *testing.T) {
-	test := `<a> <3 \< 2> <no>.\n`
-	triple, err := StringToTriple(test, "")
-	if err != nil {
-		t.Errorf("Test for %s failed: %s", test, err)
-	} else if triple.subject != "a" || triple.predicate != `3 \< 2` || triple.object != "no" {
-		t.Errorf("Triple %s incorrectly parsed", test)
-	}
-}
-
-func TestStringToTriple3(t *testing.T) {
-	test := `<a> <3 < 2> <no>.\n`
-	triple, err := StringToTriple(test, "")
-	if err != nil {
-		t.Errorf("Test for %s failed: %s", test, err)
-	} else if triple.subject != "a" || triple.predicate != `3 < 2` || triple.object != "no" {
-		t.Errorf("Triple %s incorrectly parsed", test)
+	invalidTests := []string{`<a> <3 \< 2> <no> .`, `<a> <3 < 2> <no>.\n`, `<a> <3 \> 2> <yes> .`}
+	for _, test := range invalidTests {
+		_, err := StringToTriple(test, "")
+		if err == nil {
+			t.Errorf("Failed to detect bad triple in %s.", test)
+		}
 	}
 }
 
 func TestStringToTripleBlankSubject(t *testing.T) {
 	subject := "http://localhost/root/"
-	test := "<> <b> <c>.\n"
-	triple, err := StringToTriple(test, subject)
-	if err != nil {
-		t.Errorf("Triple for %s failed: %s", test, err)
-	} else if triple.subject != subject || triple.predicate != "b" || triple.object != "c" {
-		t.Errorf("Triple %s incorrectly parsed", test)
+	test := "<> <b> <c> ."
+	triple, _ := StringToTriple(test, subject)
+	if triple.subject != subject || triple.predicate != "b" || triple.object != "c" {
+		t.Error("Triple with blank subject was parsed incorrectly")
 	}
-}
-
-func TestStringToTriple9(t *testing.T) {
-	// TODO: This test fails
-	// it parses the predicate as "3 \"
-	// test := `<a> <3 \> 2> <yes>.\n`
-	// triple, err := StringToTriple(test)
-	// if err != nil {
-	//   t.Errorf("Test for %s failed: %s", test, err)
-	// } else if triple.subject != "a" || triple.predicate != `3 \> 2`  || triple.object != "yes" {
-	//   t.Errorf("Triple %s incorrectly parsed\n %s\n %s\n %s", test, triple.subject, triple.predicate, triple. object)
-	// }
 }

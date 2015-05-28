@@ -30,12 +30,13 @@ func CreateRoot(settings Settings) {
 
 func defaultRootRdfGraph(subject string) rdf.RdfGraph {
 	// define the triples
-	resource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
-	rdfSource := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpRdfSourceUri)
-	basicContainer := rdf.NewTriple(subject, rdf.RdfTypeUri, rdf.LdpBasicContainerUri)
-	title := rdf.NewTriple(subject, rdf.DcTitleUri, "Root node")
+	resource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
+	rdfSource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpRdfSourceUri)
+	basicContainer := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpBasicContainerUri)
+	title := rdf.NewTripleLit(subject, rdf.DcTitleUri, "Root node")
 	nowString := time.Now().Format(time.RFC3339)
-	created := rdf.NewTriple(subject, rdf.DcCreatedUri, nowString)
+	created := rdf.NewTripleLit(subject, rdf.DcCreatedUri, nowString)
+	
 	// create the graph
 	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created}
 	return graph

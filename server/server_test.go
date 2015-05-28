@@ -105,7 +105,7 @@ func TestCreateChildRdf(t *testing.T) {
 }
 
 func TestCreateRdfWithTriples(t *testing.T) {
-	triples := "<> <b> <c> .\r\n<x> <y> <z> ."
+	triples := "<> <b> <c> .\n<x> <y> <z> .\n"
 	node, err := theServer.CreateRdfSource(triples, "/", slug)
 	if err != nil || !node.IsRdf() {
 		t.Errorf("Error creating RDF")

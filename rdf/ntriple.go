@@ -1,15 +1,28 @@
-// A rudimentary implementation to support N-Triples 
+// A rudimentary implementation of N-Triples 
 // Full spec: http://www.w3.org/TR/n-triples/
+//
+// Supported:
+//		basic triples like <s> <p> <o> and <s> <p> "o"
+//
+// Not supported:
+//		blank nodes
+//		language in literals e.g. "hola"@es
+//		types in literals e.g. "hello"^^<http://www.w3.org/2001/XMLSchema#string>
+//		comments
+//
 package rdf
 
 import "errors"
 import "regexp"
 import "strings"
+// import "log"
 
 type NTriple struct {
 	subject   string
+	isSubjecttUri bool
 	predicate string
 	object    string
+	isObjectLiteral bool
 }
 
 // Spec: '<' ([^#x00-#x20<>"{}|^`\] | UCHAR)* '>'
@@ -34,37 +47,69 @@ func NewNTriple(subject, predicate, object string) (NTriple, error) {
 		return NTriple{}, errors.New("Invalid object: " + object)
 	}
 
-	return NTriple{subject: subject, predicate: predicate, object: object}, nil
+	return NTriple{subject: subject, predicate: predicate, object: object, isObjectLiteral: true}, nil
 }
 
 
-func NewNTripleFromString(value string) (NTriple, error) {
+func (triple NTriple) Subject() string {
+	return triple.subject
+}
 
+func (triple NTriple) Predicate() string {
+	return triple.predicate
+}
+
+func (triple NTriple) Object() string {
+	return triple.object
+}
+
+func (triple NTriple) IsObjectLiteral() bool {
+	return triple.isObjectLiteral
+}
+
+func (triple NTriple) IsObjectUri() bool {
+	return !triple.isObjectLiteral
+}
+
+func NewNTripleFromString(value string) (NTriple, error) {
 	if !strings.HasSuffix(value, " .") {
 		return NTriple{}, errors.New("string does not end with ' .'")
 	}
 
-	subject := iriRefRegEx.FindString(value)
+	subject := extractIriRef(value)
 	if subject == "" {
 		return NTriple{}, errors.New("No subject was found in string")
 	}
 
 	token2 := value[len(subject) + 1:]
-	predicate := iriRefRegEx.FindString(token2)
+	predicate := extractIriRef(token2)
 	if predicate == "" {
 		return NTriple{}, errors.New("No predicate was found in string")
 	}
 
 	token3 := token2[len(predicate) + 1:]
-	object := iriRefRegEx.FindString(token3)
+	isObjectLiteral := false
+	object := extractIriRef(token3)
 	if object == "" {
-		object = literalRegEx.FindString(token3)
+		object = extractLiteral(token3)
 		if object == "" {
 			return NTriple{}, errors.New("No object was found in string")
 		}
-	} 
+		isObjectLiteral = true
+	}
 
-	return NewNTriple(subject, predicate, object)
+	return newNTriple(subject, predicate, object, isObjectLiteral), nil
+}
+
+func newNTriple(subject, predicate, object string, isObjectLiteral bool) NTriple {
+	var triple NTriple
+	triple.subject = stripDelimiters(subject)
+	triple.isSubjecttUri = true
+	triple.predicate = stripDelimiters(predicate)
+	triple.isSubjecttUri = true
+	triple.object = stripDelimiters(object)
+	triple.isObjectLiteral = isObjectLiteral	
+	return triple
 }
 
 func isSubject(value string) bool {
@@ -87,4 +132,20 @@ func isIriRef(value string) bool {
 func isLiteral(value string) bool {
 	match := literalRegEx.FindString(value)
 	return match == value
+}
+
+func extractIriRef(value string) string {
+	match := iriRefRegEx.FindString(value)
+	if strings.HasPrefix(value, match) {
+		return match
+	}
+	return ""
+}
+
+func extractLiteral(value string) string {
+	match := literalRegEx.FindString(value)
+	if strings.HasPrefix(value, match) {
+		return match
+	}
+	return ""
 }
