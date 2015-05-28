@@ -4,18 +4,16 @@ import "testing"
 import "fmt"
 
 func TestTripleToString(t *testing.T) {
-	triple := Triple{subject: "a", predicate: "b", object: "c"}
-	str := fmt.Sprintf("%s", triple)
-	if str != "<a> <b> <c> ." {
+	triple1 := NewTripleUri("s", "p", "o")
+	str := fmt.Sprintf("%s", triple1)
+	if str != "<s> <p> <o> ." {
 		t.Errorf("Triple to string failed: %s", str)
 	}
-}
 
-func TestEncode(t *testing.T) {
-	triple := Triple{subject: "a<b", predicate: `the "normal" pred`, object: "c"}
-	str := fmt.Sprintf("%s", triple)
-	if str != `<a\<b> <the \"normal\" pred> <c> .` {
-		t.Errorf("Triple to string failed: %s", str)
+	triple2 := NewTripleLit("s", "p", "o")
+	str2 := fmt.Sprintf("%s", triple2)
+	if str2 != `<s> <p> "o" .` {
+		t.Errorf("Triple to string failed: %s", str2)
 	}
 }
 

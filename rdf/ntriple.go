@@ -149,3 +149,7 @@ func extractLiteral(value string) string {
 	}
 	return ""
 }
+
+func stripDelimiters(text string) string {
+	return text[1 : len(text)-1]
+}

@@ -2,6 +2,7 @@ package rdf
 
 import "strings"
 import "log"
+import "fmt"
 
 type Triple struct {
 	subject   			string 			// always a URI
@@ -9,8 +10,6 @@ type Triple struct {
 	object    			string      // can be a URI or a literal
 	isObjectLiteral bool
 }
-
-var specialChars string = `"\<>`
 
 func NewTripleUri(subject, predicate, object string) Triple {
 	return newTriple(subject, predicate, object, false)
@@ -29,21 +28,14 @@ func newTriple(subject, predicate, object string, isObjectLiteral bool) Triple {
 }
 
 func (t Triple) String() string {
-	str := "<" + encode(t.subject) + "> <" + encode(t.predicate) + "> "
 	if t.isObjectLiteral {
-		str += `"` + encode(t.object) + `" .`
-	} else {
-		str += "<" + encode(t.object) + "> ."
-	}
-	return str
+		return fmt.Sprintf(`<%s> <%s> "%s" .`, t.subject, t.predicate, t.object)
+	} 
+	return fmt.Sprintf(`<%s> <%s> <%s> .`, t.subject, t.predicate, t.object)
 }
 
 func (t Triple) StringLn() string {
 	return t.String() + "\n"
-}
-
-func stripDelimiters(text string) string {
-	return text[1 : len(text)-1]
 }
 
 // Creates a triple from a string in the following format
@@ -52,37 +44,12 @@ func StringToTriple(line, blank string) (Triple, error) {
 	if len(blank) > 0 {
 		line = strings.Replace(line, "<>", "<"+blank+">", -1)
 	}
+	// Make sure the string is a valid N-Triple.
 	ntriple, err := NewNTripleFromString(line)
 	if err != nil {
 		log.Printf("Error parsing %s. Error: %s", line, err)
 		return Triple{}, err
 	}
+	// Convert the N-Triple to a triple.
 	return newTripleFromNTriple(ntriple), nil
-}
-
-func encode(value string) string {
-	if strings.IndexAny(value, specialChars) == -1 {
-		return value
-	}
-	return doEncode(value)
-}
-
-func doEncode(value string) string {
-	// This is a horrible way of doing the encoding,
-	// but it would do for now.
-	encodings := make(map[string]string)
-	encodings[`"`] = `\"`
-	encodings[`\`] = `\\`
-	encodings["<"] = "\\<"
-	encodings[">"] = "\\>"
-	encoded := ""
-	for _, r := range value {
-		char := string(r)
-		if replacement, ok := encodings[char]; ok {
-			encoded += replacement
-		} else {
-			encoded += char
-		}
-	}
-	return encoded
 }
