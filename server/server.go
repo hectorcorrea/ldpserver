@@ -3,25 +3,24 @@ package server
 import "io"
 import "errors"
 import "ldpserver/ldp"
+import "ldpserver/util"
 import "fmt"
+
+const defaultSlug string = "node"
 
 type Server struct {
 	settings ldp.Settings
 	minter   chan string
-	nextNode chan ldp.Node
+	nextNode chan ldp.PlaceholderNode
 }
 
-// type PlaceholderNode struct {
-// 	Node Node
-// 	Err  error
-// }
 
 func NewServer(rootUri string, dataPath string) Server {
 	var server Server
 	server.settings = ldp.SettingsNew(rootUri, dataPath)
 	ldp.CreateRoot(server.settings)
 	server.minter = CreateMinter(server.settings.IdFile())
-	server.nextNode = make(chan ldp.Node)
+	server.nextNode = make(chan ldp.PlaceholderNode)
 	return server
 }
 
@@ -33,9 +32,36 @@ func (server Server) GetHead(path string) (ldp.Node, error) {
 	return ldp.GetHead(server.settings, path)
 }
 
-func (server Server) createNewNode(parentPath string, newPath string) {
-	// Create a new palceholder node and put it in the nextNode channel.
+func (server Server) getNewPath(slug string) (string, error) {
+	if slug == "" {
+		// Generate a new server URI (e.g. node34)
+		return MintNextUri(defaultSlug, server.minter), nil
+	}
+
+	if !util.IsAlphaNumeric(slug) {
+		errorMsg := fmt.Sprintf("Invalid Slug received (%s). Slug must not include special characters.", slug)
+		return "", errors.New(errorMsg)
+	}
+	return slug, nil
+}
+
+func (server Server) createPlaceholderNode(parentPath string, newPath string) {
+	// This code uses a synchronous channel (server.nextNode) to queue
+	// the creation of new nodes. We use this queue to prevent more than
+	// one request from creating the same node (same parenthPath + path)
+	//
+	// This is a bottleneck which is why the placeholder creation
+	// must be very fast. Fingers crossed. 
 	server.nextNode <- ldp.NewPlaceholderNode(server.settings, parentPath, newPath)
+}
+
+func (server Server) getPlaceholderNode(parentPath string, newPath string) ldp.PlaceholderNode {
+	// Request a new node to be created.
+	go server.createPlaceholderNode(parentPath, newPath)
+
+	// Wait for the new node to be available.
+	placeholderNode := <-server.nextNode
+	return placeholderNode
 }
 
 func (server Server) CreateRdfSource(triples string, parentPath string, slug string) (ldp.Node, error) {
@@ -44,22 +70,14 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 		return ldp.Node{}, err
 	}
 
-	var newPath string
-	if slug == "blog" {
-		newPath = MintNextUri(slug, server.minter)
-	} else {
-		newPath = slug
+	newPath, err := server.getNewPath(slug)
+	if err != nil {
+		return ldp.Node{}, err
 	}
 
-	// Queue the creation of the new node by way
-	// of the server.nextNode channel.
-	go server.createNewNode(parentPath, newPath)
-
-	// Pick up the node created from the channel.
-	n := <-server.nextNode
-	if n.Uri() == "error" {
-		err := errors.New(fmt.Sprintf("error creating new node %s", newPath))
-		return ldp.Node{}, err
+	placeholderNode := server.getPlaceholderNode(parentPath, newPath)
+	if placeholderNode.Err != nil {
+		return ldp.Node{}, placeholderNode.Err
 	}
 
 	node, err := ldp.NewRdfNode(server.settings, triples, parentPath, newPath)
@@ -79,7 +97,16 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 		return ldp.Node{}, err
 	}
 
-	newPath := MintNextUri(slug, server.minter)
+	newPath, err := server.getNewPath(slug)
+	if err != nil {
+		return ldp.Node{}, err
+	}
+
+	placeholderNode := server.getPlaceholderNode(parentPath, newPath)
+	if placeholderNode.Err != nil {
+		return ldp.Node{}, placeholderNode.Err
+	}
+
 	node, err := ldp.NewNonRdfNode(server.settings, reader, parentPath, newPath)
 	if err != nil {
 		return node, err

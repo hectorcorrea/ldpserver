@@ -37,13 +37,13 @@ With the server running, you can use `cURL` to submit requests to it. For exampl
 
     curl locahost:9001
 
-POST to the root (the Slug defaults to "blog")
+POST to the root (the Slug defaults to "node")
 
     curl -X POST localhost:9001
 
 Fetch the node created
 
-    curl localhost:9001/blog1
+    curl localhost:9001/node1
 
 POST a non-RDF to the root
 
@@ -53,25 +53,25 @@ POST a non-RDF to the root
 
 Fetch the non-RDF created
 
-    curl localhost:9001/blog2
+    curl localhost:9001/node2
 
 HTTP HEAD operations are supported
 
     curl -I localhost:9001/
-    curl -I localhost:9001/blog1
-    curl -I localhost:9001/blog2
+    curl -I localhost:9001/node1
+    curl -I localhost:9001/node2
 
 Add an RDF source to add a child node (you can only add to RDF sources)
 
-    curl -X POST localhost:9001/blog1
+    curl -X POST localhost:9001/node1
 
 See that the child was added
 
-    curl localhost:9001/blog1
+    curl localhost:9001/node1
 
 Fetch the child
 
-    curl localhost:9001/blog1/blog3
+    curl localhost:9001/node1/node3
 
 Create a node with a custom Slug
 
@@ -79,11 +79,11 @@ Create a node with a custom Slug
 
 Fetch node created
 
-    curl localhost:9001/demo4
+    curl localhost:9001/demo
 
-Create an *LDP Direct Container* that uses `/blog1` as its `membershipResource` (notice the `$'text'` syntax to preserve carriage returns in the triples) 
+Create an *LDP Direct Container* that uses `/node1` as its `membershipResource` (notice the `$'text'` syntax to preserve carriage returns in the triples) 
 
-    curl -X POST -d $'<> <http://www.w3.org/ns/ldp#hasMemberRelation> <someRel> .\n<> <http://www.w3.org/ns/ldp#membershipResource> <http://localhost:9001/blog1> .\n' localhost:9001
+    curl -X POST -d $'<> <http://www.w3.org/ns/ldp#hasMemberRelation> <someRel> .\n<> <http://www.w3.org/ns/ldp#membershipResource> <http://localhost:9001/node1> .\n' localhost:9001
 
 
 ## Demo

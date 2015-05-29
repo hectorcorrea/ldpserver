@@ -4,19 +4,18 @@
 # and two comments for the entry. 
 #
 # The resulting URLs will look more or less as follows:
-#     /blog1
-#     /blog1/entry2
-#     /blog1/entry2/content3
-#     /blog1/entry2/comments4
-#     /blog1/entry2/comments4/comment5
-#     /blog1/entry2/comments4/comment6
-#
+#     /node1
+#     /node1/entry
+#     /node1/entry/content
+#     /node1/entry/comments
+#     /node1/entry/comments/comment1
+#     /node1/entry/comments/comment2
 #
 # Make sure the LDP server is running on localhost:9001
 #
 
 # Create a blog
-BLOG_URI="$(curl -X POST --header 'Slug: blog' localhost:9001)"
+BLOG_URI="$(curl -X POST localhost:9001)"
 
 # Add an entry to the blog
 ENTRY_URI="$(curl -X POST --header 'Slug: entry' -d '<> <dc:title> "blog one title" .' ${BLOG_URI})"
@@ -32,8 +31,8 @@ curl -X PATCH -d "${TRIPLE1}" ${COMMENTS_URI}
 curl -X PATCH -d "${TRIPLE2}" ${COMMENTS_URI}
 
 # # Add a couple of comments to the direct container 
-COMMENT1_URI="$(curl -X POST --header 'Slug: comment' -d $'<> <dc:description> "this is a comment" .' ${COMMENTS_URI})"
-COMMENT2_URI="$(curl -X POST --header "Slug: comment" -d $'<> <dc:description> "this is another comment" .' ${COMMENTS_URI})"
+COMMENT1_URI="$(curl -X POST --header 'Slug: comment1' -d $'<> <dc:description> "this is a comment" .' ${COMMENTS_URI})"
+COMMENT2_URI="$(curl -X POST --header "Slug: comment2" -d $'<> <dc:description> "this is another comment" .' ${COMMENTS_URI})"
 
 echo "** The following URIs were created:"
 echo "  BLOG_URI     = ${BLOG_URI}"

@@ -13,11 +13,18 @@ import (
 var dataPath string
 var theServer Server
 var rootUrl = "http://localhost:9001/"
-var slug = "blog"
+var slug = ""
 
 func init() {
 	dataPath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	theServer = NewServer(rootUrl, dataPath)
+}
+
+func TestBadSlug(t *testing.T) {
+	_, err := theServer.CreateRdfSource("", "/", "/invalid/")
+	if err == nil {
+		t.Error("Failed to detect an invalid slug")
+	}
 }
 
 func TestCreateRdf(t *testing.T) {

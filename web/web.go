@@ -6,7 +6,6 @@ import (
 	"ldpserver/ldp"
 	"ldpserver/rdf"
 	"ldpserver/server"
-	"ldpserver/util"
 	"log"
 	"net/http"
 	"strings"
@@ -152,9 +151,7 @@ func safePath(rawPath string) string {
 
 func getSlug(header http.Header) string {
 	for _, value := range header["Slug"] {
-		if util.IsAlphaNumeric(value) {
-			return value
-		}
+		return value
 	}
-	return "blog"
+	return ""
 }

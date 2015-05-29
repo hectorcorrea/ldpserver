@@ -34,6 +34,13 @@ type Node struct {
 	// isMemberOfRelation string
 }
 
+// This structure is really just a workaround so that we can return 
+// two values (node and error) to a Go channel. 
+type PlaceholderNode struct {
+	Node Node
+	Err  error
+}
+
 func (node Node) Content() string {
 	if node.isRdf {
 		return node.graph.String()
@@ -109,6 +116,20 @@ func (node *Node) Patch(triples string) error {
 	return nil
 }
 
+// Creates a file on disk to represent a node but the file is empty
+// (i.e. it's a placeholder.) This function will NOT overwrite an 
+// existing file. If another file with the same name exists it will
+// return an error.
+func NewPlaceholderNode(settings Settings, parentPath string, newPath string) PlaceholderNode {
+	path := util.UriConcat(parentPath, newPath)
+	node := newNode(settings, path)
+	err := fileio.CreateFile(node.metaOnDisk)
+	if err != nil {
+		return PlaceholderNode{Err: err}
+	}
+	return PlaceholderNode{Node: node}
+}
+
 func NewRdfNode(settings Settings, triples string, parentPath string, newPath string) (Node, error) {
 	path := util.UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
@@ -123,16 +144,6 @@ func NewRdfNode(settings Settings, triples string, parentPath string, newPath st
 	node.setAsRdf(graph)
 	err = node.writeToDisk(nil)
 	return node, err
-}
-
-func NewPlaceholderNode(settings Settings, parentPath string, newPath string) Node {
-	path := util.UriConcat(parentPath, newPath)
-	node := newNode(settings, path)
-	err := node.createOnDisk()
-	if err != nil {
-		return Node{uri: "error"}
-	}
-	return node
 }
 
 func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, newPath string) (Node, error) {
@@ -233,17 +244,6 @@ func (node *Node) loadMeta() error {
 	} else {
 		node.setAsNonRdf(graph)
 	}
-	return nil
-}
-
-func (node Node) createOnDisk() error {
-	log.Printf("createOnDisk(%s) {\n", node.metaOnDisk)
-	err := fileio.CreateFile(node.metaOnDisk)
-	if err != nil {
-		log.Printf("\t %s, %s\n", node.metaOnDisk, err)
-		return err
-	}
-	log.Printf("} %s\n", node.metaOnDisk)
 	return nil
 }
 
