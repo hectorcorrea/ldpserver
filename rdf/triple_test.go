@@ -36,10 +36,19 @@ func TestStringToTriple(t *testing.T) {
 }
 
 func TestStringToTripleBlankSubject(t *testing.T) {
-	subject := "http://localhost/root/"
-	test := "<> <b> <c> ."
-	triple, _ := StringToTriple(test, subject)
-	if triple.subject != subject || triple.predicate != "b" || triple.object != "c" {
+	testUri := "http://localhost/root/"
+	triple, _ := StringToTriple("<> <p> <o> .", testUri)
+	if triple.subject != testUri || triple.predicate != "p" || triple.object != "o" {
 		t.Error("Triple with blank subject was parsed incorrectly")
+	}
+
+	triple, _ = StringToTriple("<s> <p> <> .", testUri)
+	if triple.subject != "s" || triple.predicate != "p" || triple.object != testUri {
+		t.Error("Triple with blank object was parsed incorrectly")
+	}
+
+	triple, err := StringToTriple("<s> <> <o> .", testUri)
+	if err == nil {
+		t.Error("Triple with blank predicate parsed incorrectly")
 	}
 }

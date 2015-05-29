@@ -122,7 +122,7 @@ For example, if we have two nodes (blog1 and blog2) and blog1 is an RDF node and
 
 
 ## Misc Notes
-Empty subjects <> are only accepted when creating new nodes (via HTTP POST) and they are immediately converted to the actual URI that they represent.
+Empty subjects and objects (<>) are only accepted when creating new nodes (via HTTP POST) and they are immediately converted to the actual URI that they represent.
 
 
 ## TODO

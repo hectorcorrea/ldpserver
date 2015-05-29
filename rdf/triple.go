@@ -38,18 +38,43 @@ func (t Triple) StringLn() string {
 	return t.String() + "\n"
 }
 
-// Creates a triple from a string in the following format
+// Creates a triple from a string. We assume the string is in N-Triple format
+// and thefore looks like this:
+//
 //    <subject> <predicate> <object> .
+//
+// or like this:
+//
+//    <subject> <predicate> "object" .
+//
 func StringToTriple(line, blank string) (Triple, error) {
 	if len(blank) > 0 {
-		line = strings.Replace(line, "<>", "<"+blank+">", -1)
+		line = replaceBlanksInTriple(line, blank)
 	}
-	// Make sure the string is a valid N-Triple.
+
+	// Parse the line in N-Triple format into an NTriple object.
 	ntriple, err := NewNTripleFromString(line)
 	if err != nil {
 		log.Printf("Error parsing %s. Error: %s", line, err)
 		return Triple{}, err
 	}
+
 	// Convert the N-Triple to a triple.
 	return newTripleFromNTriple(ntriple), nil
+}
+
+func replaceBlanksInTriple(line, blank string) string {
+	isEmptySubject := strings.HasPrefix(line, "<>")
+	if isEmptySubject {
+		line = "<" + blank + ">" + line[2:]
+	}
+
+	// notice that we purposefully don't replace the <> 
+	// if it is found in the predicate.
+
+	isEmptyObject := strings.HasSuffix(line, "<> .")
+	if isEmptyObject {
+		line = line[:len(line)-4] + "<" + blank + "> ."
+	}
+	return line	
 }

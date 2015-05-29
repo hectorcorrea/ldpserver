@@ -16,7 +16,7 @@ func TestIsIriRef(t *testing.T) {
 	}
 
 	invalidIriRefs := []string{"hello", "<he<llo>", "<hello>>", "<he{ll}o>", "<h|ello>", "hel\"lo",
-		"<hello:world", "<hello world>"}
+		"<hello:world", "<hello world>", "<>"}
 	for _, iri := range invalidIriRefs {
 		if isIriRef(iri) {
 			t.Errorf("NTriple failed to detect invalid IRIREF: %s", iri)

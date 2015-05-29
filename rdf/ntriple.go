@@ -8,7 +8,7 @@
 //		blank nodes
 //		language in literals e.g. "hola"@es
 //		types in literals e.g. "hello"^^<http://www.w3.org/2001/XMLSchema#string>
-//		comments
+//		comments e.g. # this is a comment
 //
 package rdf
 
@@ -26,7 +26,7 @@ type NTriple struct {
 }
 
 // Spec: '<' ([^#x00-#x20<>"{}|^`\] | UCHAR)* '>'
-var iriRefRegEx = regexp.MustCompile("<([^\x00-\x20<>\"{}|^\\`]*)>") 
+var iriRefRegEx = regexp.MustCompile("<([^\x00-\x20<>\"{}|^\\`]+)>") 
 
 // Spec: '"' ([^#x22#x5C#xA#xD] | ECHAR | UCHAR)* '"'
 // Source for this reg ex: http://inamidst.com/proj/rdf/ntriples.py 
