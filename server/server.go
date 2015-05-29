@@ -8,13 +8,20 @@ import "fmt"
 type Server struct {
 	settings ldp.Settings
 	minter   chan string
+	nextNode chan ldp.Node
 }
+
+// type PlaceholderNode struct {
+// 	Node Node
+// 	Err  error
+// }
 
 func NewServer(rootUri string, dataPath string) Server {
 	var server Server
 	server.settings = ldp.SettingsNew(rootUri, dataPath)
 	ldp.CreateRoot(server.settings)
 	server.minter = CreateMinter(server.settings.IdFile())
+	server.nextNode = make(chan ldp.Node)
 	return server
 }
 
@@ -26,13 +33,34 @@ func (server Server) GetHead(path string) (ldp.Node, error) {
 	return ldp.GetHead(server.settings, path)
 }
 
+func (server Server) createNewNode(parentPath string, newPath string) {
+	// Create a new palceholder node and put it in the nextNode channel.
+	server.nextNode <- ldp.NewPlaceholderNode(server.settings, parentPath, newPath)
+}
+
 func (server Server) CreateRdfSource(triples string, parentPath string, slug string) (ldp.Node, error) {
 	container, err := server.getContainer(parentPath)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	newPath := MintNextUri(slug, server.minter)
+	var newPath string
+	if slug == "blog" {
+		newPath = MintNextUri(slug, server.minter)
+	} else {
+		newPath = slug
+	}
+
+	// Queue the creation of the new node by way
+	// of the server.nextNode channel.
+	go server.createNewNode(parentPath, newPath)
+
+	// Pick up the node created from the channel.
+	n := <-server.nextNode
+	if n.Uri() == "error" {
+		err := errors.New(fmt.Sprintf("error creating new node %s", newPath))
+		return ldp.Node{}, err
+	}
 
 	node, err := ldp.NewRdfNode(server.settings, triples, parentPath, newPath)
 	if err != nil {

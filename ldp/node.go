@@ -125,6 +125,16 @@ func NewRdfNode(settings Settings, triples string, parentPath string, newPath st
 	return node, err
 }
 
+func NewPlaceholderNode(settings Settings, parentPath string, newPath string) Node {
+	path := util.UriConcat(parentPath, newPath)
+	node := newNode(settings, path)
+	err := node.createOnDisk()
+	if err != nil {
+		return Node{uri: "error"}
+	}
+	return node
+}
+
 func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, newPath string) (Node, error) {
 	path := util.UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
@@ -223,6 +233,17 @@ func (node *Node) loadMeta() error {
 	} else {
 		node.setAsNonRdf(graph)
 	}
+	return nil
+}
+
+func (node Node) createOnDisk() error {
+	log.Printf("createOnDisk(%s) {\n", node.metaOnDisk)
+	err := fileio.CreateFile(node.metaOnDisk)
+	if err != nil {
+		log.Printf("\t %s, %s\n", node.metaOnDisk, err)
+		return err
+	}
+	log.Printf("} %s\n", node.metaOnDisk)
 	return nil
 }
 

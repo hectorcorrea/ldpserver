@@ -36,7 +36,7 @@ func defaultRootRdfGraph(subject string) rdf.RdfGraph {
 	title := rdf.NewTripleLit(subject, rdf.DcTitleUri, "Root node")
 	nowString := time.Now().Format(time.RFC3339)
 	created := rdf.NewTripleLit(subject, rdf.DcCreatedUri, nowString)
-	
+
 	// create the graph
 	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created}
 	return graph

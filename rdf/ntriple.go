@@ -1,4 +1,4 @@
-// A rudimentary implementation of N-Triples 
+// A rudimentary implementation of N-Triples
 // Full spec: http://www.w3.org/TR/n-triples/
 //
 // Supported:
@@ -15,24 +15,24 @@ package rdf
 import "errors"
 import "regexp"
 import "strings"
+
 // import "log"
 
 type NTriple struct {
-	subject   string
-	isSubjecttUri bool
-	predicate string
-	object    string
+	subject         string
+	isSubjecttUri   bool
+	predicate       string
+	object          string
 	isObjectLiteral bool
 }
 
 // Spec: '<' ([^#x00-#x20<>"{}|^`\] | UCHAR)* '>'
-var iriRefRegEx = regexp.MustCompile("<([^\x00-\x20<>\"{}|^\\`]+)>") 
+var iriRefRegEx = regexp.MustCompile("<([^\x00-\x20<>\"{}|^\\`]+)>")
 
 // Spec: '"' ([^#x22#x5C#xA#xD] | ECHAR | UCHAR)* '"'
-// Source for this reg ex: http://inamidst.com/proj/rdf/ntriples.py 
+// Source for this reg ex: http://inamidst.com/proj/rdf/ntriples.py
 //                         (via http://lists.w3.org/Archives/Public/www-archive/2004Oct/0034.html)
 var literalRegEx = regexp.MustCompile(`"([^"\\\x0A\x0D]*(?:\\.[^"\\]*)*)"`)
-
 
 func NewNTriple(subject, predicate, object string) (NTriple, error) {
 	if !isSubject(subject) {
@@ -49,7 +49,6 @@ func NewNTriple(subject, predicate, object string) (NTriple, error) {
 
 	return NTriple{subject: subject, predicate: predicate, object: object, isObjectLiteral: true}, nil
 }
-
 
 func (triple NTriple) Subject() string {
 	return triple.subject
@@ -81,13 +80,13 @@ func NewNTripleFromString(value string) (NTriple, error) {
 		return NTriple{}, errors.New("No subject was found in string")
 	}
 
-	token2 := value[len(subject) + 1:]
+	token2 := value[len(subject)+1:]
 	predicate := extractIriRef(token2)
 	if predicate == "" {
 		return NTriple{}, errors.New("No predicate was found in string")
 	}
 
-	token3 := token2[len(predicate) + 1:]
+	token3 := token2[len(predicate)+1:]
 	isObjectLiteral := false
 	object := extractIriRef(token3)
 	if object == "" {
@@ -108,12 +107,12 @@ func newNTriple(subject, predicate, object string, isObjectLiteral bool) NTriple
 	triple.predicate = stripDelimiters(predicate)
 	triple.isSubjecttUri = true
 	triple.object = stripDelimiters(object)
-	triple.isObjectLiteral = isObjectLiteral	
+	triple.isObjectLiteral = isObjectLiteral
 	return triple
 }
 
 func isSubject(value string) bool {
-	return isIriRef(value) 
+	return isIriRef(value)
 }
 
 func isPredicate(value string) bool {

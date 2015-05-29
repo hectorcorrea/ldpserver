@@ -5,9 +5,9 @@ import "log"
 import "fmt"
 
 type Triple struct {
-	subject   			string 			// always a URI
-	predicate 			string 			// always a URI
-	object    			string      // can be a URI or a literal
+	subject         string // always a URI
+	predicate       string // always a URI
+	object          string // can be a URI or a literal
 	isObjectLiteral bool
 }
 
@@ -20,7 +20,7 @@ func NewTripleLit(subject, predicate, object string) Triple {
 }
 
 func newTripleFromNTriple(ntriple NTriple) Triple {
-	return newTriple(ntriple.Subject(), ntriple.Predicate(), ntriple.Object(), ntriple.IsObjectLiteral()) 
+	return newTriple(ntriple.Subject(), ntriple.Predicate(), ntriple.Object(), ntriple.IsObjectLiteral())
 }
 
 func newTriple(subject, predicate, object string, isObjectLiteral bool) Triple {
@@ -30,7 +30,7 @@ func newTriple(subject, predicate, object string, isObjectLiteral bool) Triple {
 func (t Triple) String() string {
 	if t.isObjectLiteral {
 		return fmt.Sprintf(`<%s> <%s> "%s" .`, t.subject, t.predicate, t.object)
-	} 
+	}
 	return fmt.Sprintf(`<%s> <%s> <%s> .`, t.subject, t.predicate, t.object)
 }
 
@@ -69,12 +69,12 @@ func replaceBlanksInTriple(line, blank string) string {
 		line = "<" + blank + ">" + line[2:]
 	}
 
-	// notice that we purposefully don't replace the <> 
+	// notice that we purposefully don't replace the <>
 	// if it is found in the predicate.
 
 	isEmptyObject := strings.HasSuffix(line, "<> .")
 	if isEmptyObject {
 		line = line[:len(line)-4] + "<" + blank + "> ."
 	}
-	return line	
+	return line
 }

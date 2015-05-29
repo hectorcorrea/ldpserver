@@ -1,33 +1,33 @@
 package fileio
 
-import "fmt"
 import "os"
 import "io"
 import "io/ioutil"
-import "strings"
-import "errors"
+import "path/filepath"
 
-func PathFromFilename(filename string) (string, error) {
-	lastSlash := strings.LastIndex(filename, "/")
-	if lastSlash < 0 {
-		errorMsg := fmt.Sprintf("Cannot determine path from filename (%s)", filename)
-		return "", errors.New(errorMsg)
-	}
-	return filename[0:lastSlash], nil
-}
+// http://stackoverflow.com/a/18415935/446681
+var normalAccess os.FileMode = 0644
 
 func WriteFile(filename, content string) error {
-	path, err := PathFromFilename(filename)
+	err := createPathForFilename(filename)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, []byte(content), normalAccess)
+}
+
+func CreateFile(filename string) error {
+	err := createPathForFilename(filename)
 	if err != nil {
 		return err
 	}
 
-	if err := os.MkdirAll(path, 0777); err != nil {
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_EXCL, normalAccess)
+	if err != nil {
 		return err
 	}
-
-	var access os.FileMode = 0644
-	return ioutil.WriteFile(filename, []byte(content), access)
+	defer file.Close()
+	return nil
 }
 
 func AppendToFile(filename, text string) error {
@@ -36,11 +36,12 @@ func AppendToFile(filename, text string) error {
 		return err
 	}
 	defer file.Close()
-	_, err2 := file.WriteString(text)
-	return err2
+	_, err = file.WriteString(text)
+	return err
 }
 
 func FileExists(filename string) bool {
+	// http://stackoverflow.com/a/12518877/446681
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)
 }
@@ -59,4 +60,12 @@ func ReaderToString(reader io.ReadCloser) (string, error) {
 		return "", err
 	}
 	return string(bytes[:]), nil
+}
+
+func createPathForFilename(filename string) error {
+	path := filepath.Dir(filename)
+	if err := os.MkdirAll(path, 0777); err != nil {
+		return err
+	}
+	return nil
 }

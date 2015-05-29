@@ -25,3 +25,7 @@ func (settings Settings) RootUri() string {
 func (settings Settings) IdFile() string {
 	return settings.idFile
 }
+
+func (settings Settings) DataPath() string {
+	return settings.dataPath
+}

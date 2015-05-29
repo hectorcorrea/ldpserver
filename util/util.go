@@ -4,8 +4,6 @@ import "strings"
 import "io"
 import "regexp"
 
-// import "log"
-
 func PathConcat(path1, path2 string) string {
 	if strings.HasSuffix(path1, "/") {
 		if strings.HasPrefix(path2, "/") {
