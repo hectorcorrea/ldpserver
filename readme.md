@@ -112,6 +112,15 @@ For example, if we have two nodes (blog1 and blog2) and blog1 is an RDF node and
     /data/blog2/data.bin    (binary for blog2)
 
 
+## Overview of the Code
+
+* `main.go` is the launcher program. It's only job is to kick off the web server.
+* `web/web.go` is the web server. It's job is to handle HTTP requests and responses. This is the only part of the code that is aware of the web.
+* `server/server.go` handles most of the operations like creating new nodes and fetching existing ones.
+* `ldp/node.go` handles operations at the individual node level (fetching and saving.)
+# `rdf/` contains utilities to parse and update RDF triples and graphs.
+
+
 ## Misc Notes
 Empty subjects <> are only accepted when creating new nodes (via HTTP POST) and they are immediately converted to the actual URI that they represent.
 
