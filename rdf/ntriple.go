@@ -36,15 +36,15 @@ var literalRegEx = regexp.MustCompile(`"([^"\\\x0A\x0D]*(?:\\.[^"\\]*)*)"`)
 
 func NewNTriple(subject, predicate, object string) (NTriple, error) {
 	if !isSubject(subject) {
-		return NTriple{}, errors.New("Invalid subject: " + subject)
+		return NTriple{}, errors.New("Invalid subject in triple: " + subject)
 	}
 
 	if !isPredicate(predicate) {
-		return NTriple{}, errors.New("Invalid predicate: " + predicate)
+		return NTriple{}, errors.New("Invalid predicate in triple: " + predicate)
 	}
 
 	if !isObject(object) {
-		return NTriple{}, errors.New("Invalid object: " + object)
+		return NTriple{}, errors.New("Invalid object in triple: " + object)
 	}
 
 	return NTriple{subject: subject, predicate: predicate, object: object, isObjectLiteral: true}, nil
@@ -72,18 +72,18 @@ func (triple NTriple) IsObjectUri() bool {
 
 func NewNTripleFromString(value string) (NTriple, error) {
 	if !strings.HasSuffix(value, " .") {
-		return NTriple{}, errors.New("string does not end with ' .'")
+		return NTriple{}, errors.New("Triple does not end with ' .'")
 	}
 
 	subject := extractIriRef(value)
 	if subject == "" {
-		return NTriple{}, errors.New("No subject was found in string")
+		return NTriple{}, errors.New("No subject was found in triple")
 	}
 
 	token2 := value[len(subject)+1:]
 	predicate := extractIriRef(token2)
 	if predicate == "" {
-		return NTriple{}, errors.New("No predicate was found in string")
+		return NTriple{}, errors.New("No predicate was found in triple")
 	}
 
 	token3 := token2[len(predicate)+1:]
@@ -92,7 +92,7 @@ func NewNTripleFromString(value string) (NTriple, error) {
 	if object == "" {
 		object = extractLiteral(token3)
 		if object == "" {
-			return NTriple{}, errors.New("No object was found in string")
+			return NTriple{}, errors.New("No object was found in triple")
 		}
 		isObjectLiteral = true
 	}

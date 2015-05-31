@@ -14,7 +14,6 @@ type Server struct {
 	nextNode chan ldp.PlaceholderNode
 }
 
-
 func NewServer(rootUri string, dataPath string) Server {
 	var server Server
 	server.settings = ldp.SettingsNew(rootUri, dataPath)
@@ -51,7 +50,7 @@ func (server Server) createPlaceholderNode(parentPath string, newPath string) {
 	// one request from creating the same node (same parenthPath + path)
 	//
 	// This is a bottleneck which is why the placeholder creation
-	// must be very fast. Fingers crossed. 
+	// must be very fast. Fingers crossed.
 	server.nextNode <- ldp.NewPlaceholderNode(server.settings, parentPath, newPath)
 }
 

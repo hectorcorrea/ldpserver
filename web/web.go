@@ -85,8 +85,8 @@ func handlePost(resp http.ResponseWriter, req *http.Request) {
 		log.Printf("Creating RDF Source at %s", path)
 		triples, err = fileio.ReaderToString(req.Body)
 		if err != nil {
+			logReqError(req, err.Error(), 400)
 			http.Error(resp, "Invalid request body received", 400)
-			log.Printf(err.Error())
 			return
 		}
 		node, err = theServer.CreateRdfSource(triples, path, slug)
@@ -94,12 +94,13 @@ func handlePost(resp http.ResponseWriter, req *http.Request) {
 
 	if err != nil {
 		errorMsg := err.Error()
+		errorCode := 400
 		if errorMsg == ldp.NodeNotFound {
-			errorMsg = "Parent container [" + path + "] not found"
-			http.Error(resp, errorMsg, 400)
-		} else {
-			http.Error(resp, errorMsg, 500)
+			errorMsg = "Parent container [" + path + "] not found."
+			errorCode = 404
 		}
+		logReqError(req, errorMsg, errorCode)
+		http.Error(resp, errorMsg, errorCode)
 		return
 	}
 
@@ -154,4 +155,8 @@ func getSlug(header http.Header) string {
 		return value
 	}
 	return ""
+}
+
+func logReqError(req *http.Request, message string, code int) {
+	log.Printf("Error %d on %s %s: %s", code, req.Method, req.URL.Path, message)
 }

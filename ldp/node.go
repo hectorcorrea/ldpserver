@@ -11,6 +11,7 @@ import "log"
 import "strings"
 
 const NodeNotFound = "Not Found"
+const DuplicateNode = "Node already exists"
 
 type Node struct {
 	isRdf   bool
@@ -34,8 +35,8 @@ type Node struct {
 	// isMemberOfRelation string
 }
 
-// This structure is really just a workaround so that we can return 
-// two values (node and error) to a Go channel. 
+// This structure is really just a workaround so that we can return
+// two values (node and error) to a Go channel.
 type PlaceholderNode struct {
 	Node Node
 	Err  error
@@ -117,7 +118,7 @@ func (node *Node) Patch(triples string) error {
 }
 
 // Creates a file on disk to represent a node but the file is empty
-// (i.e. it's a placeholder.) This function will NOT overwrite an 
+// (i.e. it's a placeholder.) This function will NOT overwrite an
 // existing file. If another file with the same name exists it will
 // return an error.
 func NewPlaceholderNode(settings Settings, parentPath string, newPath string) PlaceholderNode {
@@ -125,7 +126,8 @@ func NewPlaceholderNode(settings Settings, parentPath string, newPath string) Pl
 	node := newNode(settings, path)
 	err := fileio.CreateFile(node.metaOnDisk)
 	if err != nil {
-		return PlaceholderNode{Err: err}
+		log.Printf("NewPlaceholderNode error: %s \n", err)
+		return PlaceholderNode{Err: errors.New(DuplicateNode + " [" + path + "]")}
 	}
 	return PlaceholderNode{Node: node}
 }
