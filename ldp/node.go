@@ -21,18 +21,20 @@ type Node struct {
 	binary  string // should be []byte or reader
 
 	settings Settings
-
-	dataPath   string // /xyz/data/
-	nodeOnDisk string // /xyz/data/blog1/
-	metaOnDisk string // /xyz/data/blog1/meta.rdf
-	dataOnDisk string // /xyz/data/blog1/data.txt
 	rootUri    string // http://localhost/
+
+	dataPath   string 		// /xyz/data/
+	nodeOnDisk string 		// /xyz/data/blog1/
+	manifestOnDisk string // /xyz/data/blog1/manifest-md5.txt
+	bagItOnDisk string 		// /xyz/data/blog1/bagit.txt
+	metaOnDisk string 		// /xyz/data/blog1/data/meta.rdf
+	dataOnDisk string 		// /xyz/data/blog1/data/data.txt
 
 	isBasicContainer   bool
 	isDirectContainer  bool
 	membershipResource string
 	hasMemberRelation  string
-	// isMemberOfRelation string
+	// TODO isMemberOfRelation string
 }
 
 // This structure is really just a workaround so that we can return
@@ -124,7 +126,7 @@ func (node *Node) Patch(triples string) error {
 func NewPlaceholderNode(settings Settings, parentPath string, newPath string) PlaceholderNode {
 	path := util.UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
-	err := fileio.CreateFile(node.metaOnDisk)
+	err := fileio.CreateFile(node.bagItOnDisk)
 	if err != nil {
 		log.Printf("NewPlaceholderNode error: %s \n", err)
 		return PlaceholderNode{Err: errors.New(DuplicateNode + " [" + path + "]")}
@@ -198,8 +200,10 @@ func newNode(settings Settings, path string) Node {
 	node.settings = settings
 	node.dataPath = settings.dataPath
 	node.nodeOnDisk = util.PathConcat(node.dataPath, path)
-	node.metaOnDisk = util.PathConcat(node.nodeOnDisk, "meta.rdf")
-	node.dataOnDisk = util.PathConcat(node.nodeOnDisk, "data.txt")
+	node.manifestOnDisk = util.PathConcat(node.nodeOnDisk, "manifest-md5.txt")
+	node.bagItOnDisk = util.PathConcat(node.nodeOnDisk, "bagit.txt")
+	node.metaOnDisk = util.PathConcat(node.nodeOnDisk, "data/meta.rdf")
+	node.dataOnDisk = util.PathConcat(node.nodeOnDisk, "data/data.txt")
 	node.rootUri = settings.RootUri()
 	node.uri = util.UriConcat(node.rootUri, path)
 	return node
