@@ -37,7 +37,7 @@ func (server Server) getNewPath(slug string) (string, error) {
 		return MintNextUri(defaultSlug, server.minter), nil
 	}
 
-	if !util.IsAlphaNumeric(slug) {
+	if !util.IsValidSlug(slug) {
 		errorMsg := fmt.Sprintf("Invalid Slug received (%s). Slug must not include special characters.", slug)
 		return "", errors.New(errorMsg)
 	}

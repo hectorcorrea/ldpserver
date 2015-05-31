@@ -72,18 +72,18 @@ func TestStripSlash(t *testing.T) {
 	}
 }
 
-func TestIsAlphaNumeric(t *testing.T) {
-	validTests := []string{"123", "abc", "123abc", "abc123", "abc_123", "abc-123", "-", "-"}
+func TestIsValidSlug(t *testing.T) {
+	validTests := []string{"123", "abc", "123abc", "abc123", "abc_123", "abc-123", "-", "_", "hello.jpg"}
 	for _, test := range validTests {
-		if !IsAlphaNumeric(test) {
-			t.Errorf("IsAlphaNumeric failed: %s", test)
+		if !IsValidSlug(test) {
+			t.Errorf("IsValidSlug failed: %s", test)
 		}
 	}
 
-	invalidTests := []string{"/123", "a/bc", "abc.xyz", "a?", "a:"}
+	invalidTests := []string{"/123", "a/bc", "abc..xyz", "a?", "a:", ".", "..", "a\\bc", `a"bc`}
 	for _, test := range invalidTests {
-		if IsAlphaNumeric(test) {
-			t.Errorf("IsAlphaNumeric failed: %s", test)
+		if IsValidSlug(test) {
+			t.Errorf("IsValidSlug failed: %s", test)
 		}
 	}
 }

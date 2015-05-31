@@ -3,6 +3,7 @@ package util
 import "strings"
 import "io"
 import "regexp"
+import "path"
 
 func PathConcat(path1, path2 string) string {
 	if strings.HasSuffix(path1, "/") {
@@ -38,10 +39,16 @@ func PathFromUri(rootUri, uri string) string {
 	return uri
 }
 
-func IsAlphaNumeric(str string) bool {
+// For our purposes slugs must be alpha-numerical and can include 
+// -, _, and (non-contiguous) periods.  
+func IsValidSlug(slug string) bool {
+	if slug == "." || strings.Contains(slug, "..") || path.Clean(slug) != slug {
+		return false
+	} 
+
 	// Source: https://www.socketloop.com/tutorials/golang-regular-expression-alphanumeric-underscore
-	re := regexp.MustCompile("^[a-zA-Z0-9_-]*$")
-	return re.MatchString(str)
+	re := regexp.MustCompile(`^[a-zA-Z0-9_\.-]*$`)
+	return re.MatchString(slug)
 }
 
 // Used for testing
