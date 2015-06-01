@@ -1,3 +1,6 @@
+# https://tools.ietf.org/html/draft-kunze-bagit-10#page-6
+# http://en.wikipedia.org/wiki/BagIt
+
 myfirstbag/
 |-- data
 |   \-- 27613-h

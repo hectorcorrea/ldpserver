@@ -21,9 +21,9 @@ type Node struct {
 	graph   rdf.RdfGraph
 	binary  string // should be []byte or reader
 
-	settings 						Settings
-	rootUri    					string // http://localhost/
-	bag        					bagit.Bag  
+	settings Settings
+	rootUri  string // http://localhost/
+	bag      bagit.Bag
 
 	isBasicContainer   bool
 	isDirectContainer  bool

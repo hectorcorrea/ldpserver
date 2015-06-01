@@ -3,11 +3,11 @@ package ldp
 import "ldpserver/util"
 
 type Settings struct {
-	dataPath       string
-	rootUri        string
+	dataPath string
+	rootUri  string
 	// rootBagOnDisk  string
 	// rootNodeOnDisk string
-	idFile         string
+	idFile string
 }
 
 func SettingsNew(rootUri, datapath string) Settings {

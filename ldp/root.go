@@ -2,8 +2,8 @@ package ldp
 
 import (
 	"fmt"
-	"ldpserver/rdf"
 	"ldpserver/bagit"
+	"ldpserver/rdf"
 	"log"
 	"time"
 )
