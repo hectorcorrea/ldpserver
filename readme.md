@@ -130,7 +130,7 @@ A lot.
 
 * Support isMemberOfRelation in Direct Containers.
 
-* Support Indirect Containers. Currently only Basic Containers are supported.
+* Support Indirect Containers. 
 
 * Support HTTP PUT, PATCH, and DELETE. 
 
