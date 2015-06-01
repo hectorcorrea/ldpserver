@@ -18,11 +18,11 @@ const (
 
 const (
 	// HTTP header links
-	LdpResourceLink        = LdpResourceUri + "; rel=\"type\""
-	LdpNonRdfSourceLink    = LdpNonRdfSourceUri + "; rel=\"type\""
-	LdpContainerLink       = LdpContainerUri + "; rel=\"type\""
-	LdpBasicContainerLink  = LdpBasicContainerUri + "; rel=\"type\""
-	LdpDirectContainerLink = LdpDirectContainerUri + "; rel=\"type\""
+	LdpResourceLink        = "<" + LdpResourceUri + ">; rel=\"type\""
+	LdpNonRdfSourceLink    = "<" + LdpNonRdfSourceUri + ">; rel=\"type\""
+	LdpContainerLink       = "<" + LdpContainerUri + ">; rel=\"type\""
+	LdpBasicContainerLink  = "<" + LdpBasicContainerUri + ">; rel=\"type\""
+	LdpDirectContainerLink = "<" + LdpDirectContainerUri + ">; rel=\"type\""
 )
 
 const (
