@@ -39,12 +39,12 @@ func PathFromUri(rootUri, uri string) string {
 	return uri
 }
 
-// For our purposes slugs must be alpha-numerical and can include 
-// -, _, and (non-contiguous) periods.  
+// For our purposes slugs must be alpha-numerical and can include
+// -, _, and (non-contiguous) periods.
 func IsValidSlug(slug string) bool {
 	if slug == "." || strings.Contains(slug, "..") || path.Clean(slug) != slug {
 		return false
-	} 
+	}
 
 	// Source: https://www.socketloop.com/tutorials/golang-regular-expression-alphanumeric-underscore
 	re := regexp.MustCompile(`^[a-zA-Z0-9_\.-]*$`)

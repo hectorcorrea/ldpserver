@@ -2,30 +2,37 @@ package ldp
 
 import (
 	"fmt"
-	"ldpserver/fileio"
+	"ldpserver/bagit"
 	"ldpserver/rdf"
 	"log"
 	"time"
 )
 
 func CreateRoot(settings Settings) {
-	if fileio.FileExists(settings.rootNodeOnDisk) {
+	if bagit.BagExists(settings.dataPath) {
 		// nothing to do
 		return
 	}
 
-	if err := fileio.WriteFile(settings.idFile, "0"); err != nil {
-		errorMsg := fmt.Sprintf("Could not create root ID file at %s. %s", settings.idFile, err.Error())
+	bag := bagit.CreateBag(settings.dataPath)
+	if bag.Error() != nil {
+		errorMsg := fmt.Sprintf("Could not create root bag: %s", bag.Error())
+		panic(errorMsg)
+	}
+
+	if err := bag.SaveFile("meta.rdf.id", "0"); err != nil {
+		errorMsg := fmt.Sprintf("Could not create root ID file: %s", err.Error())
 		panic(errorMsg)
 	}
 
 	graph := defaultRootRdfGraph(settings.rootUri)
 	content := graph.String()
-	if err := fileio.WriteFile(settings.rootNodeOnDisk, content); err != nil {
-		errorMsg := fmt.Sprintf("Could not create root file at %s.", settings.rootNodeOnDisk)
+	if err := bag.SaveFile("meta.rdf", content); err != nil {
+		errorMsg := fmt.Sprintf("Could not create root file at %s.", err.Error())
 		panic(errorMsg)
 	}
-	log.Printf("Root node created on disk at : %s\n", settings.rootNodeOnDisk)
+
+	log.Printf("Root node created on disk at : %s\n", settings.dataPath)
 }
 
 func defaultRootRdfGraph(subject string) rdf.RdfGraph {

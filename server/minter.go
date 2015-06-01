@@ -1,7 +1,8 @@
 package server
 
-import "ldpserver/fileio"
+import "fmt"
 import "strconv"
+import "ldpserver/fileio"
 
 func CreateMinter(idFile string) chan string {
 	nextId := make(chan string)
@@ -23,18 +24,21 @@ func MintNextUri(slug string, minter chan string) string {
 func mintNextId(idFile string) string {
 	lastText, err := fileio.ReadFile(idFile)
 	if err != nil {
-		panic("Could not read last id")
+		errorMsg := fmt.Sprintf("Could not read last id from [%s]", idFile)
+		panic(errorMsg)
 	}
 
 	lastId, err := strconv.ParseInt(lastText, 10, 0)
 	if err != nil {
-		panic("Could not calculate last id")
+		errorMsg := fmt.Sprintf("Could not calculate last id from [%s]", idFile)
+		panic(errorMsg)
 	}
 
 	nextId := strconv.Itoa(int(lastId + 1))
 	err = fileio.WriteFile(idFile, nextId)
 	if err != nil {
-		panic("Error writting next id")
+		errorMsg := fmt.Sprintf("Error writing next id to [%s]", idFile)
+		panic(errorMsg)
 	}
 	return nextId
 }

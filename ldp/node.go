@@ -2,16 +2,17 @@ package ldp
 
 import "time"
 import "ldpserver/util"
-import "ldpserver/fileio"
 import "ldpserver/rdf"
+import "ldpserver/bagit"
 import "io"
-import "os"
 import "errors"
 import "log"
 import "strings"
 
 const NodeNotFound = "Not Found"
 const DuplicateNode = "Node already exists"
+const metaFile = "meta.rdf"
+const dataFile = "data.txt"
 
 type Node struct {
 	isRdf   bool
@@ -21,25 +22,14 @@ type Node struct {
 	binary  string // should be []byte or reader
 
 	settings Settings
-
-	dataPath   string // /xyz/data/
-	nodeOnDisk string // /xyz/data/blog1/
-	metaOnDisk string // /xyz/data/blog1/meta.rdf
-	dataOnDisk string // /xyz/data/blog1/data.txt
-	rootUri    string // http://localhost/
+	rootUri  string // http://localhost/
+	bag      bagit.Bag
 
 	isBasicContainer   bool
 	isDirectContainer  bool
 	membershipResource string
 	hasMemberRelation  string
-	// isMemberOfRelation string
-}
-
-// This structure is really just a workaround so that we can return
-// two values (node and error) to a Go channel.
-type PlaceholderNode struct {
-	Node Node
-	Err  error
+	// TODO isMemberOfRelation string
 }
 
 func (node Node) Content() string {
@@ -84,12 +74,14 @@ func (node Node) Uri() string {
 func GetNode(settings Settings, path string) (Node, error) {
 	node := newNode(settings, path)
 	err := node.loadNode(true)
+	log.Printf("GetNode [%s] %s", path, err)
 	return node, err
 }
 
 func GetHead(settings Settings, path string) (Node, error) {
 	node := newNode(settings, path)
 	err := node.loadNode(false)
+	log.Printf("GetHead [%s] %s", path, err)
 	return node, err
 }
 
@@ -115,21 +107,6 @@ func (node *Node) Patch(triples string) error {
 	}
 
 	return nil
-}
-
-// Creates a file on disk to represent a node but the file is empty
-// (i.e. it's a placeholder.) This function will NOT overwrite an
-// existing file. If another file with the same name exists it will
-// return an error.
-func NewPlaceholderNode(settings Settings, parentPath string, newPath string) PlaceholderNode {
-	path := util.UriConcat(parentPath, newPath)
-	node := newNode(settings, path)
-	err := fileio.CreateFile(node.metaOnDisk)
-	if err != nil {
-		log.Printf("NewPlaceholderNode error: %s \n", err)
-		return PlaceholderNode{Err: errors.New(DuplicateNode + " [" + path + "]")}
-	}
-	return PlaceholderNode{Node: node}
 }
 
 func NewRdfNode(settings Settings, triples string, parentPath string, newPath string) (Node, error) {
@@ -159,7 +136,7 @@ func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, n
 
 func (node Node) AddChild(child Node) error {
 	triple := rdf.NewTripleUri(node.uri, rdf.LdpContainsUri, child.uri)
-	err := fileio.AppendToFile(node.metaOnDisk, triple.StringLn())
+	err := node.bag.AppendToFile(metaFile, triple.StringLn())
 	if err != nil {
 		log.Printf("%s", err)
 		return err
@@ -182,7 +159,7 @@ func (node Node) addDirectContainerChild(child Node) error {
 	}
 
 	tripleForTarget := rdf.NewTripleUri(targetNode.uri, node.hasMemberRelation, child.uri)
-	err = fileio.AppendToFile(targetNode.metaOnDisk, tripleForTarget.StringLn())
+	err = targetNode.bag.AppendToFile(metaFile, tripleForTarget.StringLn())
 	if err != nil {
 		log.Printf("Error appending child %s to %s. %s", child.uri, targetNode.uri, err)
 		return err
@@ -196,10 +173,8 @@ func newNode(settings Settings, path string) Node {
 	}
 	var node Node
 	node.settings = settings
-	node.dataPath = settings.dataPath
-	node.nodeOnDisk = util.PathConcat(node.dataPath, path)
-	node.metaOnDisk = util.PathConcat(node.nodeOnDisk, "meta.rdf")
-	node.dataOnDisk = util.PathConcat(node.nodeOnDisk, "data.txt")
+	pathOnDisk := util.PathConcat(settings.dataPath, path)
+	node.bag = bagit.NewBag(pathOnDisk)
 	node.rootUri = settings.RootUri()
 	node.uri = util.UriConcat(node.rootUri, path)
 	return node
@@ -215,23 +190,21 @@ func (node *Node) loadNode(isIncludeBody bool) error {
 		return nil
 	}
 
-	err2 := node.loadBinary()
-	return err2
+	return node.loadBinary()
 }
 
 func (node *Node) loadBinary() error {
 	var err error
-	node.binary, err = fileio.ReadFile(node.dataOnDisk)
+	node.binary, err = node.bag.ReadFile(dataFile)
 	return err
 }
 
 func (node *Node) loadMeta() error {
-	log.Printf("Reading %s", node.metaOnDisk)
-	if !fileio.FileExists(node.metaOnDisk) {
+	if !node.bag.Exists() {
 		return errors.New(NodeNotFound)
 	}
 
-	meta, err := fileio.ReadFile(node.metaOnDisk)
+	meta, err := node.bag.ReadFile(metaFile)
 	if err != nil {
 		return err
 	}
@@ -251,7 +224,7 @@ func (node *Node) loadMeta() error {
 
 func (node Node) writeToDisk(reader io.ReadCloser) error {
 	// Write the RDF metadata
-	err := fileio.WriteFile(node.metaOnDisk, node.graph.String())
+	err := node.bag.SaveFile(metaFile, node.graph.String())
 	if err != nil {
 		return err
 	}
@@ -261,13 +234,7 @@ func (node Node) writeToDisk(reader io.ReadCloser) error {
 	}
 
 	// Write the binary
-	out, err := os.Create(node.dataOnDisk)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	io.Copy(out, reader)
-	return out.Close()
+	return node.bag.SaveReader(dataFile, reader)
 }
 
 func defaultGraph(subject string) rdf.RdfGraph {
