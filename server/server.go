@@ -1,17 +1,18 @@
 package server
 
-import "io"
+import "fmt"
 import "errors"
+import "io"
 import "ldpserver/ldp"
 import "ldpserver/util"
-import "fmt"
+import "ldpserver/bagit"
 
 const defaultSlug string = "node"
 
 type Server struct {
 	settings ldp.Settings
 	minter   chan string
-	nextNode chan ldp.PlaceholderNode
+	nextBag  chan bagit.Bag
 }
 
 func NewServer(rootUri string, dataPath string) Server {
@@ -19,7 +20,7 @@ func NewServer(rootUri string, dataPath string) Server {
 	server.settings = ldp.SettingsNew(rootUri, dataPath)
 	ldp.CreateRoot(server.settings)
 	server.minter = CreateMinter(server.settings.IdFile())
-	server.nextNode = make(chan ldp.PlaceholderNode)
+	server.nextBag = make(chan bagit.Bag)
 	return server
 }
 
@@ -44,23 +45,17 @@ func (server Server) getNewPath(slug string) (string, error) {
 	return slug, nil
 }
 
-func (server Server) createPlaceholderNode(parentPath string, newPath string) {
-	// This code uses a synchronous channel (server.nextNode) to queue
-	// the creation of new nodes. We use this queue to prevent more than
-	// one request from creating the same node (same parenthPath + path)
-	//
-	// This is a bottleneck which is why the placeholder creation
-	// must be very fast. Fingers crossed.
-	server.nextNode <- ldp.NewPlaceholderNode(server.settings, parentPath, newPath)
-}
+func (server Server) createBag(parentPath string, newPath string) bagit.Bag {
+	// Queue up the creation of a new bag
+	path := util.UriConcat(parentPath, newPath)
+	fullPath := util.PathConcat(server.settings.DataPath(), path)
+	go func(fullPath string) {
+		server.nextBag <- bagit.CreateBag(fullPath)
+	}(fullPath)
 
-func (server Server) getPlaceholderNode(parentPath string, newPath string) ldp.PlaceholderNode {
-	// Request a new node to be created.
-	go server.createPlaceholderNode(parentPath, newPath)
-
-	// Wait for the new node to be available.
-	placeholderNode := <-server.nextNode
-	return placeholderNode
+	// Wait for the new bag to be available.
+	bag := <-server.nextBag
+	return bag
 }
 
 func (server Server) CreateRdfSource(triples string, parentPath string, slug string) (ldp.Node, error) {
@@ -74,9 +69,9 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 		return ldp.Node{}, err
 	}
 
-	placeholderNode := server.getPlaceholderNode(parentPath, newPath)
-	if placeholderNode.Err != nil {
-		return ldp.Node{}, placeholderNode.Err
+	bag := server.createBag(parentPath, newPath)
+	if bag.Error() != nil {
+		return ldp.Node{}, bag.Error()
 	}
 
 	node, err := ldp.NewRdfNode(server.settings, triples, parentPath, newPath)
@@ -101,9 +96,9 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 		return ldp.Node{}, err
 	}
 
-	placeholderNode := server.getPlaceholderNode(parentPath, newPath)
-	if placeholderNode.Err != nil {
-		return ldp.Node{}, placeholderNode.Err
+	bag := server.createBag(parentPath, newPath)
+	if bag.Error() != nil {
+		return ldp.Node{}, bag.Error()
 	}
 
 	node, err := ldp.NewNonRdfNode(server.settings, reader, parentPath, newPath)

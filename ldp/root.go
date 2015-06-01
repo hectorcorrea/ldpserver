@@ -2,7 +2,6 @@ package ldp
 
 import (
 	"fmt"
-	"ldpserver/fileio"
 	"ldpserver/rdf"
 	"ldpserver/bagit"
 	"log"
@@ -10,15 +9,14 @@ import (
 )
 
 func CreateRoot(settings Settings) {
-	if fileio.FileExists(settings.rootBagOnDisk) {
-		log.Printf("Root node already exists")
+	if bagit.Exists(settings.dataPath) {
 		// nothing to do
 		return
 	}
 
-	bag, err := bagit.CreateBag(settings.dataPath)
-	if err != nil {
-		errorMsg := fmt.Sprintf("Could not create root bag: %s", err.Error())
+	bag := bagit.CreateBag(settings.dataPath)
+	if bag.Error() != nil {
+		errorMsg := fmt.Sprintf("Could not create root bag: %s", bag.Error())
 		panic(errorMsg)
 	}
 
@@ -30,7 +28,7 @@ func CreateRoot(settings Settings) {
 	graph := defaultRootRdfGraph(settings.rootUri)
 	content := graph.String()
 	if err := bag.SaveFile("meta.rdf", content); err != nil {
-		errorMsg := fmt.Sprintf("Could not create root file at %s.", settings.rootNodeOnDisk)
+		errorMsg := fmt.Sprintf("Could not create root file at %s.", err.Error())
 		panic(errorMsg)
 	}
 
