@@ -28,10 +28,11 @@ func newTriple(subject, predicate, object string, isObjectLiteral bool) Triple {
 }
 
 func (t Triple) String() string {
+	format := `<%s> <%s> <%s> .`
 	if t.isObjectLiteral {
-		return fmt.Sprintf(`<%s> <%s> "%s" .`, t.subject, t.predicate, t.object)
+		format = `<%s> <%s> "%s" .`
 	}
-	return fmt.Sprintf(`<%s> <%s> <%s> .`, t.subject, t.predicate, t.object)
+	return fmt.Sprintf(format, t.subject, t.predicate, t.object)
 }
 
 func (t Triple) StringLn() string {
@@ -55,7 +56,7 @@ func StringToTriple(line, blank string) (Triple, error) {
 	// Parse the line in N-Triple format into an NTriple object.
 	ntriple, err := NewNTripleFromString(line)
 	if err != nil {
-		log.Printf("Error parsing %s. Error: %s", line, err)
+		log.Printf("Error parsing triple %s. Error: %s \n", line, err)
 		return Triple{}, err
 	}
 

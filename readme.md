@@ -37,7 +37,7 @@ With the server running, you can use `cURL` to submit requests to it. For exampl
 
     curl locahost:9001
 
-POST to the root (the Slug defaults to "node")
+POST to the root (the Slug defaults to "node" + a sequential number)
 
     curl -X POST localhost:9001
 
@@ -93,7 +93,6 @@ Take a look at `demo.sh` file for an example of a shell script that executes som
     ./ldpserver
 
     # Run the demo script in a separate terminal window
-    chmod u+x demo.sh
     ./demo.sh
 
 
