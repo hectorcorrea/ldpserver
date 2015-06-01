@@ -2,6 +2,8 @@ package bagit
 
 import (
   "log"
+  "io"
+  "os"
   "ldpserver/fileio"
   "ldpserver/util"
 )
@@ -10,6 +12,11 @@ type Bag struct {
   folder string
   dataFolder string 
   err error
+}
+
+func NewBag(folder string) Bag {
+  dataFolder := util.PathConcat(folder, "data")
+  return Bag{folder: folder, dataFolder: dataFolder}
 }
 
 func CreateBag(folder string) Bag {
@@ -24,8 +31,15 @@ func CreateBag(folder string) Bag {
   return bag
 }
 
-func Exists(folder string) bool {
+func (bag Bag) Exists() bool {
+  bagIt := util.PathConcat(bag.folder, "bagit.txt")
+  log.Printf("Bag.Exists %s", bagIt)
+  return fileio.FileExists(bagIt)
+}
+
+func BagExists(folder string) bool {
   bagIt := util.PathConcat(folder, "bagit.txt")
+  log.Printf("BagExists %s", bagIt)
   return fileio.FileExists(bagIt)
 }
 
@@ -42,6 +56,38 @@ func (bag Bag) SaveFile(filename string, content string) error {
   // TODO: calculate md5 of file
   // TODO: append/update file to manifest
   return nil
+}
+
+// this function really shouldn't be on the bagit module
+// but if we leave it out, we'll need to expose the file
+// path structure (e.g. data/xyz)
+func (bag Bag) AppendToFile(filename string, content string) error {
+  fullFilename := util.PathConcat(bag.dataFolder, filename)
+  err := fileio.AppendToFile(fullFilename, content)
+  if err != nil {
+    return err
+  }
+  // TODO: calculate md5 of file
+  return nil
+}
+
+func (bag Bag) SaveReader(filename string, reader io.ReadCloser) error {
+  fullFilename := util.PathConcat(bag.dataFolder, filename)
+  out, err := os.Create(fullFilename)
+  if err != nil {
+    return err
+  }
+  defer out.Close()
+  io.Copy(out, reader)
+  // TODO: calculate md5 of file
+  // TODO: append/update file to manifest
+  return out.Close()
+}
+
+func (bag Bag) ReadFile(filename string) (string, error) {
+  fullFilename := util.PathConcat(bag.dataFolder, filename)
+  log.Printf("BagIt.ReadFile %s", fullFilename)
+  return fileio.ReadFile(fullFilename)
 }
 
 func (bag Bag) createBagItTxt() error {

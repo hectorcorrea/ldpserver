@@ -9,7 +9,7 @@ import (
 )
 
 func CreateRoot(settings Settings) {
-	if bagit.Exists(settings.dataPath) {
+	if bagit.BagExists(settings.dataPath) {
 		// nothing to do
 		return
 	}
