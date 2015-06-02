@@ -55,7 +55,7 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 			http.NotFound(resp, req)
 		} else {
 			log.Printf("Error %s", err)
-			http.Error(resp, "Could not fetch resource", 500)
+			http.Error(resp, "Could not fetch resource", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -85,19 +85,21 @@ func handlePost(resp http.ResponseWriter, req *http.Request) {
 		log.Printf("Creating RDF Source at %s", path)
 		triples, err = fileio.ReaderToString(req.Body)
 		if err != nil {
-			logReqError(req, err.Error(), 400)
-			http.Error(resp, "Invalid request body received", 400)
+			logReqError(req, err.Error(), http.StatusBadRequest)
+			http.Error(resp, "Invalid request body received", http.StatusBadRequest)
 			return
 		}
 		node, err = theServer.CreateRdfSource(triples, path, slug)
 	}
 
-	if err != nil {
+	if err == nil {
+		resp.WriteHeader(http.StatusCreated)
+	} else {
 		errorMsg := err.Error()
-		errorCode := 400
+		errorCode := http.StatusBadRequest
 		if errorMsg == ldp.NodeNotFound {
 			errorMsg = "Parent container [" + path + "] not found."
-			errorCode = 404
+			errorCode = http.StatusNotFound
 		}
 		logReqError(req, errorMsg, errorCode)
 		http.Error(resp, errorMsg, errorCode)
@@ -114,7 +116,7 @@ func handlePatch(resp http.ResponseWriter, req *http.Request) {
 
 	triples, err := fileio.ReaderToString(req.Body)
 	if err != nil {
-		http.Error(resp, "Invalid request body received", 400)
+		http.Error(resp, "Invalid request body received", http.StatusBadRequest)
 		log.Printf(err.Error())
 		return
 	}
@@ -126,7 +128,7 @@ func handlePatch(resp http.ResponseWriter, req *http.Request) {
 			log.Printf("Not found %s", path)
 			http.NotFound(resp, req)
 		} else {
-			http.Error(resp, errorMsg, 500)
+			http.Error(resp, errorMsg, http.StatusInternalServerError)
 		}
 		return
 	}
