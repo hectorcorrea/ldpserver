@@ -4,7 +4,7 @@ import (
 	"io"
 	"ldpserver/fileio"
 	"ldpserver/util"
-	"log"
+	// "log"
 	"os"
 )
 
@@ -20,7 +20,7 @@ func NewBag(folder string) Bag {
 }
 
 func CreateBag(folder string) Bag {
-	log.Printf("BagIt.CreateBag() %s", folder)
+	// log.Printf("BagIt.CreateBag() %s", folder)
 	dataFolder := util.PathConcat(folder, "data")
 	bag := Bag{folder: folder, dataFolder: dataFolder}
 	bag.err = bag.createBagItTxt()
@@ -33,13 +33,13 @@ func CreateBag(folder string) Bag {
 
 func (bag Bag) Exists() bool {
 	bagIt := util.PathConcat(bag.folder, "bagit.txt")
-	log.Printf("Bag.Exists %s", bagIt)
+	// log.Printf("Bag.Exists %s", bagIt)
 	return fileio.FileExists(bagIt)
 }
 
 func BagExists(folder string) bool {
 	bagIt := util.PathConcat(folder, "bagit.txt")
-	log.Printf("BagExists %s", bagIt)
+	// log.Printf("BagExists %s", bagIt)
 	return fileio.FileExists(bagIt)
 }
 
@@ -86,7 +86,7 @@ func (bag Bag) SaveReader(filename string, reader io.ReadCloser) error {
 
 func (bag Bag) ReadFile(filename string) (string, error) {
 	fullFilename := util.PathConcat(bag.dataFolder, filename)
-	log.Printf("BagIt.ReadFile %s", fullFilename)
+	// log.Printf("BagIt.ReadFile %s", fullFilename)
 	return fileio.ReadFile(fullFilename)
 }
 
