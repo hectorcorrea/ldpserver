@@ -12,7 +12,7 @@ func main() {
 		log.Fatal("Could not determine root folder")
 	}
 	address := "localhost:9001"
-	dataPath := rootFolder + "/data"
+	dataPath := rootFolder + "/dataroot"
 	numArgs := len(os.Args)
 
 	if numArgs > 1 {
@@ -38,6 +38,6 @@ func showHelp() {
 	fmt.Printf("          Defaults to localhost:9001\n")
 	fmt.Printf("\n")
 	fmt.Printf("dataPath  Represents the path on disk where data will be saved\n")
-	fmt.Printf("          Defaults to ./data\n")
+	fmt.Printf("          Defaults to ./dataroot\n")
 	fmt.Printf("\n")
 }

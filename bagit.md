@@ -17,18 +17,32 @@ myfirstbag/
 
 /
 /node1
+  /data
+  bagit.txt
+  manifest-md5.txt
+  
 /node2
+  /data
 /node3
-/node3/node4
-/node3/node5
-/node3/bag
+  /data
+  /node4
+    /data
+  /node5
+    /data
+  /bag
+    /data
+  /data
 
 
 By prefixing all bag folders with "bag" I can prevent collisions 
 (e.g. somebody creating a data bag overriding the data folder)
 
+but then /node3/node4 becomes /bag-node3/bag-node4
+
 If I append the slug to the "bag" folder then I can read the 
 actual file without opening the manifest.
+
+
 
 root/
 |-- bagit.txt

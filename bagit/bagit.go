@@ -1,11 +1,13 @@
 package bagit
 
 import (
+	"errors"
+	"fmt"
 	"io"
+	"os"
+	"path"
 	"ldpserver/fileio"
 	"ldpserver/util"
-	// "log"
-	"os"
 )
 
 type Bag struct {
@@ -15,12 +17,17 @@ type Bag struct {
 }
 
 func NewBag(folder string) Bag {
+	if reserved, err := isReservedFolder(folder); reserved == true {
+		return Bag{err: err}
+	}
 	dataFolder := util.PathConcat(folder, "data")
 	return Bag{folder: folder, dataFolder: dataFolder}
 }
 
 func CreateBag(folder string) Bag {
-	// log.Printf("BagIt.CreateBag() %s", folder)
+	if reserved, err := isReservedFolder(folder); reserved == true {
+		return Bag{err: err}
+	}
 	dataFolder := util.PathConcat(folder, "data")
 	bag := Bag{folder: folder, dataFolder: dataFolder}
 	bag.err = bag.createBagItTxt()
@@ -33,13 +40,11 @@ func CreateBag(folder string) Bag {
 
 func (bag Bag) Exists() bool {
 	bagIt := util.PathConcat(bag.folder, "bagit.txt")
-	// log.Printf("Bag.Exists %s", bagIt)
 	return fileio.FileExists(bagIt)
 }
 
 func BagExists(folder string) bool {
 	bagIt := util.PathConcat(folder, "bagit.txt")
-	// log.Printf("BagExists %s", bagIt)
 	return fileio.FileExists(bagIt)
 }
 
@@ -106,4 +111,13 @@ func (bag Bag) createManifest() error {
 	return fileio.CreateFile(manifestFile)
 	// text := "data/meta.rdf TBD\ndata/meta.rdf TBD\n"
 	// return fileio.WriteFile(manifestFile, text)
+}
+
+func isReservedFolder(folder string) (bool, error) {
+	base := path.Base(folder)
+	if base == "data" || base == "bagit.txt" || base == "manifest-md5.txt" {
+		errorMsg := fmt.Sprintf("Reserved bag name. Bag cannot be named [%s].", base)
+		return true, errors.New(errorMsg)
+	}
+	return false, nil
 }
