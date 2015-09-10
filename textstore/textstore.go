@@ -27,6 +27,10 @@ func CreateStore(folder string) Store {
   return store
 }
 
+func Exists(folder string) bool {
+  return StoreExists(folder);
+}
+
 func (store Store) Exists() bool {
   return StoreExists(store.folder);
 }

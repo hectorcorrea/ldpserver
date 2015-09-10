@@ -28,12 +28,12 @@ func TestBadSlug(t *testing.T) {
 }
 
 func TestCreateRdf(t *testing.T) {
-	node, _ := theServer.CreateRdfSource("", "/", slug)
+	node, err := theServer.CreateRdfSource("", "/", slug)
 	if !node.IsRdf() {
-		t.Errorf("Error creating RDF")
+		t.Errorf("Error creating RDF. Error: %s", err)
 	}
 
-	node, err := theServer.GetNode(node.Path())
+	node, err = theServer.GetNode(node.Path())
 	if err != nil || node.Uri() != util.UriConcat(rootUrl, node.Path()) {
 		t.Errorf("err %s, uri %s", err, node.Uri())
 	}

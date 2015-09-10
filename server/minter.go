@@ -24,7 +24,7 @@ func MintNextUri(slug string, minter chan string) string {
 func mintNextId(idFile string) string {
 	lastText, err := fileio.ReadFile(idFile)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Could not read last id from [%s]", idFile)
+		errorMsg := fmt.Sprintf("Could not read last id from [%s]. Error: %s", idFile, err)
 		panic(errorMsg)
 	}
 

@@ -3,7 +3,7 @@ package ldp
 import "time"
 import "ldpserver/util"
 import "ldpserver/rdf"
-import "ldpserver/bagit"
+import "ldpserver/textstore"
 import "io"
 import "errors"
 import "log"
@@ -23,7 +23,7 @@ type Node struct {
 
 	settings Settings
 	rootUri  string // http://localhost/
-	bag      bagit.Bag
+	store    textstore.Store
 
 	isBasicContainer   bool
 	isDirectContainer  bool
@@ -136,7 +136,7 @@ func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, n
 
 func (node Node) AddChild(child Node) error {
 	triple := rdf.NewTripleUri(node.uri, rdf.LdpContainsUri, child.uri)
-	err := node.bag.AppendToFile(metaFile, triple.StringLn())
+	err := node.store.AppendToFile(metaFile, triple.StringLn())
 	if err != nil {
 		log.Printf("%s", err)
 		return err
@@ -159,7 +159,7 @@ func (node Node) addDirectContainerChild(child Node) error {
 	}
 
 	tripleForTarget := rdf.NewTripleUri(targetNode.uri, node.hasMemberRelation, child.uri)
-	err = targetNode.bag.AppendToFile(metaFile, tripleForTarget.StringLn())
+	err = targetNode.store.AppendToFile(metaFile, tripleForTarget.StringLn())
 	if err != nil {
 		log.Printf("Error appending child %s to %s. %s", child.uri, targetNode.uri, err)
 		return err
@@ -174,7 +174,7 @@ func newNode(settings Settings, path string) Node {
 	var node Node
 	node.settings = settings
 	pathOnDisk := util.PathConcat(settings.dataPath, path)
-	node.bag = bagit.NewBag(pathOnDisk)
+	node.store = textstore.NewStore(pathOnDisk)
 	node.rootUri = settings.RootUri()
 	node.uri = util.UriConcat(node.rootUri, path)
 	return node
@@ -195,16 +195,16 @@ func (node *Node) loadNode(isIncludeBody bool) error {
 
 func (node *Node) loadBinary() error {
 	var err error
-	node.binary, err = node.bag.ReadFile(dataFile)
+	node.binary, err = node.store.ReadFile(dataFile)
 	return err
 }
 
 func (node *Node) loadMeta() error {
-	if !node.bag.Exists() {
+	if !node.store.Exists() {
 		return errors.New(NodeNotFound)
 	}
 
-	meta, err := node.bag.ReadFile(metaFile)
+	meta, err := node.store.ReadFile(metaFile)
 	if err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func (node *Node) loadMeta() error {
 
 func (node Node) writeToDisk(reader io.ReadCloser) error {
 	// Write the RDF metadata
-	err := node.bag.SaveFile(metaFile, node.graph.String())
+	err := node.store.SaveFile(metaFile, node.graph.String())
 	if err != nil {
 		return err
 	}
@@ -234,7 +234,7 @@ func (node Node) writeToDisk(reader io.ReadCloser) error {
 	}
 
 	// Write the binary
-	return node.bag.SaveReader(dataFile, reader)
+	return node.store.SaveReader(dataFile, reader)
 }
 
 func defaultGraph(subject string) rdf.RdfGraph {

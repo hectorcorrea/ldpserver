@@ -2,32 +2,32 @@ package ldp
 
 import (
 	"fmt"
-	"ldpserver/bagit"
+	"ldpserver/textstore"
 	"ldpserver/rdf"
 	"log"
 	"time"
 )
 
 func CreateRoot(settings Settings) {
-	if bagit.BagExists(settings.dataPath) {
+	if textstore.Exists(settings.dataPath) {
 		// nothing to do
 		return
 	}
 
-	bag := bagit.CreateBag(settings.dataPath)
-	if bag.Error() != nil {
-		errorMsg := fmt.Sprintf("Could not create root bag: %s", bag.Error())
+	store := textstore.CreateStore(settings.dataPath)
+	if store.Error() != nil {
+		errorMsg := fmt.Sprintf("Could not create root store: %s", store.Error())
 		panic(errorMsg)
 	}
 
-	if err := bag.SaveFile("meta.rdf.id", "0"); err != nil {
+	if err := store.SaveFile("meta.rdf.id", "0"); err != nil {
 		errorMsg := fmt.Sprintf("Could not create root ID file: %s", err.Error())
 		panic(errorMsg)
 	}
 
 	graph := defaultRootRdfGraph(settings.rootUri)
 	content := graph.String()
-	if err := bag.SaveFile("meta.rdf", content); err != nil {
+	if err := store.SaveFile("meta.rdf", content); err != nil {
 		errorMsg := fmt.Sprintf("Could not create root file at %s.", err.Error())
 		panic(errorMsg)
 	}

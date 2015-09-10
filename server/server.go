@@ -5,14 +5,14 @@ import "errors"
 import "io"
 import "ldpserver/ldp"
 import "ldpserver/util"
-import "ldpserver/bagit"
+import "ldpserver/textstore"
 
 const defaultSlug string = "node"
 
 type Server struct {
 	settings ldp.Settings
 	minter   chan string
-	nextBag  chan bagit.Bag
+	nextBag  chan textstore.Store
 }
 
 func NewServer(rootUri string, dataPath string) Server {
@@ -20,7 +20,7 @@ func NewServer(rootUri string, dataPath string) Server {
 	server.settings = ldp.SettingsNew(rootUri, dataPath)
 	ldp.CreateRoot(server.settings)
 	server.minter = CreateMinter(server.settings.IdFile())
-	server.nextBag = make(chan bagit.Bag)
+	server.nextBag = make(chan textstore.Store)
 	return server
 }
 
@@ -45,12 +45,12 @@ func (server Server) getNewPath(slug string) (string, error) {
 	return slug, nil
 }
 
-func (server Server) createBag(parentPath string, newPath string) bagit.Bag {
+func (server Server) createBag(parentPath string, newPath string) textstore.Store {
 	// Queue up the creation of a new bag
 	path := util.UriConcat(parentPath, newPath)
 	fullPath := util.PathConcat(server.settings.DataPath(), path)
 	go func(fullPath string) {
-		server.nextBag <- bagit.CreateBag(fullPath)
+		server.nextBag <- textstore.CreateStore(fullPath)
 	}(fullPath)
 
 	// Wait for the new bag to be available.
