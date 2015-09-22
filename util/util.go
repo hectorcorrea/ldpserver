@@ -39,6 +39,20 @@ func PathFromUri(rootUri, uri string) string {
 	return uri
 }
 
+func DirBasePath(fullPath string) (string, string) {
+	var dir string
+	var base string
+
+	if strings.HasSuffix(fullPath, "/") {
+		dir = path.Dir(strings.TrimSuffix(fullPath, "/"))
+		base = path.Base(strings.TrimSuffix(fullPath, "/"))
+	} else {
+		dir = path.Dir(fullPath)
+		base = path.Base(fullPath)
+	}
+	return dir, base
+}
+
 // For our purposes slugs must be alpha-numerical and can include
 // -, _, and (non-contiguous) periods.
 func IsValidSlug(slug string) bool {

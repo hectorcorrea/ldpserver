@@ -103,3 +103,20 @@ func TestPathFromUri(t *testing.T) {
 		t.Errorf("PathFromUri failed for: %s, %s", testB, resultB)
 	}
 }
+
+func TestDirBasePath(t *testing.T) {
+	testA := []string{"a/b/c", "a/b", "c"}
+	testB := []string{"a/b/c/", "a/b", "c"}
+	testC := []string{"/", ".", "."}
+	testD := []string{"", ".", "."}
+	testE := []string{"a", ".", "a"}
+	testF := []string{"a/", ".", "a"}
+	testG := []string{"/a/", "/", "a"}
+	tests := [][]string{testA, testB, testC, testD, testE, testF, testG}
+	for _, test := range tests {
+		dir, base := DirBasePath(test[0])
+		if dir != test[1] || base != test[2] {
+			t.Errorf("DirBasePath failed for: %s %s %s", test[0], dir, base)
+		}
+	}
+}

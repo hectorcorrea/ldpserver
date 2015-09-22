@@ -6,6 +6,7 @@ import (
 	"ldpserver/ldp"
 	"ldpserver/rdf"
 	"ldpserver/server"
+	"ldpserver/util"
 	"log"
 	"net/http"
 	"strings"
@@ -31,6 +32,8 @@ func homePage(resp http.ResponseWriter, req *http.Request) {
 		handleGet(false, resp, req)
 	} else if req.Method == "POST" {
 		handlePost(resp, req)
+	} else if req.Method == "PUT" {
+		handlePut(resp, req)
 	} else if req.Method == "PATCH" {
 		handlePatch(resp, req)
 	} else {
@@ -134,6 +137,58 @@ func handlePatch(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	fmt.Fprint(resp, req.URL.Path)
+}
+
+func handlePut(resp http.ResponseWriter, req *http.Request) {
+	var node ldp.Node
+	var triples string
+	var err error
+
+	if getSlug(req.Header) != "" {
+		logReqError(req, "Client provided Slug in PUT request", http.StatusBadRequest)
+		http.Error(resp, "Slug is not accepted on PUT requests", http.StatusBadRequest)
+		return
+	}
+
+	path, slug := util.DirBasePath(safePath(req.URL.Path))
+	if path == "." || slug == "." {
+		errorMsg := fmt.Sprintf("Invalid Path (%s) or Slug received (%s) in PUT request", path, slug)
+		logReqError(req, errorMsg, http.StatusBadRequest)
+		http.Error(resp, "Invalid path or Slug indicated on PUT requests", http.StatusBadRequest)
+	}
+
+	// TODO: This code is idential to handlePost. Need to refactor.
+	if isNonRdfPost(req.Header) {
+		// We should pass some hints too
+		// (e.g. application type, file name)
+		log.Printf("Creating Non-RDF Source at %s", path)
+		node, err = theServer.CreateNonRdfSource(req.Body, path, slug)
+	} else {
+		log.Printf("Creating RDF Source %s at %s", slug, path)
+		triples, err = fileio.ReaderToString(req.Body)
+		if err != nil {
+			logReqError(req, err.Error(), http.StatusBadRequest)
+			http.Error(resp, "Invalid request body received", http.StatusBadRequest)
+			return
+		}
+		node, err = theServer.CreateRdfSource(triples, path, slug)
+	}
+
+	if err == nil {
+		resp.WriteHeader(http.StatusCreated)
+	} else {
+		errorMsg := err.Error()
+		errorCode := http.StatusBadRequest
+		if errorMsg == ldp.NodeNotFound {
+			errorMsg = "Parent container [" + path + "] not found."
+			errorCode = http.StatusNotFound
+		}
+		logReqError(req, errorMsg, errorCode)
+		http.Error(resp, errorMsg, errorCode)
+		return
+	}
+
+	fmt.Fprint(resp, node.Uri())
 }
 
 func isNonRdfPost(header http.Header) bool {
