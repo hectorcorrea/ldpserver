@@ -129,18 +129,18 @@ Empty subjects and objects (<>) are only accepted when creating new nodes (via H
 ## TODO
 A lot.
 
+* Prevent overwritting existing resources in POST.
+
 * Support isMemberOfRelation in Direct Containers.
 
 * Support Indirect Containers.
 
-* Support HTTP PUT, PATCH, and DELETE.
+* Support HTTP PATCH, and DELETE.
 
 * I am currently using n-triples rather than turtle because n-triples require less parsing (e.g. no prefixes to be aware of). This should eventually be changed to support and default to turtle.
 
 * Make sure the ntriples pass a minimum validation. For starters take a look at this set: http://www.w3.org/2000/10/rdf-tests/rdfcore/ntriples/test.nt
 
 * Provide a mechanism to fetch the meta data for a non-RDF (e.g. via a query string or an HTTP header parameter)
-
-* Use BagIt file format to store data (http://en.wikipedia.org/wiki/BagIt)
 
 * Make sure the proper links are included in the HTTP response for all kind of resources.
