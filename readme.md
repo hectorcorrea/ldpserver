@@ -17,10 +17,10 @@ If Go is installed on your machine:
 If you are new to Go follow these steps instead:
 
     # Download and install Go from: http://golang.org/doc/install
-    # 
-    # Go is very picky about the location of the code (e.g. the code must be 
-    # inside an src folder.) Here is a setup that will work with minimal effort 
-    # and configuration on your part. You can skip the first step if you 
+    #
+    # Go is very picky about the location of the code (e.g. the code must be
+    # inside an src folder.) Here is a setup that will work with minimal effort
+    # and configuration on your part. You can skip the first step if you
     # already have an ~/src folder.
     #
     mkdir ~/src
@@ -30,6 +30,8 @@ If you are new to Go follow these steps instead:
     cd ldpserver
     go build
     ./ldpserver
+
+If you don't care about the source code, the fastest way to get started is to [download the executable for your platform](https://github.com/hectorcorrea/ldpserver/releases) from the release tab, make it an executable on your box, and run it.
 
 
 ## Operations supported
@@ -81,7 +83,7 @@ Fetch node created
 
     curl localhost:9001/demo
 
-Create an *LDP Direct Container* that uses `/node1` as its `membershipResource` (notice the `$'text'` syntax to preserve carriage returns in the triples) 
+Create an *LDP Direct Container* that uses `/node1` as its `membershipResource` (notice the `$'text'` syntax to preserve carriage returns in the triples)
 
     curl -X POST -d $'<> <http://www.w3.org/ns/ldp#hasMemberRelation> <someRel> .\n<> <http://www.w3.org/ns/ldp#membershipResource> <http://localhost:9001/node1> .\n' localhost:9001
 
@@ -125,13 +127,13 @@ Empty subjects and objects (<>) are only accepted when creating new nodes (via H
 
 
 ## TODO
-A lot. 
+A lot.
 
 * Support isMemberOfRelation in Direct Containers.
 
-* Support Indirect Containers. 
+* Support Indirect Containers.
 
-* Support HTTP PUT, PATCH, and DELETE. 
+* Support HTTP PUT, PATCH, and DELETE.
 
 * I am currently using n-triples rather than turtle because n-triples require less parsing (e.g. no prefixes to be aware of). This should eventually be changed to support and default to turtle.
 
@@ -141,4 +143,4 @@ A lot.
 
 * Use BagIt file format to store data (http://en.wikipedia.org/wiki/BagIt)
 
-* Make sure the proper links are included in the HTTP response for all kind of resources. 
+* Make sure the proper links are included in the HTTP response for all kind of resources.
