@@ -12,7 +12,8 @@ const defaultSlug string = "node"
 type Server struct {
 	settings ldp.Settings
 	minter   chan string
-	nextBag  chan textstore.Store
+	// this should use an interface to it's not tied to "textStore"
+	nextResource chan textstore.Store
 }
 
 func NewServer(rootUri string, dataPath string) Server {
@@ -20,7 +21,7 @@ func NewServer(rootUri string, dataPath string) Server {
 	server.settings = ldp.SettingsNew(rootUri, dataPath)
 	ldp.CreateRoot(server.settings)
 	server.minter = CreateMinter(server.settings.IdFile())
-	server.nextBag = make(chan textstore.Store)
+	server.nextResource = make(chan textstore.Store)
 	return server
 }
 
@@ -45,16 +46,16 @@ func (server Server) getNewPath(slug string) (string, error) {
 	return slug, nil
 }
 
-func (server Server) createBag(parentPath string, newPath string) textstore.Store {
-	// Queue up the creation of a new bag
+func (server Server) createResource(parentPath string, newPath string) textstore.Store {
+	// Queue up the creation of a new resource
 	path := util.UriConcat(parentPath, newPath)
 	fullPath := util.PathConcat(server.settings.DataPath(), path)
 	go func(fullPath string) {
-		server.nextBag <- textstore.CreateStore(fullPath)
+		server.nextResource <- textstore.CreateStore(fullPath)
 	}(fullPath)
 
-	// Wait for the new bag to be available.
-	bag := <-server.nextBag
+	// Wait for the new resource to be available.
+	bag := <-server.nextResource
 	return bag
 }
 
@@ -69,7 +70,7 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 		return ldp.Node{}, err
 	}
 
-	bag := server.createBag(parentPath, newPath)
+	bag := server.createResource(parentPath, newPath)
 	if bag.Error() != nil {
 		return ldp.Node{}, bag.Error()
 	}
@@ -96,7 +97,7 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 		return ldp.Node{}, err
 	}
 
-	bag := server.createBag(parentPath, newPath)
+	bag := server.createResource(parentPath, newPath)
 	if bag.Error() != nil {
 		return ldp.Node{}, bag.Error()
 	}
