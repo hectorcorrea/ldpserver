@@ -117,8 +117,8 @@ func (server Server) createResource(parentPath string, newPath string) textstore
 	}(fullPath)
 
 	// Wait for the new resource to be available.
-	bag := <-server.nextResource
-	return bag
+	resource := <-server.nextResource
+	return resource
 }
 
 func (server Server) getContainer(path string) (ldp.Node, error) {
