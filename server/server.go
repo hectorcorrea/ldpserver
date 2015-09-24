@@ -33,32 +33,6 @@ func (server Server) GetHead(path string) (ldp.Node, error) {
 	return ldp.GetHead(server.settings, path)
 }
 
-func (server Server) getNewPath(slug string) (string, error) {
-	if slug == "" {
-		// Generate a new server URI (e.g. node34)
-		return MintNextUri(defaultSlug, server.minter), nil
-	}
-
-	if !util.IsValidSlug(slug) {
-		errorMsg := fmt.Sprintf("Invalid Slug received (%s). Slug must not include special characters.", slug)
-		return "", errors.New(errorMsg)
-	}
-	return slug, nil
-}
-
-func (server Server) createResource(parentPath string, newPath string) textstore.Store {
-	// Queue up the creation of a new resource
-	path := util.UriConcat(parentPath, newPath)
-	fullPath := util.PathConcat(server.settings.DataPath(), path)
-	go func(fullPath string) {
-		server.nextResource <- textstore.CreateStore(fullPath)
-	}(fullPath)
-
-	// Wait for the new resource to be available.
-	bag := <-server.nextResource
-	return bag
-}
-
 func (server Server) CreateRdfSource(triples string, parentPath string, slug string) (ldp.Node, error) {
 	container, err := server.getContainer(parentPath)
 	if err != nil {
@@ -119,6 +93,32 @@ func (server Server) PatchNode(path string, triples string) error {
 		return err
 	}
 	return node.Patch(triples)
+}
+
+func (server Server) getNewPath(slug string) (string, error) {
+	if slug == "" {
+		// Generate a new server URI (e.g. node34)
+		return MintNextUri(defaultSlug, server.minter), nil
+	}
+
+	if !util.IsValidSlug(slug) {
+		errorMsg := fmt.Sprintf("Invalid Slug received (%s). Slug must not include special characters.", slug)
+		return "", errors.New(errorMsg)
+	}
+	return slug, nil
+}
+
+func (server Server) createResource(parentPath string, newPath string) textstore.Store {
+	// Queue up the creation of a new resource
+	path := util.UriConcat(parentPath, newPath)
+	fullPath := util.PathConcat(server.settings.DataPath(), path)
+	go func(fullPath string) {
+		server.nextResource <- textstore.CreateStore(fullPath)
+	}(fullPath)
+
+	// Wait for the new resource to be available.
+	bag := <-server.nextResource
+	return bag
 }
 
 func (server Server) getContainer(path string) (ldp.Node, error) {
