@@ -44,6 +44,7 @@ func homePage(resp http.ResponseWriter, req *http.Request) {
 func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 	var node ldp.Node
 	var err error
+
 	path := safePath(req.URL.Path)
 	if includeBody {
 		log.Printf("GET request %s", path)
@@ -72,12 +73,35 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 }
 
 func handlePost(resp http.ResponseWriter, req *http.Request) {
+	slug := getSlug(req.Header)
+	path := safePath(req.URL.Path)
+	doPostPut(resp, req, path, slug)
+}
+
+func handlePut(resp http.ResponseWriter, req *http.Request) {
+	// In PUT requests we don't expect a slug in the headers...
+	if getSlug(req.Header) != "" {
+		logReqError(req, "Unexpected client provided Slug in PUT request", http.StatusBadRequest)
+		http.Error(resp, "Slug is not accepted on PUT requests", http.StatusBadRequest)
+		return
+	}
+
+	// ...insted we use the last segment of the path as the
+	// slug (i.e. the ID of the resource to write.)
+	path, slug := util.DirBasePath(safePath(req.URL.Path))
+	if path == "." || slug == "." {
+		errorMsg := fmt.Sprintf("Invalid Path (%s) or Slug received (%s) in PUT request", path, slug)
+		logReqError(req, errorMsg, http.StatusBadRequest)
+		http.Error(resp, "Invalid path or Slug indicated on PUT requests", http.StatusBadRequest)
+	}
+
+	doPostPut(resp, req, path, slug)
+}
+
+func doPostPut(resp http.ResponseWriter, req *http.Request, path string, slug string) {
 	var node ldp.Node
 	var triples string
 	var err error
-
-	slug := getSlug(req.Header)
-	path := safePath(req.URL.Path)
 
 	if isNonRdfPost(req.Header) {
 		// We should pass some hints too
@@ -85,7 +109,7 @@ func handlePost(resp http.ResponseWriter, req *http.Request) {
 		log.Printf("Creating Non-RDF Source at %s", path)
 		node, err = theServer.CreateNonRdfSource(req.Body, path, slug)
 	} else {
-		log.Printf("Creating RDF Source at %s", path)
+		log.Printf("Creating RDF Source %s at %s", slug, path)
 		triples, err = fileio.ReaderToString(req.Body)
 		if err != nil {
 			logReqError(req, err.Error(), http.StatusBadRequest)
@@ -137,58 +161,6 @@ func handlePatch(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	fmt.Fprint(resp, req.URL.Path)
-}
-
-func handlePut(resp http.ResponseWriter, req *http.Request) {
-	var node ldp.Node
-	var triples string
-	var err error
-
-	if getSlug(req.Header) != "" {
-		logReqError(req, "Client provided Slug in PUT request", http.StatusBadRequest)
-		http.Error(resp, "Slug is not accepted on PUT requests", http.StatusBadRequest)
-		return
-	}
-
-	path, slug := util.DirBasePath(safePath(req.URL.Path))
-	if path == "." || slug == "." {
-		errorMsg := fmt.Sprintf("Invalid Path (%s) or Slug received (%s) in PUT request", path, slug)
-		logReqError(req, errorMsg, http.StatusBadRequest)
-		http.Error(resp, "Invalid path or Slug indicated on PUT requests", http.StatusBadRequest)
-	}
-
-	// TODO: This code is idential to handlePost. Need to refactor.
-	if isNonRdfPost(req.Header) {
-		// We should pass some hints too
-		// (e.g. application type, file name)
-		log.Printf("Creating Non-RDF Source at %s", path)
-		node, err = theServer.CreateNonRdfSource(req.Body, path, slug)
-	} else {
-		log.Printf("Creating RDF Source %s at %s", slug, path)
-		triples, err = fileio.ReaderToString(req.Body)
-		if err != nil {
-			logReqError(req, err.Error(), http.StatusBadRequest)
-			http.Error(resp, "Invalid request body received", http.StatusBadRequest)
-			return
-		}
-		node, err = theServer.CreateRdfSource(triples, path, slug)
-	}
-
-	if err == nil {
-		resp.WriteHeader(http.StatusCreated)
-	} else {
-		errorMsg := err.Error()
-		errorCode := http.StatusBadRequest
-		if errorMsg == ldp.NodeNotFound {
-			errorMsg = "Parent container [" + path + "] not found."
-			errorCode = http.StatusNotFound
-		}
-		logReqError(req, errorMsg, errorCode)
-		http.Error(resp, errorMsg, errorCode)
-		return
-	}
-
-	fmt.Fprint(resp, node.Uri())
 }
 
 func isNonRdfPost(header http.Header) bool {
