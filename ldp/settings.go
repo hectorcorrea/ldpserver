@@ -5,7 +5,7 @@ import "ldpserver/util"
 type Settings struct {
 	dataPath string
 	rootUri  string
-	idFile string
+	idFile   string
 }
 
 func SettingsNew(rootUri, datapath string) Settings {

@@ -2,8 +2,8 @@ package ldp
 
 import (
 	"fmt"
-	"ldpserver/textstore"
 	"ldpserver/rdf"
+	"ldpserver/textstore"
 	"log"
 	"time"
 )
