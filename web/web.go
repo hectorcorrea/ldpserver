@@ -73,6 +73,7 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 }
 
 func handlePost(resp http.ResponseWriter, req *http.Request) {
+	logHeaders(req)
 	slug := getSlug(req.Header)
 	path := safePath(req.URL.Path)
 	doPostPut(resp, req, path, slug)
@@ -86,7 +87,7 @@ func handlePut(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// ...insted we use the last segment of the path as the
+	// ...instead we use the last segment of the path as the
 	// slug (i.e. the ID of the resource to write.)
 	path, slug := util.DirBasePath(safePath(req.URL.Path))
 	if path == "." || slug == "." {
@@ -141,13 +142,21 @@ func doPostPut(resp http.ResponseWriter, req *http.Request, path string, slug st
 
 func handlePatch(resp http.ResponseWriter, req *http.Request) {
 
+	if !isRdfContentType(req.Header) {
+		errorMsg := fmt.Sprintf("Invalid Content-Type (%s) received", requestContentType(req.Header))
+		logReqError(req, errorMsg, http.StatusBadRequest)
+		http.Error(resp, errorMsg, http.StatusBadRequest)
+		return
+	}
+
 	path := safePath(req.URL.Path)
 	log.Printf("Patching %s", path)
 
 	triples, err := fileio.ReaderToString(req.Body)
 	if err != nil {
-		http.Error(resp, "Invalid request body received", http.StatusBadRequest)
-		log.Printf(err.Error())
+		errorMsg := fmt.Sprintf("Invalid body received. Error: %s", err.Error())
+		logReqError(req, errorMsg, http.StatusBadRequest)
+		http.Error(resp, errorMsg, http.StatusBadRequest)
 		return
 	}
 
@@ -155,9 +164,10 @@ func handlePatch(resp http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		errorMsg := err.Error()
 		if errorMsg == ldp.NodeNotFound {
-			log.Printf("Not found %s", path)
+			logReqError(req, errorMsg, http.StatusNotFound)
 			http.NotFound(resp, req)
 		} else {
+			logReqError(req, errorMsg, http.StatusInternalServerError)
 			http.Error(resp, errorMsg, http.StatusInternalServerError)
 		}
 		return
@@ -167,12 +177,7 @@ func handlePatch(resp http.ResponseWriter, req *http.Request) {
 }
 
 func isNonRdfPost(header http.Header) bool {
-	for _, value := range header["Link"] {
-		if strings.Contains(value, rdf.LdpNonRdfSourceUri) {
-			return true
-		}
-	}
-	return false
+	return !isRdfContentType(header)
 }
 
 func safePath(rawPath string) string {
@@ -187,6 +192,27 @@ func getSlug(header http.Header) string {
 		return value
 	}
 	return ""
+}
+
+func requestContentType(header http.Header) string {
+	for _, value := range header["Content-Type"] {
+		return value
+	}
+	return rdf.TurtleContentType
+}
+
+func isRdfContentType(header http.Header) bool {
+	contentType := requestContentType(header)
+	return contentType == rdf.NTripleContentType || contentType == rdf.TurtleContentType
+}
+
+func logHeaders(req *http.Request) {
+	log.Printf("HTTP Headers")
+	for header, values := range req.Header {
+		for _, value := range values {
+			log.Printf("\t %s %s", header, value)
+		}
+	}
 }
 
 func logReqError(req *http.Request, message string, code int) {

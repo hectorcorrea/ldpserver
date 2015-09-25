@@ -29,3 +29,8 @@ const (
 	DcTitleUri   = "http://purl.org/dc/terms/title"
 	DcCreatedUri = "http://purl.org/dc/terms/created"
 )
+
+const (
+	NTripleContentType = "text/ntriple"
+	TurtleContentType  = "text/turtle"
+)
