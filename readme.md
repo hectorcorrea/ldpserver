@@ -129,8 +129,6 @@ Empty subjects and objects (<>) are only accepted when creating new nodes (via H
 ## TODO
 A lot.
 
-* Prevent overwritting existing resources in POST.
-
 * Support isMemberOfRelation in Direct Containers.
 
 * Support Indirect Containers.
