@@ -37,7 +37,7 @@ If you don't care about the source code, the fastest way to get started is to [d
 ## Operations supported
 With the server running, you can use `cURL` to submit requests to it. For example, to fetch the root node
 
-    curl locahost:9001
+    curl localhost:9001
 
 POST to the root (the Slug defaults to "node" + a sequential number)
 
@@ -49,9 +49,9 @@ Fetch the node created
 
 POST a non-RDF to the root
 
-    curl -X POST --header "Link: http://www.w3.org/ns/ldp#NonRDFSource; rel=\"type\"" --data "hello world" localhost:9001
+    curl -X POST --header "Content-Type: text/plain" --data "hello world" localhost:9001
 
-    curl -X POST --header "Link: http://www.w3.org/ns/ldp#NonRDFSource; rel=\"type\"" --data-binary "@filename" localhost:9001
+    curl -X POST --header "Content-Type: image/jpeg" --data-binary "@filename.jpg" localhost:9001
 
 Fetch the non-RDF created
 
@@ -85,7 +85,7 @@ Fetch node created
 
 Create an *LDP Direct Container* that uses `/node1` as its `membershipResource` (notice the `$'text'` syntax to preserve carriage returns in the triples)
 
-    curl -X POST -d $'<> <http://www.w3.org/ns/ldp#hasMemberRelation> <someRel> .\n<> <http://www.w3.org/ns/ldp#membershipResource> <http://localhost:9001/node1> .\n' localhost:9001
+    curl -X POST --header "Content-Type: text/ntriple" -d $'<> <http://www.w3.org/ns/ldp#hasMemberRelation> <someRel> .\n<> <http://www.w3.org/ns/ldp#membershipResource> <http://localhost:9001/node1> .\n' localhost:9001
 
 
 ## Demo
