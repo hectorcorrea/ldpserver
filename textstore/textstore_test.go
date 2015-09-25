@@ -36,4 +36,9 @@ func TestTextStore(t *testing.T) {
 		t.Errorf("Unexpected text %s found when reading store at %s", err, store.Path())
 	}
 
+	store = CreateStore(dataPath)
+	if store.Error() == nil {
+		t.Errorf("Failed to detect override on create")
+	}
+
 }

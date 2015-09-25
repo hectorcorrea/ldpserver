@@ -153,6 +153,18 @@ func TestCreateNonRdf(t *testing.T) {
 	}
 }
 
+func TestCreateDuplicate(t *testing.T) {
+	_, err := theServer.CreateRdfSource("", "/", "abc")
+	if err != nil {
+		t.Error("Could not create new bag")
+	}
+
+	_, err = theServer.CreateRdfSource("", "/", "abc")
+	if err == nil {
+		t.Error("Failed to detect create on existing resource")
+	}
+}
+
 func TestPatchRdf(t *testing.T) {
 	triples := "<> <p1> <o1> .\n<> <p2> <o2> .\n"
 	node, _ := theServer.CreateRdfSource(triples, "/", slug)

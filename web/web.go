@@ -127,6 +127,9 @@ func doPostPut(resp http.ResponseWriter, req *http.Request, path string, slug st
 		if errorMsg == ldp.NodeNotFound {
 			errorMsg = "Parent container [" + path + "] not found."
 			errorCode = http.StatusNotFound
+		} else if errorMsg == ldp.DuplicateNode {
+			errorMsg = fmt.Sprintf("Resource already exists. Path: %s Slug: %s", path, slug)
+			errorCode = http.StatusConflict
 		}
 		logReqError(req, errorMsg, errorCode)
 		http.Error(resp, errorMsg, errorCode)

@@ -1,6 +1,7 @@
 package textstore
 
 import (
+	"errors"
 	"io"
 	"ldpserver/fileio"
 	"ldpserver/util"
@@ -21,7 +22,9 @@ func NewStore(folder string) Store {
 
 func CreateStore(folder string) Store {
 	store := NewStore(folder)
-	if !store.Exists() {
+	if store.Exists() {
+		store.err = errors.New("Already exists")
+	} else {
 		store.err = store.SaveFile(metaFile, "")
 	}
 	return store

@@ -44,9 +44,12 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 		return ldp.Node{}, err
 	}
 
-	bag := server.createResource(parentPath, newPath)
-	if bag.Error() != nil {
-		return ldp.Node{}, bag.Error()
+	resource := server.createResource(parentPath, newPath)
+	if resource.Error() != nil {
+		if resource.Error().Error() == "Already exists" {
+			return ldp.Node{}, errors.New(ldp.DuplicateNode)
+		}
+		return ldp.Node{}, resource.Error()
 	}
 
 	node, err := ldp.NewRdfNode(server.settings, triples, parentPath, newPath)
