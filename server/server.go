@@ -46,6 +46,11 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 
 	resource := server.createResource(parentPath, newPath)
 	if resource.Error() != nil {
+		// TODO: Allow overwriting of resources on PUT.
+		//       Need to figure out the ramifications of overwriting
+		//       a container (e.g. what happens to contained objects?)
+		//       or overwriting an RDF Source with a Non-RDF source
+		//       (or viceversa)
 		if resource.Error().Error() == "Already exists" {
 			return ldp.Node{}, errors.New(ldp.DuplicateNode)
 		}
