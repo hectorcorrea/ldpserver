@@ -51,6 +51,13 @@ func (store Store) Error() error {
 	return store.err
 }
 
+func (store Store) ErrorMessage() string {
+	if store.err != nil {
+		return store.err.Error()
+	}
+	return ""
+}
+
 func (store Store) SaveFile(filename string, content string) error {
 	fullFilename := util.PathConcat(store.folder, filename)
 	return fileio.WriteFile(fullFilename, content)

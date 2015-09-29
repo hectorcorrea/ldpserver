@@ -1,11 +1,14 @@
 package server
 
-import "fmt"
-import "errors"
-import "io"
-import "ldpserver/ldp"
-import "ldpserver/util"
-import "ldpserver/textstore"
+import (
+	"errors"
+	"fmt"
+	"io"
+	"ldpserver/ldp"
+	"ldpserver/textstore"
+	"ldpserver/util"
+	"log"
+)
 
 const defaultSlug string = "node"
 
@@ -51,7 +54,7 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 		//       a container (e.g. what happens to contained objects?)
 		//       or overwriting an RDF Source with a Non-RDF source
 		//       (or viceversa)
-		if resource.Error().Error() == "Already exists" {
+		if resource.ErrorMessage() == "Already exists" {
 			return ldp.Node{}, errors.New(ldp.DuplicateNode)
 		}
 		return ldp.Node{}, resource.Error()
@@ -79,9 +82,21 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 		return ldp.Node{}, err
 	}
 
-	bag := server.createResource(parentPath, newPath)
-	if bag.Error() != nil {
-		return ldp.Node{}, bag.Error()
+	newResource := true
+	resource := server.createResource(parentPath, newPath)
+	if resource.Error() != nil {
+		if resource.ErrorMessage() == "Already exists" {
+			node, err := ldp.GetHead(server.settings, newPath)
+			if err != nil {
+				log.Printf("Error fetching resource to overwrite %s", err)
+				return ldp.Node{}, errors.New("Cannot validate resource to overwrite")
+			} else if node.IsRdf() {
+				return ldp.Node{}, errors.New("Cannot overwrite RDF Source with Non-RDF Source")
+			}
+			newResource = false
+		} else {
+			return ldp.Node{}, resource.Error()
+		}
 	}
 
 	node, err := ldp.NewNonRdfNode(server.settings, reader, parentPath, newPath)
@@ -89,9 +104,12 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 		return node, err
 	}
 
-	if err := container.AddChild(node); err != nil {
-		return node, err
+	if newResource {
+		if err := container.AddChild(node); err != nil {
+			return node, err
+		}
 	}
+
 	return node, nil
 }
 
