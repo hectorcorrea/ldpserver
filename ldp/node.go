@@ -267,7 +267,7 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 	node.isRdf = true
 	node.graph = graph
 	node.headers = make(map[string][]string)
-	node.headers["Content-Type"] = []string{rdf.NTripleContentType}
+	node.headers["Content-Type"] = []string{rdf.TurtleContentType}
 
 	if graph.IsBasicContainer(node.uri) {
 		// Is there a way to indicate that PUT is allowed

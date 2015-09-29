@@ -31,6 +31,5 @@ const (
 )
 
 const (
-	NTripleContentType = "text/ntriple"
-	TurtleContentType  = "text/turtle"
+	TurtleContentType = "text/turtle"
 )

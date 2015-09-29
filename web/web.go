@@ -203,7 +203,7 @@ func requestContentType(header http.Header) string {
 
 func isRdfContentType(header http.Header) bool {
 	contentType := requestContentType(header)
-	return contentType == rdf.NTripleContentType || contentType == rdf.TurtleContentType
+	return contentType == rdf.TurtleContentType
 }
 
 func logHeaders(req *http.Request) {
