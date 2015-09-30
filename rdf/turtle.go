@@ -2,17 +2,102 @@ package rdf
 
 import (
 	"errors"
+	// "log"
 )
 
-func GetTriple(text string) (string, string, string) {
-	chars := stringToRunes(text)
-	subject, a, _ := GetTokenFromRune(chars, 0)
-	predicate, b, _ := GetTokenFromRune(chars, a)
-	object, _, _ := GetTokenFromRune(chars, b)
-	return subject, predicate, object
+type Token struct {
+	value        string
+	isUri        bool
+	isLiteral    bool
+	isNamespaced bool
 }
 
-func GetToken(text string) (string, error) {
+type TurtleParser struct {
+	index   int
+	text    string
+	chars   []rune
+	triples []Triple
+	err     error
+}
+
+func NewTurtleParser(text string) TurtleParser {
+	// Convert the original string to an array of unicode runes.
+	// This allows us to iterate on it as if it was an array
+	// of ASCII chars even if there are Unicode characters on it
+	// that use 2-4 bytes.
+	chars := stringToRunes(text)
+	parser := TurtleParser{text: text, chars: chars}
+	return parser
+}
+
+func (parser TurtleParser) Parse() error {
+	parser.err = nil
+	parser.index = 0
+	for {
+		triple, err := parser.GetNextTriple()
+		if err != nil {
+			parser.err = err
+			break
+		}
+
+		parser.triples = append(parser.triples, triple)
+		break
+		// parser.advanceIndex()
+		// if parser.atEnd() {
+		// 	break
+		// }
+	}
+	return parser.err
+}
+
+func (parser TurtleParser) Triples() []Triple {
+	return parser.triples
+}
+
+func (parser *TurtleParser) advanceIndex() {
+	if !parser.atEnd() {
+		parser.index++
+	}
+}
+
+func (parser TurtleParser) atLastChar() bool {
+	return parser.index == len(parser.chars)-1
+}
+
+func (parser TurtleParser) atEnd() bool {
+	return parser.index > len(parser.chars)-1
+}
+
+func (parser TurtleParser) GetNextTriple() (Triple, error) {
+	var subject, predicate, object Token
+	var index int
+	subject, index, _ = GetTokenFromRune(parser.chars, parser.index)
+	parser.index = index
+	parser.advanceIndex()
+
+	predicate, index, _ = GetTokenFromRune(parser.chars, parser.index)
+	parser.index = index
+	parser.advanceIndex()
+
+	object, parser.index, _ = GetTokenFromRune(parser.chars, parser.index)
+	parser.index = index
+	parser.advanceIndex()
+
+	index, err := tripleEndsOK(parser.chars, parser.index)
+	parser.index = index
+	parser.advanceIndex()
+	if err != nil {
+		return Triple{}, err
+	}
+
+	if object.isLiteral {
+		return NewTripleLit(subject.value, predicate.value, object.value), nil
+	}
+
+	return NewTripleUri(subject.value, predicate.value, object.value), nil
+}
+
+func GetToken(text string) (Token, error) {
 	chars := stringToRunes(text)
 	token, _, err := GetTokenFromRune(chars, 0)
 	return token, err
@@ -23,29 +108,34 @@ func GetToken(text string) (string, error) {
 //    string the token
 //    int the position where the string ends in relation to the original string
 //    error (if any)
-func GetTokenFromRune(chars []rune, index int) (string, int, error) {
+func GetTokenFromRune(chars []rune, index int) (Token, int, error) {
 	start := parseWhiteSpace(chars, index)
 	if start >= len(chars) {
-		return "", -1, errors.New("End of line reached. No token found after parsing white space.")
+		return Token{}, -1, errors.New("End of line reached. No token found after parsing white space.")
 	}
 	firstChar := chars[start]
 	var end int
 	var err error
+	var isLiteral, isUri, isNamespaced bool
 	switch {
 	case firstChar == '<':
+		isUri = true
 		end, err = parseUri(chars, start+1)
 	case firstChar == '"':
+		isLiteral = true
 		end, err = parseString(chars, start+1)
 	case isNamespacedChar(firstChar):
+		isNamespaced = true
 		end, err = parseNamespacedValue(chars, start+1)
 	default:
-		return "", -1, errors.New("Invalid first character")
+		return Token{}, -1, errors.New("Invalid first character")
 	}
 	if err != nil {
-		return "", -1, err
+		return Token{}, -1, err
 	}
-	token := chars[start : end+1]
-	return string(token), end, nil
+	value := string(chars[start : end+1])
+	token := Token{value: value, isUri: isUri, isLiteral: isLiteral, isNamespaced: isNamespaced}
+	return token, end, nil
 }
 
 func tripleEndsOK(chars []rune, index int) (int, error) {
