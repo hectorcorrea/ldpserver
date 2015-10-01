@@ -2,6 +2,7 @@ package rdf
 
 import (
 	"errors"
+	"log"
 )
 
 type Token struct {
@@ -34,15 +35,14 @@ func (parser *TurtleParser) Parse() error {
 	parser.err = nil
 	parser.index = 0
 	parser.length = len(parser.chars)
-	for {
+	for parser.canRead() {
 		triple, err := parser.GetNextTriple()
 		if err != nil {
 			parser.err = err
 			break
 		}
-
 		parser.triples = append(parser.triples, triple)
-		break
+		parser.advanceWhiteSpace()
 	}
 	return parser.err
 }
@@ -55,6 +55,8 @@ func (parser *TurtleParser) GetNextTriple() (Triple, error) {
 	var subject, predicate, object Token
 	var err error
 	var triple Triple
+
+	log.Printf("GetNextTriple %d", parser.index)
 	subject, err = parser.GetNextToken()
 	if err == nil {
 		predicate, err = parser.GetNextToken()
@@ -68,7 +70,7 @@ func (parser *TurtleParser) GetNextTriple() (Triple, error) {
 			}
 		}
 	}
-	return triple, nil
+	return triple, err
 }
 
 func (parser *TurtleParser) GetNextToken() (Token, error) {
@@ -175,6 +177,7 @@ func (parser TurtleParser) isWhiteSpaceChar() bool {
 	return char == ' ' || char == '\t' || char == '\n' || char == '\r'
 }
 
+// Extracts a value in the form xx:yy or xx
 func (parser *TurtleParser) parseNamespacedValue() string {
 	start := parser.index
 	parser.advance()
@@ -189,6 +192,7 @@ func (parser *TurtleParser) parseNamespacedValue() string {
 	return string(parser.chars[start:parser.index])
 }
 
+// Extracts a value in quotes, e.g. "hello"
 func (parser *TurtleParser) parseString() (string, error) {
 	// TODO: Move the advance outside of here.
 	// We should already be inside the URI.
@@ -204,6 +208,7 @@ func (parser *TurtleParser) parseString() (string, error) {
 	return "", errors.New("String did not end with \"")
 }
 
+// Extracts an URI in the form <hello>
 func (parser *TurtleParser) parseUri() (string, error) {
 	// TODO: Move the advance outside of here.
 	// We should already be inside the URI.
