@@ -2,7 +2,7 @@ package rdf
 
 import (
 	"errors"
-	"log"
+	// "log"
 )
 
 type Token struct {
@@ -42,10 +42,6 @@ func (parser TurtleParser) Parse() error {
 
 		parser.triples = append(parser.triples, triple)
 		break
-		// parser.advanceIndex()
-		// if parser.atEnd() {
-		// 	break
-		// }
 	}
 	return parser.err
 }
@@ -54,26 +50,12 @@ func (parser TurtleParser) Triples() []Triple {
 	return parser.triples
 }
 
-func (parser *TurtleParser) advanceIndex() {
-	if !parser.atEnd() {
-		parser.index++
-	}
-}
-
-func (parser TurtleParser) atLastChar() bool {
-	return parser.index == len(parser.chars)-1
-}
-
-func (parser TurtleParser) atEnd() bool {
-	return parser.index > len(parser.chars)-1
-}
-
 func (parser *TurtleParser) GetNextTriple() (Triple, error) {
 	subject, _ := parser.GetNextToken()
 	predicate, _ := parser.GetNextToken()
 	object, _ := parser.GetNextToken()
 
-	err := parser.MoveToNextTriple()
+	err := parser.AdvanceTriple()
 	if err != nil {
 		return Triple{}, err
 	}
@@ -86,140 +68,152 @@ func (parser *TurtleParser) GetNextTriple() (Triple, error) {
 }
 
 func (parser *TurtleParser) GetNextToken() (Token, error) {
-	start := parseWhiteSpace(parser.chars, parser.index)
-	if start >= len(parser.chars) {
-		return Token{}, errors.New("End of line reached. No token found after parsing white space.")
-	}
-	firstChar := parser.chars[start]
-	var end int
 	var err error
 	var isLiteral, isUri, isNamespaced bool
+	var value string
+
+	parser.advanceWhiteSpace()
+	firstChar := parser.char()
+
 	switch {
 	case firstChar == '<':
 		isUri = true
-		end, err = parseUri(parser.chars, start+1)
+		value, err = parser.parseUri()
 	case firstChar == '"':
 		isLiteral = true
-		end, err = parseString(parser.chars, start+1)
-	case isNamespacedChar(firstChar):
+		value, err = parser.parseString()
+	case parser.isNamespacedChar():
 		isNamespaced = true
-		end, err = parseNamespacedValue(parser.chars, start+1)
+		value = parser.parseNamespacedValue()
 	default:
 		return Token{}, errors.New("Invalid first character")
 	}
 	if err != nil {
 		return Token{}, err
 	}
-	value := string(parser.chars[start : end+1])
-	parser.index = end + 1
-	parser.advanceIndex()
+
+	parser.advance()
 	token := Token{value: value, isUri: isUri, isLiteral: isLiteral, isNamespaced: isNamespaced}
 	return token, nil
 }
 
-func (parser *TurtleParser) MoveToNextTriple() error {
-	for {
-		log.Printf("%d %c", parser.index, parser.chars[parser.index])
-		if parser.chars[parser.index] == '.' {
+func (parser *TurtleParser) AdvanceTriple() error {
+	for parser.canRead() {
+		if parser.char() == '.' {
 			break
 		}
-		if isWhiteSpaceChar(parser.chars[parser.index]) {
-			log.Printf("next")
-			parser.advanceIndex()
+		if parser.isWhiteSpaceChar() {
+			parser.advance()
 			continue
 		}
 		return errors.New("Triple did not end with a period2.")
 	}
-	parser.advanceIndex()
+	parser.advance()
 	return nil
 }
 
-func tripleEndsOK(chars []rune, index int) (int, error) {
-	var i int
-	for i = index; i < len(chars) && isWhiteSpaceChar(chars[i]); i++ {
+func (parser *TurtleParser) advance() {
+	if !parser.atEnd() {
+		parser.index++
 	}
-
-	if i == len(chars) || chars[i] != '.' {
-		return -1, errors.New("Triple did not end with a period.")
-	}
-	return i, nil
 }
 
-func parseNamespacedValue(chars []rune, index int) (int, error) {
-	var i int
-	for i = index; i < len(chars) && isNamespacedChar(chars[i]); i++ {
-	}
-	return i - 1, nil
-}
-
-func parseString(chars []rune, index int) (int, error) {
-	foundDelimiter := false
-	var i int
-	for i = index; i < len(chars); i++ {
-		if chars[i] == '"' {
-			foundDelimiter = true
+func (parser *TurtleParser) advanceWhiteSpace() {
+	for parser.canRead() {
+		if parser.atLastChar() || !parser.isWhiteSpaceChar() {
 			break
 		}
+		parser.advance()
 	}
-	if !foundDelimiter {
-		return -1, errors.New("String did not end with \"")
-	}
-	return i, nil
 }
 
-func parseUri(chars []rune, index int) (int, error) {
-	foundDelimiter := false
-	var i int
-	for i = index; i < len(chars); i++ {
-		if chars[i] == '>' {
-			foundDelimiter = true
-			break
-		}
-		if !isUriChar(chars[i]) {
-			return -1, errors.New("Invalid character in URI")
-		}
-	}
-	if !foundDelimiter {
-		return -1, errors.New("URI did not end with >")
-	}
-	return i, nil
-}
-
-func parseWhiteSpace(chars []rune, index int) int {
-	var i int
-	for i = index; i < len(chars) && isWhiteSpaceChar(chars[i]); i++ {
-	}
-	return i
-}
-
-func isWhiteSpaceChar(char rune) bool {
-	if char == ' ' || char == '\t' ||
-		char == '\n' || char == '\r' {
+func (parser TurtleParser) atEnd() bool {
+	if len(parser.chars) == 0 {
 		return true
 	}
-	return false
+	return parser.index > len(parser.chars)-1
 }
 
-func isUriChar(char rune) bool {
-	if (char >= 'a' && char <= 'z') ||
+func (parser TurtleParser) atLastChar() bool {
+	return parser.index == len(parser.chars)-1
+}
+
+func (parser *TurtleParser) canRead() bool {
+	return !parser.atEnd()
+}
+
+func (parser TurtleParser) char() rune {
+	return parser.chars[parser.index]
+}
+
+func (parser TurtleParser) isNamespacedChar() bool {
+	char := parser.char()
+	return (char >= 'a' && char <= 'z') ||
+		(char >= 'A' && char <= 'Z') ||
+		(char >= '0' && char <= '9') ||
+		(char == ':')
+}
+
+func (parser TurtleParser) isUriChar() bool {
+	char := parser.char()
+	return (char >= 'a' && char <= 'z') ||
 		(char >= 'A' && char <= 'Z') ||
 		(char >= '0' && char <= '9') ||
 		(char == ':') || (char == '/') ||
 		(char == '%') || (char == '#') ||
-		(char == '+') {
-		return true
-	}
-	return false
+		(char == '+')
 }
 
-func isNamespacedChar(char rune) bool {
-	if (char >= 'a' && char <= 'z') ||
-		(char >= 'A' && char <= 'Z') ||
-		(char >= '0' && char <= '9') ||
-		(char == ':') {
-		return true
+func (parser TurtleParser) isWhiteSpaceChar() bool {
+	char := parser.char()
+	return char == ' ' || char == '\t' || char == '\n' || char == '\r'
+}
+
+func (parser *TurtleParser) parseNamespacedValue() string {
+	start := parser.index
+	parser.advance()
+	for parser.canRead() {
+		if parser.isNamespacedChar() {
+			parser.advance()
+			continue
+		} else {
+			break
+		}
 	}
-	return false
+	return string(parser.chars[start:parser.index])
+}
+
+func (parser *TurtleParser) parseString() (string, error) {
+	// TODO: Move the advance outside of here.
+	// We should already be inside the URI.
+	start := parser.index
+	parser.advance()
+	for parser.canRead() {
+		if parser.char() == '"' {
+			uri := string(parser.chars[start : parser.index+1])
+			return uri, nil
+		}
+		parser.advance()
+	}
+	return "", errors.New("String did not end with \"")
+}
+
+func (parser *TurtleParser) parseUri() (string, error) {
+	// TODO: Move the advance outside of here.
+	// We should already be inside the URI.
+	start := parser.index
+	parser.advance()
+	for parser.canRead() {
+		if parser.char() == '>' {
+			uri := string(parser.chars[start : parser.index+1])
+			return uri, nil
+		}
+		if !parser.isUriChar() {
+			return "", errors.New("Invalid character in URI")
+		}
+		parser.advance()
+	}
+	return "", errors.New("URI did not end with >")
 }
 
 func stringToRunes(text string) []rune {
