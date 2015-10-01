@@ -12,18 +12,18 @@ type Triple struct {
 }
 
 func NewTripleUri(subject, predicate, object string) Triple {
-	return newTriple(subject, predicate, object, false)
+	return NewTriple(subject, predicate, object, false)
 }
 
 func NewTripleLit(subject, predicate, object string) Triple {
-	return newTriple(subject, predicate, object, true)
+	return NewTriple(subject, predicate, object, true)
 }
 
 func newTripleFromNTriple(ntriple NTriple) Triple {
-	return newTriple(ntriple.Subject(), ntriple.Predicate(), ntriple.Object(), ntriple.IsObjectLiteral())
+	return NewTriple(ntriple.Subject(), ntriple.Predicate(), ntriple.Object(), ntriple.IsObjectLiteral())
 }
 
-func newTriple(subject, predicate, object string, isObjectLiteral bool) Triple {
+func NewTriple(subject, predicate, object string, isObjectLiteral bool) Triple {
 	return Triple{subject: subject, predicate: predicate, object: object, isObjectLiteral: isObjectLiteral}
 }
 

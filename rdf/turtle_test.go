@@ -36,8 +36,8 @@ func TestBadTokens(t *testing.T) {
 func TestTriple(t *testing.T) {
 	parser := NewTurtleParser("<s> <p> <o> .")
 	parser.Parse()
-	for i, triple := range parser.Triples() {
-		t.Errorf("%d %s", i, triple)
+	if len(parser.Triples()) != 1 {
+		t.Errorf("Error parsing triples")
 	}
 }
 

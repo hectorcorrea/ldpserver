@@ -2,7 +2,6 @@ package rdf
 
 import (
 	"errors"
-	// "log"
 )
 
 type Token struct {
@@ -16,6 +15,7 @@ type TurtleParser struct {
 	index   int
 	text    string
 	chars   []rune
+	length  int
 	triples []Triple
 	err     error
 }
@@ -30,9 +30,10 @@ func NewTurtleParser(text string) TurtleParser {
 	return parser
 }
 
-func (parser TurtleParser) Parse() error {
+func (parser *TurtleParser) Parse() error {
 	parser.err = nil
 	parser.index = 0
+	parser.length = len(parser.chars)
 	for {
 		triple, err := parser.GetNextTriple()
 		if err != nil {
@@ -51,20 +52,23 @@ func (parser TurtleParser) Triples() []Triple {
 }
 
 func (parser *TurtleParser) GetNextTriple() (Triple, error) {
-	subject, _ := parser.GetNextToken()
-	predicate, _ := parser.GetNextToken()
-	object, _ := parser.GetNextToken()
-
-	err := parser.AdvanceTriple()
-	if err != nil {
-		return Triple{}, err
+	var subject, predicate, object Token
+	var err error
+	var triple Triple
+	subject, err = parser.GetNextToken()
+	if err == nil {
+		predicate, err = parser.GetNextToken()
+		if err == nil {
+			object, err = parser.GetNextToken()
+			if err == nil {
+				err = parser.AdvanceTriple()
+				if err == nil {
+					triple = NewTriple(subject.value, predicate.value, object.value, object.isLiteral)
+				}
+			}
+		}
 	}
-
-	if object.isLiteral {
-		return NewTripleLit(subject.value, predicate.value, object.value), nil
-	}
-
-	return NewTripleUri(subject.value, predicate.value, object.value), nil
+	return triple, nil
 }
 
 func (parser *TurtleParser) GetNextToken() (Token, error) {
@@ -73,8 +77,11 @@ func (parser *TurtleParser) GetNextToken() (Token, error) {
 	var value string
 
 	parser.advanceWhiteSpace()
-	firstChar := parser.char()
+	if !parser.canRead() {
+		return Token{}, errors.New("No token found")
+	}
 
+	firstChar := parser.char()
 	switch {
 	case firstChar == '<':
 		isUri = true
@@ -88,6 +95,7 @@ func (parser *TurtleParser) GetNextToken() (Token, error) {
 	default:
 		return Token{}, errors.New("Invalid first character")
 	}
+
 	if err != nil {
 		return Token{}, err
 	}
@@ -97,6 +105,7 @@ func (parser *TurtleParser) GetNextToken() (Token, error) {
 	return token, nil
 }
 
+// Advances the index to the beginning of the next triple.
 func (parser *TurtleParser) AdvanceTriple() error {
 	for parser.canRead() {
 		if parser.char() == '.' {
@@ -106,14 +115,15 @@ func (parser *TurtleParser) AdvanceTriple() error {
 			parser.advance()
 			continue
 		}
-		return errors.New("Triple did not end with a period2.")
+		return errors.New("Triple did not end with a period.")
 	}
 	parser.advance()
 	return nil
 }
 
+// Advances the index to the next character.
 func (parser *TurtleParser) advance() {
-	if !parser.atEnd() {
+	if parser.canRead() {
 		parser.index++
 	}
 }
@@ -127,19 +137,15 @@ func (parser *TurtleParser) advanceWhiteSpace() {
 	}
 }
 
-func (parser TurtleParser) atEnd() bool {
-	if len(parser.chars) == 0 {
-		return true
-	}
-	return parser.index > len(parser.chars)-1
-}
-
 func (parser TurtleParser) atLastChar() bool {
-	return parser.index == len(parser.chars)-1
+	return parser.index == (parser.length - 1)
 }
 
 func (parser *TurtleParser) canRead() bool {
-	return !parser.atEnd()
+	if len(parser.chars) == 0 {
+		return false
+	}
+	return parser.index < len(parser.chars)
 }
 
 func (parser TurtleParser) char() rune {
