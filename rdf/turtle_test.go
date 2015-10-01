@@ -12,17 +12,23 @@ func TestGoodTokens(t *testing.T) {
 	testG := []string{"dc:title", "dc:title"}
 	tests := [][]string{testA, testB, testC, testD, testE, testF, testG}
 	for _, test := range tests {
-		if result, _ := GetToken(test[0]); result.value != test[1] {
-			t.Errorf("GetToken failed for: (%s) (%s). Result (%s)", test[0], test[1], result.value)
+		parser := NewTurtleParser(test[0])
+		token, err := parser.GetNextToken()
+		if err != nil {
+			t.Errorf("Error parsing token: (%s). Error: %s.", test[0], err)
+		} else if token.value != test[1] {
+			t.Errorf("Token (%s) parsed incorrectly (%s)", test[1], token.value)
 		}
 	}
 }
 
-func TestBadToken(t *testing.T) {
+func TestBadTokens(t *testing.T) {
 	tests := []string{"   ", "  \t ", "...", "<"}
 	for _, test := range tests {
-		if result, err := GetToken(test); err == nil {
-			t.Errorf("Did not detect invalid token: (%s). Result: (%s)", test, result)
+		parser := NewTurtleParser(test)
+		token, err := parser.GetNextToken()
+		if err == nil {
+			t.Errorf("Did not detect invalid token: (%s). Result: (%s)", test, token.value)
 		}
 	}
 }

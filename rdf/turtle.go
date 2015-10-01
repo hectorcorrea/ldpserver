@@ -2,7 +2,7 @@ package rdf
 
 import (
 	"errors"
-	// "log"
+	"log"
 )
 
 type Token struct {
@@ -68,24 +68,12 @@ func (parser TurtleParser) atEnd() bool {
 	return parser.index > len(parser.chars)-1
 }
 
-func (parser TurtleParser) GetNextTriple() (Triple, error) {
-	var subject, predicate, object Token
-	var index int
-	subject, index, _ = GetTokenFromRune(parser.chars, parser.index)
-	parser.index = index
-	parser.advanceIndex()
+func (parser *TurtleParser) GetNextTriple() (Triple, error) {
+	subject, _ := parser.GetNextToken()
+	predicate, _ := parser.GetNextToken()
+	object, _ := parser.GetNextToken()
 
-	predicate, index, _ = GetTokenFromRune(parser.chars, parser.index)
-	parser.index = index
-	parser.advanceIndex()
-
-	object, parser.index, _ = GetTokenFromRune(parser.chars, parser.index)
-	parser.index = index
-	parser.advanceIndex()
-
-	index, err := tripleEndsOK(parser.chars, parser.index)
-	parser.index = index
-	parser.advanceIndex()
+	err := parser.MoveToNextTriple()
 	if err != nil {
 		return Triple{}, err
 	}
@@ -97,45 +85,53 @@ func (parser TurtleParser) GetNextTriple() (Triple, error) {
 	return NewTripleUri(subject.value, predicate.value, object.value), nil
 }
 
-func GetToken(text string) (Token, error) {
-	chars := stringToRunes(text)
-	token, _, err := GetTokenFromRune(chars, 0)
-	return token, err
-}
-
-// Gets the token from a string/run
-// Returns
-//    string the token
-//    int the position where the string ends in relation to the original string
-//    error (if any)
-func GetTokenFromRune(chars []rune, index int) (Token, int, error) {
-	start := parseWhiteSpace(chars, index)
-	if start >= len(chars) {
-		return Token{}, -1, errors.New("End of line reached. No token found after parsing white space.")
+func (parser *TurtleParser) GetNextToken() (Token, error) {
+	start := parseWhiteSpace(parser.chars, parser.index)
+	if start >= len(parser.chars) {
+		return Token{}, errors.New("End of line reached. No token found after parsing white space.")
 	}
-	firstChar := chars[start]
+	firstChar := parser.chars[start]
 	var end int
 	var err error
 	var isLiteral, isUri, isNamespaced bool
 	switch {
 	case firstChar == '<':
 		isUri = true
-		end, err = parseUri(chars, start+1)
+		end, err = parseUri(parser.chars, start+1)
 	case firstChar == '"':
 		isLiteral = true
-		end, err = parseString(chars, start+1)
+		end, err = parseString(parser.chars, start+1)
 	case isNamespacedChar(firstChar):
 		isNamespaced = true
-		end, err = parseNamespacedValue(chars, start+1)
+		end, err = parseNamespacedValue(parser.chars, start+1)
 	default:
-		return Token{}, -1, errors.New("Invalid first character")
+		return Token{}, errors.New("Invalid first character")
 	}
 	if err != nil {
-		return Token{}, -1, err
+		return Token{}, err
 	}
-	value := string(chars[start : end+1])
+	value := string(parser.chars[start : end+1])
+	parser.index = end + 1
+	parser.advanceIndex()
 	token := Token{value: value, isUri: isUri, isLiteral: isLiteral, isNamespaced: isNamespaced}
-	return token, end, nil
+	return token, nil
+}
+
+func (parser *TurtleParser) MoveToNextTriple() error {
+	for {
+		log.Printf("%d %c", parser.index, parser.chars[parser.index])
+		if parser.chars[parser.index] == '.' {
+			break
+		}
+		if isWhiteSpaceChar(parser.chars[parser.index]) {
+			log.Printf("next")
+			parser.advanceIndex()
+			continue
+		}
+		return errors.New("Triple did not end with a period2.")
+	}
+	parser.advanceIndex()
+	return nil
 }
 
 func tripleEndsOK(chars []rune, index int) (int, error) {
