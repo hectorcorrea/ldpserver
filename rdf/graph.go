@@ -2,6 +2,8 @@ package rdf
 
 import "strings"
 
+// import "log"
+
 type RdfGraph []Triple
 
 func (triples RdfGraph) String() string {
@@ -13,19 +15,15 @@ func (triples RdfGraph) String() string {
 }
 
 func StringToGraph(theString, rootUri string) (RdfGraph, error) {
+	var err error
 	var graph RdfGraph
-	if len(theString) == 0 {
-		return graph, nil
-	}
-	lines := splitLines(theString)
-	for _, line := range lines {
-		if line != "\n" && line != "" {
-			// log.Printf("Evaluating %s", line)
-			triple, err := StringToTriple(line, rootUri)
-			if err != nil {
-				return nil, err
+	if len(theString) > 0 {
+		parser := NewTurtleParser(theString)
+		err = parser.Parse()
+		if err == nil {
+			for _, triple := range parser.Triples() {
+				graph = append(graph, triple)
 			}
-			graph = append(graph, triple)
 		}
 	}
 	return graph, nil
@@ -42,7 +40,7 @@ func (graph *RdfGraph) Append(newGraph RdfGraph) {
 }
 
 func (graph RdfGraph) IsRdfSource(subject string) bool {
-	return graph.HasTriple(subject, RdfTypeUri, LdpRdfSourceUri)
+	return graph.HasTriple("<"+subject+">", "<"+RdfTypeUri+">", "<"+LdpRdfSourceUri+">")
 }
 
 func (graph RdfGraph) IsBasicContainer(subject string) bool {

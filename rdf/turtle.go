@@ -2,7 +2,7 @@ package rdf
 
 import (
 	"errors"
-	"log"
+	// "log"
 )
 
 type Token struct {
@@ -56,7 +56,6 @@ func (parser *TurtleParser) GetNextTriple() (Triple, error) {
 	var err error
 	var triple Triple
 
-	log.Printf("GetNextTriple %d", parser.index)
 	subject, err = parser.GetNextToken()
 	if err == nil {
 		predicate, err = parser.GetNextToken()
@@ -65,7 +64,7 @@ func (parser *TurtleParser) GetNextTriple() (Triple, error) {
 			if err == nil {
 				err = parser.AdvanceTriple()
 				if err == nil {
-					triple = NewTriple(subject.value, predicate.value, object.value, object.isLiteral)
+					triple = NewTripleFromTokens(subject, predicate, object)
 				}
 			}
 		}
@@ -88,14 +87,17 @@ func (parser *TurtleParser) GetNextToken() (Token, error) {
 	case firstChar == '<':
 		isUri = true
 		value, err = parser.parseUri()
+		// log.Printf("parsed uri %s", value)
 	case firstChar == '"':
 		isLiteral = true
 		value, err = parser.parseString()
+		// log.Printf("parsed literal %s", value)
 	case parser.isNamespacedChar():
 		isNamespaced = true
 		value = parser.parseNamespacedValue()
+		// log.Printf("parsed nsv %s", value)
 	default:
-		return Token{}, errors.New("Invalid first character")
+		return Token{}, errors.New("Invalid first character: [" + parser.charString() + "]")
 	}
 
 	if err != nil {
@@ -132,7 +134,7 @@ func (parser *TurtleParser) advance() {
 
 func (parser *TurtleParser) advanceWhiteSpace() {
 	for parser.canRead() {
-		if parser.atLastChar() || !parser.isWhiteSpaceChar() {
+		if !parser.isWhiteSpaceChar() {
 			break
 		}
 		parser.advance()
@@ -154,6 +156,10 @@ func (parser TurtleParser) char() rune {
 	return parser.chars[parser.index]
 }
 
+func (parser TurtleParser) charString() string {
+	return string(parser.chars[parser.index])
+}
+
 func (parser TurtleParser) isNamespacedChar() bool {
 	char := parser.char()
 	return (char >= 'a' && char <= 'z') ||
@@ -169,7 +175,8 @@ func (parser TurtleParser) isUriChar() bool {
 		(char >= '0' && char <= '9') ||
 		(char == ':') || (char == '/') ||
 		(char == '%') || (char == '#') ||
-		(char == '+')
+		(char == '+') || (char == '-') ||
+		(char == '.')
 }
 
 func (parser TurtleParser) isWhiteSpaceChar() bool {
@@ -220,7 +227,7 @@ func (parser *TurtleParser) parseUri() (string, error) {
 			return uri, nil
 		}
 		if !parser.isUriChar() {
-			return "", errors.New("Invalid character in URI")
+			return "", errors.New("Invalid character in URI " + parser.charString())
 		}
 		parser.advance()
 	}

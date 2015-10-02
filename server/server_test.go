@@ -34,6 +34,7 @@ func TestCreateRdf(t *testing.T) {
 	}
 
 	node, err = theServer.GetNode(node.Path())
+	t.Errorf("err? %s", err)
 	if err != nil || node.Uri() != util.UriConcat(rootUrl, node.Path()) {
 		t.Errorf("err %s, uri %s", err, node.Uri())
 	}

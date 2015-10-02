@@ -209,14 +209,22 @@ func (node *Node) loadMeta() error {
 		return err
 	}
 
+	log.Printf("%s", meta)
 	graph, err := rdf.StringToGraph(meta, node.uri)
 	if err != nil {
 		return err
 	}
 
+	log.Printf("%s", node.uri)
+	for i, triple := range graph {
+		log.Printf("%d, %s", i, triple)
+	}
+
 	if graph.IsRdfSource(node.uri) {
+		log.Printf("IT IS AN RDF SOURCE")
 		node.setAsRdf(graph)
 	} else {
+		log.Printf("IT IS -NOT- AN RDF SOURCE")
 		node.setAsNonRdf(graph)
 	}
 	return nil

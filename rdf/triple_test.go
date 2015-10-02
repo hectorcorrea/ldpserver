@@ -4,13 +4,13 @@ import "testing"
 import "fmt"
 
 func TestTripleToString(t *testing.T) {
-	triple1 := NewTripleUri("s", "p", "o")
+	triple1 := NewTripleUri("<s>", "<p>", "<o>")
 	str := fmt.Sprintf("%s", triple1)
 	if str != "<s> <p> <o> ." {
 		t.Errorf("Triple to string failed: %s", str)
 	}
 
-	triple2 := NewTripleLit("s", "p", "o")
+	triple2 := NewTripleLit("<s>", "<p>", `"o"`)
 	str2 := fmt.Sprintf("%s", triple2)
 	if str2 != `<s> <p> "o" .` {
 		t.Errorf("Triple to string failed: %s", str2)

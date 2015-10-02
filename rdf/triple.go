@@ -5,34 +5,59 @@ import "log"
 import "fmt"
 
 type Triple struct {
-	subject         string // always a URI
-	predicate       string // always a URI
-	object          string // can be a URI or a literal
+	subject         string // always a URI, e.g. <hello>
+	predicate       string // always a URI, e.g. <hello>
+	object          string // can be a URI or a literal, e.g. <hello> or "hello"
 	isObjectLiteral bool
 }
 
+func NewTripleFromTokens(subject, predicate, object Token) Triple {
+	if !subject.isUri {
+		// TODO: Should we allow this?
+		panic("Subject is not a URI")
+	}
+	if !predicate.isUri {
+		// TODO: Should we allow this?
+		panic("Predicate is not a URI")
+	}
+	return newTriple(subject.value, predicate.value, object.value, object.isLiteral)
+}
+
 func NewTripleUri(subject, predicate, object string) Triple {
-	return NewTriple(subject, predicate, object, false)
+	return newTriple(subject, predicate, object, false)
 }
 
 func NewTripleLit(subject, predicate, object string) Triple {
-	return NewTriple(subject, predicate, object, true)
+	return newTriple(subject, predicate, object, true)
 }
 
 func newTripleFromNTriple(ntriple NTriple) Triple {
-	return NewTriple(ntriple.Subject(), ntriple.Predicate(), ntriple.Object(), ntriple.IsObjectLiteral())
+	return newTriple(ntriple.Subject(), ntriple.Predicate(), ntriple.Object(), ntriple.IsObjectLiteral())
 }
 
-func NewTriple(subject, predicate, object string, isObjectLiteral bool) Triple {
+func newTriple(subject, predicate, object string, isObjectLiteral bool) Triple {
+	// Temporary hack while I fix the code that is passing triples
+	// without <> or ""
+	if !strings.HasPrefix(subject, "<") {
+		subject = "<" + subject + ">"
+	}
+	if !strings.HasPrefix(predicate, "<") {
+		predicate = "<" + predicate + ">"
+	}
+	if isObjectLiteral {
+		if !strings.HasPrefix(object, "\"") {
+			object = "\"" + object + "\""
+		}
+	} else {
+		if !strings.HasPrefix(object, "<") {
+			object = "<" + object + ">"
+		}
+	}
 	return Triple{subject: subject, predicate: predicate, object: object, isObjectLiteral: isObjectLiteral}
 }
 
 func (t Triple) String() string {
-	format := `<%s> <%s> <%s> .`
-	if t.isObjectLiteral {
-		format = `<%s> <%s> "%s" .`
-	}
-	return fmt.Sprintf(format, t.subject, t.predicate, t.object)
+	return fmt.Sprintf("%s %s %s .", t.subject, t.predicate, t.object)
 }
 
 func (t Triple) StringLn() string {
