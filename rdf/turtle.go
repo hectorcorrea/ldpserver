@@ -99,15 +99,12 @@ func (parser *TurtleParser) GetNextToken() (Token, error) {
 	case firstChar == '<':
 		isUri = true
 		value, err = parser.parseUri()
-		// log.Printf("parsed uri %s", value)
 	case firstChar == '"':
 		isLiteral = true
 		value, err = parser.parseString()
-		// log.Printf("parsed literal %s", value)
 	case parser.isNamespacedChar():
 		isNamespaced = true
 		value = parser.parseNamespacedValue()
-		// log.Printf("parsed nsv %s", value)
 	default:
 		return Token{}, errors.New("Invalid first character: [" + parser.charString() + "]")
 	}
@@ -213,8 +210,6 @@ func (parser *TurtleParser) parseNamespacedValue() string {
 
 // Extracts a value in quotes, e.g. "hello"
 func (parser *TurtleParser) parseString() (string, error) {
-	// TODO: Move the advance outside of here.
-	// We should already be inside the URI.
 	start := parser.index
 	parser.advance()
 	for parser.canRead() {
@@ -229,8 +224,6 @@ func (parser *TurtleParser) parseString() (string, error) {
 
 // Extracts an URI in the form <hello>
 func (parser *TurtleParser) parseUri() (string, error) {
-	// TODO: Move the advance outside of here.
-	// We should already be inside the URI.
 	start := parser.index
 	parser.advance()
 	for parser.canRead() {

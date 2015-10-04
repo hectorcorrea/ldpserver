@@ -2,12 +2,6 @@ package rdf
 
 import "testing"
 
-// func TestSandbox(t *testing.T) {
-// 	parser := NewTurtleParser("<>")
-// 	token, _ := parser.GetNextToken()
-// 	t.Errorf("Token (%s)", token.value)
-// }
-
 func TestGoodTokens(t *testing.T) {
 	testA := []string{"<hello>", "<hello>"}
 	testB := []string{"  \t<hello>", "<hello>"}
@@ -53,22 +47,4 @@ func TestTwoTriples(t *testing.T) {
 	if len(parser.Triples()) != 2 {
 		t.Errorf("Error parsing triples %d", len(parser.Triples()))
 	}
-
-	// for i, triple := range parser.Triples() {
-	// 	t.Errorf("%d %s", i, triple)
-	// }
 }
-
-// func TestTriple(t *testing.T) {
-// 	testA := []string{"<s> <p> <o> .", "<s>", "<p>", "<o>"}
-// 	testB := []string{"s p o .", "s", "p", "o"}
-// 	testC := []string{"xx:s xx:p xx:o .", "xx:s", "xx:p", "xx:o"}
-// 	testD := []string{"<http://hello> greeting \"hola\" .", "<http://hello>", "greeting", "\"hola\""}
-// 	tests := [][]string{testA, testB, testC, testD}
-// 	for _, test := range tests {
-// 		s, p, o := GetTriple(test[0])
-// 		if s != test[1] || p != test[2] || o != test[3] {
-// 			t.Errorf("Did not parse triple correctly: (%s) (%s) (%s)", test[0], test[1], test[2], test[3])
-// 		}
-// 	}
-// }

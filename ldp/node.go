@@ -90,14 +90,12 @@ func (node Node) DebugString() string {
 func GetNode(settings Settings, path string) (Node, error) {
 	node := newNode(settings, path)
 	err := node.loadNode(true)
-	// log.Printf("GetNode [%s] %s", path, err)
 	return node, err
 }
 
 func GetHead(settings Settings, path string) (Node, error) {
 	node := newNode(settings, path)
 	err := node.loadNode(false)
-	// log.Printf("GetHead [%s] %s", path, err)
 	return node, err
 }
 

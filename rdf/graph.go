@@ -82,14 +82,3 @@ func (graph RdfGraph) HasTriple(subject, predicate, object string) bool {
 	}
 	return false
 }
-
-// func splitLines(text string) []string {
-// 	allLines := strings.Split(text, "\n")
-// 	lines := make([]string, len(allLines))
-// 	for _, line := range allLines {
-// 		if len(line) > 0 && line != "\n" {
-// 			lines = append(lines, line)
-// 		}
-// 	}
-// 	return lines
-// }
