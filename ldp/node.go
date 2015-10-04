@@ -1,13 +1,16 @@
 package ldp
 
-import "time"
-import "ldpserver/util"
-import "ldpserver/rdf"
-import "ldpserver/textstore"
-import "io"
-import "errors"
-import "log"
-import "strings"
+import (
+	"errors"
+	"fmt"
+	"io"
+	"ldpserver/rdf"
+	"ldpserver/textstore"
+	"ldpserver/util"
+	"log"
+	"strings"
+	"time"
+)
 
 const NodeNotFound = "Not Found"
 const DuplicateNode = "Node already exists"
@@ -71,15 +74,17 @@ func (node Node) Uri() string {
 	return node.uri
 }
 
-func (node Node) StringDebug() {
-	if node.isRdf {
-		log.Printf("RDF: %s", node.uri)
-		for i, triple := range node.graph {
-			log.Printf("%d %s", i, triple)
-		}
-	} else {
-		log.Printf("Non-RDF: %s", node.uri)
+func (node Node) DebugString() string {
+	if !node.isRdf {
+		return fmt.Sprintf("Non-RDF: %s", node.uri)
 	}
+
+	triples := ""
+	for i, triple := range node.graph {
+		triples += fmt.Sprintf("%d %s\n", i, triple)
+	}
+	debugString := fmt.Sprintf("RDF: %s\n %s", node.uri, triples)
+	return debugString
 }
 
 func GetNode(settings Settings, path string) (Node, error) {
@@ -101,7 +106,7 @@ func (node *Node) Patch(triples string) error {
 		return errors.New("Cannot PATCH non-RDF Source")
 	}
 
-	graph, err := rdf.StringToGraph(triples, node.uri)
+	graph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
 	if err != nil {
 		return err
 	}
@@ -124,7 +129,7 @@ func NewRdfNode(settings Settings, triples string, parentPath string, newPath st
 	path := util.UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
 
-	userGraph, err := rdf.StringToGraph(triples, node.uri)
+	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
 	if err != nil {
 		return node, err
 	}
@@ -148,17 +153,13 @@ func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, n
 func (node Node) AddChild(child Node) error {
 	triple := rdf.NewTripleUri(node.uri, rdf.LdpContainsUri, child.uri)
 	err := node.store.AppendToFile(metaFile, triple.StringLn())
-	log.Printf("===> AddChild to %s", node.Uri())
 	if err != nil {
-		log.Printf("\t\t===> error %s", err)
 		return err
 	}
 
 	if node.isDirectContainer {
-		log.Printf("\t\t===> it's a direct container")
 		return node.addDirectContainerChild(child)
 	}
-	log.Printf("===> AddChild to %s completed", node.Uri())
 	return nil
 }
 
@@ -173,8 +174,6 @@ func (node Node) addDirectContainerChild(child Node) error {
 	targetUri := removeAngleBrackets(node.membershipResource)
 	targetPath := util.PathFromUri(node.rootUri, targetUri)
 
-	log.Printf("\t\t===> addDirectContainerChild %s", targetPath)
-
 	targetNode, err := GetNode(node.settings, targetPath)
 	if err != nil {
 		log.Printf("Could not find target node %s.", targetPath)
@@ -182,8 +181,6 @@ func (node Node) addDirectContainerChild(child Node) error {
 	}
 
 	tripleForTarget := rdf.NewTripleUri(targetNode.uri, node.hasMemberRelation, child.uri)
-
-	log.Printf("\t\t===> triple for target %s", tripleForTarget.StringLn())
 
 	err = targetNode.store.AppendToFile(metaFile, tripleForTarget.StringLn())
 	if err != nil {
@@ -235,22 +232,14 @@ func (node *Node) loadMeta() error {
 		return err
 	}
 
-	// log.Printf("%s", meta)
 	graph, err := rdf.StringToGraph(meta, node.uri)
 	if err != nil {
 		return err
 	}
 
-	// log.Printf("%s", node.uri)
-	// for i, triple := range graph {
-	// 	log.Printf("%d, %s", i, triple)
-	// }
-
 	if graph.IsRdfSource(node.uri) {
-		// log.Printf("IT IS AN RDF SOURCE")
 		node.setAsRdf(graph)
 	} else {
-		// log.Printf("IT IS -NOT- AN RDF SOURCE")
 		node.setAsNonRdf(graph)
 	}
 	return nil

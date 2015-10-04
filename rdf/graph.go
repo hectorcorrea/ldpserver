@@ -20,6 +20,7 @@ func StringToGraph(theString, rootUri string) (RdfGraph, error) {
 		err = parser.Parse()
 		if err == nil {
 			for _, triple := range parser.Triples() {
+				triple.ReplaceBlankUri(rootUri)
 				graph = append(graph, triple)
 			}
 		}
