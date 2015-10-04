@@ -64,11 +64,22 @@ func (node Node) IsDirectContainer() bool {
 }
 
 func (node Node) HasTriple(predicate, object string) bool {
-	return node.graph.HasTriple(node.uri, predicate, object)
+	return node.graph.HasTriple("<"+node.uri+">", predicate, object)
 }
 
 func (node Node) Uri() string {
 	return node.uri
+}
+
+func (node Node) StringDebug() {
+	if node.isRdf {
+		log.Printf("RDF: %s", node.uri)
+		for i, triple := range node.graph {
+			log.Printf("%d %s", i, triple)
+		}
+	} else {
+		log.Printf("Non-RDF: %s", node.uri)
+	}
 }
 
 func GetNode(settings Settings, path string) (Node, error) {
@@ -137,21 +148,33 @@ func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, n
 func (node Node) AddChild(child Node) error {
 	triple := rdf.NewTripleUri(node.uri, rdf.LdpContainsUri, child.uri)
 	err := node.store.AppendToFile(metaFile, triple.StringLn())
+	log.Printf("===> AddChild to %s", node.Uri())
 	if err != nil {
-		log.Printf("%s", err)
+		log.Printf("\t\t===> error %s", err)
 		return err
 	}
 
 	if node.isDirectContainer {
+		log.Printf("\t\t===> it's a direct container")
 		return node.addDirectContainerChild(child)
 	}
+	log.Printf("===> AddChild to %s completed", node.Uri())
 	return nil
 }
 
+func removeAngleBrackets(text string) string {
+	if strings.HasPrefix(text, "<") {
+		return text[1 : len(text)-1]
+	}
+	return text
+}
 func (node Node) addDirectContainerChild(child Node) error {
 	// TODO: account for isMemberOfRelation
-	targetUri := node.membershipResource
+	targetUri := removeAngleBrackets(node.membershipResource)
 	targetPath := util.PathFromUri(node.rootUri, targetUri)
+
+	log.Printf("\t\t===> addDirectContainerChild %s", targetPath)
+
 	targetNode, err := GetNode(node.settings, targetPath)
 	if err != nil {
 		log.Printf("Could not find target node %s.", targetPath)
@@ -159,6 +182,9 @@ func (node Node) addDirectContainerChild(child Node) error {
 	}
 
 	tripleForTarget := rdf.NewTripleUri(targetNode.uri, node.hasMemberRelation, child.uri)
+
+	log.Printf("\t\t===> triple for target %s", tripleForTarget.StringLn())
+
 	err = targetNode.store.AppendToFile(metaFile, tripleForTarget.StringLn())
 	if err != nil {
 		log.Printf("Error appending child %s to %s. %s", child.uri, targetNode.uri, err)
@@ -209,22 +235,22 @@ func (node *Node) loadMeta() error {
 		return err
 	}
 
-	log.Printf("%s", meta)
+	// log.Printf("%s", meta)
 	graph, err := rdf.StringToGraph(meta, node.uri)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("%s", node.uri)
-	for i, triple := range graph {
-		log.Printf("%d, %s", i, triple)
-	}
+	// log.Printf("%s", node.uri)
+	// for i, triple := range graph {
+	// 	log.Printf("%d, %s", i, triple)
+	// }
 
 	if graph.IsRdfSource(node.uri) {
-		log.Printf("IT IS AN RDF SOURCE")
+		// log.Printf("IT IS AN RDF SOURCE")
 		node.setAsRdf(graph)
 	} else {
-		log.Printf("IT IS -NOT- AN RDF SOURCE")
+		// log.Printf("IT IS -NOT- AN RDF SOURCE")
 		node.setAsNonRdf(graph)
 	}
 	return nil

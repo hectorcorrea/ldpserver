@@ -47,6 +47,18 @@ func (parser *TurtleParser) Parse() error {
 	return parser.err
 }
 
+func (parser *TurtleParser) ParseOne() (Triple, error) {
+	var triple Triple
+	var err error
+	parser.err = nil
+	parser.index = 0
+	parser.length = len(parser.chars)
+	if parser.canRead() {
+		triple, err = parser.GetNextTriple()
+	}
+	return triple, err
+}
+
 func (parser TurtleParser) Triples() []Triple {
 	return parser.triples
 }

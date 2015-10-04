@@ -1,7 +1,6 @@
 package rdf
 
 import "strings"
-import "log"
 import "fmt"
 
 type Triple struct {
@@ -61,46 +60,26 @@ func (t Triple) String() string {
 }
 
 func (t Triple) StringLn() string {
-	return t.String() + "\n"
+	return fmt.Sprintf("%s %s %s .\n", t.subject, t.predicate, t.object)
 }
 
-// Creates a triple from a string. We assume the string is in N-Triple format
-// and thefore looks like this:
-//
-//    <subject> <predicate> <object> .
-//
-// or like this:
-//
-//    <subject> <predicate> "object" .
-//
+func (triple *Triple) ReplaceBlankUri(blank string) {
+	if triple.subject == "<>" {
+		triple.subject = blank
+	}
+	if triple.predicate == "<>" {
+		triple.predicate = blank
+	}
+	if triple.object == "<>" {
+		triple.object = blank
+	}
+}
+
 func StringToTriple(line, blank string) (Triple, error) {
-	if len(blank) > 0 {
-		line = replaceBlanksInTriple(line, blank)
+	parser := NewTurtleParser(line)
+	triple, err := parser.ParseOne()
+	if err == nil {
+		triple.ReplaceBlankUri(blank)
 	}
-
-	// Parse the line in N-Triple format into an NTriple object.
-	ntriple, err := NewNTripleFromString(line)
-	if err != nil {
-		log.Printf("Error parsing triple %s. Error: %s \n", line, err)
-		return Triple{}, err
-	}
-
-	// Convert the N-Triple to a triple.
-	return newTripleFromNTriple(ntriple), nil
-}
-
-func replaceBlanksInTriple(line, blank string) string {
-	isEmptySubject := strings.HasPrefix(line, "<>")
-	if isEmptySubject {
-		line = "<" + blank + ">" + line[2:]
-	}
-
-	// notice that we purposefully don't replace the <>
-	// if it is found in the predicate.
-
-	isEmptyObject := strings.HasSuffix(line, "<> .")
-	if isEmptyObject {
-		line = line[:len(line)-4] + "<" + blank + "> ."
-	}
-	return line
+	return triple, err
 }

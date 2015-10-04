@@ -1,8 +1,6 @@
 package rdf
 
-import "strings"
-
-// import "log"
+// import "strings"
 
 type RdfGraph []Triple
 
@@ -40,11 +38,17 @@ func (graph *RdfGraph) Append(newGraph RdfGraph) {
 }
 
 func (graph RdfGraph) IsRdfSource(subject string) bool {
-	return graph.HasTriple("<"+subject+">", "<"+RdfTypeUri+">", "<"+LdpRdfSourceUri+">")
+	// TODO: Remove "<" ">" from subject
+	predicate := "<" + RdfTypeUri + ">"
+	object := "<" + LdpRdfSourceUri + ">"
+	return graph.HasTriple("<"+subject+">", predicate, object)
 }
 
 func (graph RdfGraph) IsBasicContainer(subject string) bool {
-	return graph.HasTriple(subject, RdfTypeUri, LdpBasicContainerUri)
+	// TODO: Remove "<" ">" from subject
+	predicate := "<" + RdfTypeUri + ">"
+	object := "<" + LdpBasicContainerUri + ">"
+	return graph.HasTriple("<"+subject+">", predicate, object)
 }
 
 func (graph RdfGraph) IsDirectContainer() bool {
@@ -58,9 +62,10 @@ func (graph RdfGraph) GetDirectContainerInfo() (string, string, bool) {
 	membershipResource := ""
 	hasMemberRelation := ""
 	for _, triple := range graph {
-		if triple.predicate == LdpMembershipResource {
+		switch triple.predicate {
+		case "<" + LdpMembershipResource + ">":
 			membershipResource = triple.object
-		} else if triple.predicate == LdpHasMemberRelation {
+		case "<" + LdpHasMemberRelation + ">":
 			hasMemberRelation = triple.object
 		}
 		if membershipResource != "" && hasMemberRelation != "" {
@@ -79,13 +84,13 @@ func (graph RdfGraph) HasTriple(subject, predicate, object string) bool {
 	return false
 }
 
-func splitLines(text string) []string {
-	allLines := strings.Split(text, "\n")
-	lines := make([]string, len(allLines))
-	for _, line := range allLines {
-		if len(line) > 0 && line != "\n" {
-			lines = append(lines, line)
-		}
-	}
-	return lines
-}
+// func splitLines(text string) []string {
+// 	allLines := strings.Split(text, "\n")
+// 	lines := make([]string, len(allLines))
+// 	for _, line := range allLines {
+// 		if len(line) > 0 && line != "\n" {
+// 			lines = append(lines, line)
+// 		}
+// 	}
+// 	return lines
+// }

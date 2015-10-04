@@ -3,7 +3,7 @@ package rdf
 import "testing"
 
 // func TestSandbox(t *testing.T) {
-// 	parser := NewTurtleParser("title+")
+// 	parser := NewTurtleParser("<>")
 // 	token, _ := parser.GetNextToken()
 // 	t.Errorf("Token (%s)", token.value)
 // }

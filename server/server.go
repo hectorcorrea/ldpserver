@@ -66,6 +66,7 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 	}
 
 	if err := container.AddChild(node); err != nil {
+		log.Printf("===> Error in addChild")
 		return ldp.Node{}, err
 	}
 	return node, nil
