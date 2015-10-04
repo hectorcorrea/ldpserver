@@ -237,7 +237,7 @@ func (node *Node) loadMeta() error {
 		return err
 	}
 
-	if graph.IsRdfSource(node.uri) {
+	if graph.IsRdfSource("<" + node.uri + ">") {
 		node.setAsRdf(graph)
 	} else {
 		node.setAsNonRdf(graph)
