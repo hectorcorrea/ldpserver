@@ -45,10 +45,9 @@ func (graph RdfGraph) IsRdfSource(subject string) bool {
 }
 
 func (graph RdfGraph) IsBasicContainer(subject string) bool {
-	// TODO: Remove "<" ">" from subject
 	predicate := "<" + RdfTypeUri + ">"
 	object := "<" + LdpBasicContainerUri + ">"
-	return graph.HasTriple("<"+subject+">", predicate, object)
+	return graph.HasTriple(subject, predicate, object)
 }
 
 func (graph RdfGraph) IsDirectContainer() bool {

@@ -292,7 +292,7 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 	node.headers = make(map[string][]string)
 	node.headers["Content-Type"] = []string{rdf.TurtleContentType}
 
-	if graph.IsBasicContainer(node.uri) {
+	if graph.IsBasicContainer("<" + node.uri + ">") {
 		// Is there a way to indicate that PUT is allowed
 		// for creation only (and not to overwrite?)
 		node.headers["Allow"] = []string{"GET, HEAD, POST, PUT"}
@@ -302,7 +302,7 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 
 	links := make([]string, 0)
 	links = append(links, rdf.LdpResourceLink)
-	if graph.IsBasicContainer(node.uri) {
+	if graph.IsBasicContainer("<" + node.uri + ">") {
 		node.isBasicContainer = true
 		links = append(links, rdf.LdpContainerLink)
 		links = append(links, rdf.LdpBasicContainerLink)
