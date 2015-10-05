@@ -129,13 +129,15 @@ Empty subjects and objects (<>) are only accepted when creating new nodes (via H
 ## TODO
 A lot.
 
+* Add validation to make sure the data in the data folder matches the URL (host:port) where the server is running. 
+
 * Support isMemberOfRelation in Direct Containers.
 
 * Support Indirect Containers.
 
 * Support HTTP PATCH, and DELETE.
 
-* Improve parsing of turtle triples to support language and type in string values, comments, and support the use of , and ; to set values. 
+* Improve parsing of turtle triples to support the use of , and ; to set values. 
 
 * Make sure the turtle parser pass a minimum validation. For starters take a look at this set: http://www.w3.org/2000/10/rdf-tests/rdfcore/ntriples/test.nt
 
