@@ -1,6 +1,6 @@
 package rdf
 
-// import "strings"
+// import "log"
 
 type RdfGraph []Triple
 
@@ -25,7 +25,7 @@ func StringToGraph(theString, rootUri string) (RdfGraph, error) {
 			}
 		}
 	}
-	return graph, nil
+	return graph, err
 }
 
 func (graph *RdfGraph) Append(newGraph RdfGraph) {
@@ -76,7 +76,8 @@ func (graph RdfGraph) GetDirectContainerInfo() (string, string, bool) {
 
 func (graph RdfGraph) HasTriple(subject, predicate, object string) bool {
 	for _, triple := range graph {
-		if triple.subject == subject && triple.predicate == predicate && triple.object == object {
+		found := (triple.subject == subject) && (triple.predicate == predicate) && (triple.object == object)
+		if found {
 			return true
 		}
 	}

@@ -98,7 +98,7 @@ func TestCreateChildRdf(t *testing.T) {
 	reader := util.FakeReaderCloser{Text: "HELLO"}
 	nonRdfNode, err := theServer.CreateNonRdfSource(reader, parentNode.Path(), slug)
 	if err != nil {
-		t.Errorf("Error creating child non-RDF node under %s", err, parentNode.Uri())
+		t.Errorf("Error creating child non-RDF node under %s. Error: %s", parentNode.Uri(), err)
 	}
 
 	if !strings.HasPrefix(nonRdfNode.Uri(), parentNode.Uri()) || nonRdfNode.Uri() == parentNode.Uri() {

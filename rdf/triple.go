@@ -1,6 +1,5 @@
 package rdf
 
-import "strings"
 import "fmt"
 
 type Triple struct {
@@ -22,36 +21,27 @@ func NewTripleFromTokens(subject, predicate, object Token) Triple {
 	return newTriple(subject.value, predicate.value, object.value, object.isLiteral)
 }
 
+func NewTriple(subject, predicate, object string) Triple {
+	return Triple{subject: subject, predicate: predicate, object: object}
+}
+
+// this should go away
 func NewTripleUri(subject, predicate, object string) Triple {
 	return newTriple(subject, predicate, object, false)
 }
 
+// this should go away
 func NewTripleLit(subject, predicate, object string) Triple {
 	return newTriple(subject, predicate, object, true)
 }
 
+// this should go away
 func newTripleFromNTriple(ntriple NTriple) Triple {
 	return newTriple(ntriple.Subject(), ntriple.Predicate(), ntriple.Object(), ntriple.IsObjectLiteral())
 }
 
+// this should go away
 func newTriple(subject, predicate, object string, isObjectLiteral bool) Triple {
-	// Temporary hack while I fix the code that is passing triples
-	// without <> or ""
-	if !strings.HasPrefix(subject, "<") {
-		subject = "<" + subject + ">"
-	}
-	if !strings.HasPrefix(predicate, "<") {
-		predicate = "<" + predicate + ">"
-	}
-	if isObjectLiteral {
-		if !strings.HasPrefix(object, "\"") {
-			object = "\"" + object + "\""
-		}
-	} else {
-		if !strings.HasPrefix(object, "<") {
-			object = "<" + object + ">"
-		}
-	}
 	return Triple{subject: subject, predicate: predicate, object: object, isObjectLiteral: isObjectLiteral}
 }
 

@@ -7,7 +7,7 @@ import (
 	"ldpserver/ldp"
 	"ldpserver/textstore"
 	"ldpserver/util"
-	"log"
+	// "log"
 )
 
 const defaultSlug string = "node"
@@ -66,7 +66,6 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 	}
 
 	if err := container.AddChild(node); err != nil {
-		log.Printf("===> Error in addChild")
 		return ldp.Node{}, err
 	}
 	return node, nil
@@ -89,7 +88,6 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 		if resource.ErrorMessage() == "Already exists" {
 			node, err := ldp.GetHead(server.settings, newPath)
 			if err != nil {
-				log.Printf("Error fetching resource to overwrite %s", err)
 				return ldp.Node{}, errors.New("Cannot validate resource to overwrite")
 			} else if node.IsRdf() {
 				return ldp.Node{}, errors.New("Cannot overwrite RDF Source with Non-RDF Source")
@@ -149,6 +147,7 @@ func (server Server) createResource(parentPath string, newPath string) textstore
 }
 
 func (server Server) getContainer(path string) (ldp.Node, error) {
+
 	if isRootPath(path) {
 		// Shortcut. We know for sure this is a container
 		return ldp.GetHead(server.settings, "/")
