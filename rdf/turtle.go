@@ -2,7 +2,7 @@ package rdf
 
 import (
 	"errors"
-	// "log"
+	"log"
 )
 
 type Token struct {
@@ -226,7 +226,7 @@ func (parser *TurtleParser) parseNamespacedValue() string {
 	return string(parser.chars[start:parser.index])
 }
 
-func (parser *TurtleParser) parseLanguage() (string, error) {
+func (parser *TurtleParser) parseLanguage() string {
 	start := parser.index
 	parser.advance()
 	for parser.canRead() {
@@ -236,10 +236,14 @@ func (parser *TurtleParser) parseLanguage() (string, error) {
 			break
 		}
 	}
-	return string(parser.chars[start:parser.index]), nil
+	// Should be indicate error if the language is empty?
+	return string(parser.chars[start:parser.index])
 }
 
-// Extracts a value in quotes, e.g. "hello"
+// Extracts a value in quotes, for example
+//		"hello"
+// 		"hello"@en-us
+//		"hello"^^<http://somedomain>
 func (parser *TurtleParser) parseString() (string, error) {
 	start := parser.index
 	parser.advance()
@@ -247,17 +251,19 @@ func (parser *TurtleParser) parseString() (string, error) {
 		if parser.char() == '"' {
 			str := string(parser.chars[start : parser.index+1])
 			lang := ""
-			// datatype := ""
-			var err error
+			datatype := ""
 			canPeek, nextChar := parser.peek()
+			var err error
 			if canPeek {
 				switch nextChar {
 				case '@':
 					parser.advance()
-					lang, err = parser.parseLanguage()
+					lang = parser.parseLanguage()
 					str += lang
-					// case: "^"
-					// 	datatype = parser.parseType()
+				case '^':
+					parser.advance()
+					datatype, err = parser.parseType()
+					str += datatype
 				}
 			}
 			return str, err
@@ -265,6 +271,24 @@ func (parser *TurtleParser) parseString() (string, error) {
 		parser.advance()
 	}
 	return "", errors.New("String did not end with \"")
+}
+
+func (parser *TurtleParser) parseType() (string, error) {
+	canPeek, nextChar := parser.peek()
+	if !canPeek || nextChar != '^' {
+		log.Printf("%s %c", canPeek, nextChar)
+		return "", errors.New("Invalid type delimiter")
+	}
+
+	parser.advance()
+	canPeek, nextChar = parser.peek()
+	if !canPeek || nextChar != '<' {
+		return "", errors.New("Invalid URI in type delimiter")
+	}
+
+	parser.advance()
+	uri, err := parser.parseUri()
+	return "^^" + uri, err
 }
 
 // Extracts an URI in the form <hello>

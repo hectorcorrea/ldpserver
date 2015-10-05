@@ -56,13 +56,27 @@ func TestBadLanguage(t *testing.T) {
 }
 
 func TestGoodType(t *testing.T) {
-	test := "\"hello\"^^<http:/something>"
+	test := "\"hello\"^^<http://something>"
 	parser := NewTurtleParser(test)
 	token, err := parser.GetNextToken()
 	if err != nil {
 		t.Errorf("Error parsing token with type: (%s). Error: %s.", test, err)
 	} else if token.value != test {
 		t.Errorf("Token with type (%s) parsed incorrectly (%s)", test, token.value)
+	}
+}
+
+func TestBadType(t *testing.T) {
+	testA := "\"hello\"^<http://something>"
+	testB := "\"hello\"^^http://something>"
+	testC := "\"hello\"^^<http://something"
+	tests := []string{testA, testB, testC}
+	for _, test := range tests {
+		parser := NewTurtleParser(test)
+		_, err := parser.GetNextToken()
+		if err == nil {
+			t.Errorf("Failed to detect bad data type in (%s)", test)
+		}
 	}
 }
 
