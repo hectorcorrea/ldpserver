@@ -35,14 +35,15 @@ func CreateRoot(settings Settings) {
 	log.Printf("Root node created on disk at : %s\n", settings.dataPath)
 }
 
-func defaultRootRdfGraph(subject string) rdf.RdfGraph {
+func defaultRootRdfGraph(uri string) rdf.RdfGraph {
+	subject := "<" + uri + ">"
 	// define the triples
-	resource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
-	rdfSource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpRdfSourceUri)
-	basicContainer := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpBasicContainerUri)
-	title := rdf.NewTripleLit(subject, rdf.DcTitleUri, "Root node")
-	nowString := time.Now().Format(time.RFC3339)
-	created := rdf.NewTripleLit(subject, rdf.DcCreatedUri, nowString)
+	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
+	rdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpRdfSourceUri+">")
+	basicContainer := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpBasicContainerUri+">")
+	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"Root node\"")
+	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
+	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
 
 	// create the graph
 	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created}

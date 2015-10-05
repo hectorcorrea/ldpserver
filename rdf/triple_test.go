@@ -4,13 +4,13 @@ import "testing"
 import "fmt"
 
 func TestTripleToString(t *testing.T) {
-	triple1 := NewTripleUri("s", "p", "o")
+	triple1 := NewTriple("<s>", "<p>", "<o>")
 	str := fmt.Sprintf("%s", triple1)
 	if str != "<s> <p> <o> ." {
 		t.Errorf("Triple to string failed: %s", str)
 	}
 
-	triple2 := NewTripleLit("s", "p", "o")
+	triple2 := NewTriple("<s>", "<p>", `"o"`)
 	str2 := fmt.Sprintf("%s", triple2)
 	if str2 != `<s> <p> "o" .` {
 		t.Errorf("Triple to string failed: %s", str2)
@@ -35,20 +35,23 @@ func TestStringToTriple(t *testing.T) {
 	}
 }
 
-func TestStringToTripleBlankSubject(t *testing.T) {
-	testUri := "http://localhost/root/"
-	triple, _ := StringToTriple("<> <p> <o> .", testUri)
-	if triple.subject != testUri || triple.predicate != "p" || triple.object != "o" {
-		t.Error("Triple with blank subject was parsed incorrectly")
+func TestReplaceBlank(t *testing.T) {
+	testUri := "<http://localhost/root/>"
+	triple := NewTriple("<>", "<p>", "<o>")
+	triple.ReplaceBlankUri(testUri)
+	if triple.subject != testUri || triple.predicate != "<p>" || triple.object != "<o>" {
+		t.Error("Blank subject handled incorretly")
 	}
 
-	triple, _ = StringToTriple("<s> <p> <> .", testUri)
-	if triple.subject != "s" || triple.predicate != "p" || triple.object != testUri {
-		t.Error("Triple with blank object was parsed incorrectly")
+	triple = NewTriple("<s>", "<>", "<o>")
+	triple.ReplaceBlankUri(testUri)
+	if triple.subject != "<s>" || triple.predicate != testUri || triple.object != "<o>" {
+		t.Error("Blank predicate handled incorretly")
 	}
 
-	triple, err := StringToTriple("<s> <> <o> .", testUri)
-	if err == nil {
-		t.Error("Triple with blank predicate parsed incorrectly")
+	triple = NewTriple("<s>", "<p>", "<>")
+	triple.ReplaceBlankUri(testUri)
+	if triple.subject != "<s>" || triple.predicate != "<p>" || triple.object != testUri {
+		t.Error("Blank object handled incorretly")
 	}
 }

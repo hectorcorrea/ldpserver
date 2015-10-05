@@ -1,6 +1,6 @@
 package rdf
 
-import "strings"
+// import "log"
 
 type RdfGraph []Triple
 
@@ -13,22 +13,19 @@ func (triples RdfGraph) String() string {
 }
 
 func StringToGraph(theString, rootUri string) (RdfGraph, error) {
+	var err error
 	var graph RdfGraph
-	if len(theString) == 0 {
-		return graph, nil
-	}
-	lines := splitLines(theString)
-	for _, line := range lines {
-		if line != "\n" && line != "" {
-			// log.Printf("Evaluating %s", line)
-			triple, err := StringToTriple(line, rootUri)
-			if err != nil {
-				return nil, err
+	if len(theString) > 0 {
+		parser := NewTurtleParser(theString)
+		err = parser.Parse()
+		if err == nil {
+			for _, triple := range parser.Triples() {
+				triple.ReplaceBlankUri(rootUri)
+				graph = append(graph, triple)
 			}
-			graph = append(graph, triple)
 		}
 	}
-	return graph, nil
+	return graph, err
 }
 
 func (graph *RdfGraph) Append(newGraph RdfGraph) {
@@ -42,11 +39,15 @@ func (graph *RdfGraph) Append(newGraph RdfGraph) {
 }
 
 func (graph RdfGraph) IsRdfSource(subject string) bool {
-	return graph.HasTriple(subject, RdfTypeUri, LdpRdfSourceUri)
+	predicate := "<" + RdfTypeUri + ">"
+	object := "<" + LdpRdfSourceUri + ">"
+	return graph.HasTriple(subject, predicate, object)
 }
 
 func (graph RdfGraph) IsBasicContainer(subject string) bool {
-	return graph.HasTriple(subject, RdfTypeUri, LdpBasicContainerUri)
+	predicate := "<" + RdfTypeUri + ">"
+	object := "<" + LdpBasicContainerUri + ">"
+	return graph.HasTriple(subject, predicate, object)
 }
 
 func (graph RdfGraph) IsDirectContainer() bool {
@@ -60,9 +61,10 @@ func (graph RdfGraph) GetDirectContainerInfo() (string, string, bool) {
 	membershipResource := ""
 	hasMemberRelation := ""
 	for _, triple := range graph {
-		if triple.predicate == LdpMembershipResource {
+		switch triple.predicate {
+		case "<" + LdpMembershipResource + ">":
 			membershipResource = triple.object
-		} else if triple.predicate == LdpHasMemberRelation {
+		case "<" + LdpHasMemberRelation + ">":
 			hasMemberRelation = triple.object
 		}
 		if membershipResource != "" && hasMemberRelation != "" {
@@ -74,20 +76,10 @@ func (graph RdfGraph) GetDirectContainerInfo() (string, string, bool) {
 
 func (graph RdfGraph) HasTriple(subject, predicate, object string) bool {
 	for _, triple := range graph {
-		if triple.subject == subject && triple.predicate == predicate && triple.object == object {
+		found := (triple.subject == subject) && (triple.predicate == predicate) && (triple.object == object)
+		if found {
 			return true
 		}
 	}
 	return false
-}
-
-func splitLines(text string) []string {
-	allLines := strings.Split(text, "\n")
-	lines := make([]string, len(allLines))
-	for _, line := range allLines {
-		if len(line) > 0 && line != "\n" {
-			lines = append(lines, line)
-		}
-	}
-	return lines
 }

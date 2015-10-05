@@ -1,13 +1,16 @@
 package ldp
 
-import "time"
-import "ldpserver/util"
-import "ldpserver/rdf"
-import "ldpserver/textstore"
-import "io"
-import "errors"
-import "log"
-import "strings"
+import (
+	"errors"
+	"fmt"
+	"io"
+	"ldpserver/rdf"
+	"ldpserver/textstore"
+	"ldpserver/util"
+	"log"
+	"strings"
+	"time"
+)
 
 const NodeNotFound = "Not Found"
 const DuplicateNode = "Node already exists"
@@ -64,24 +67,35 @@ func (node Node) IsDirectContainer() bool {
 }
 
 func (node Node) HasTriple(predicate, object string) bool {
-	return node.graph.HasTriple(node.uri, predicate, object)
+	return node.graph.HasTriple("<"+node.uri+">", predicate, object)
 }
 
 func (node Node) Uri() string {
 	return node.uri
 }
 
+func (node Node) DebugString() string {
+	if !node.isRdf {
+		return fmt.Sprintf("Non-RDF: %s", node.uri)
+	}
+
+	triples := ""
+	for i, triple := range node.graph {
+		triples += fmt.Sprintf("%d %s\n", i, triple)
+	}
+	debugString := fmt.Sprintf("RDF: %s\n %s", node.uri, triples)
+	return debugString
+}
+
 func GetNode(settings Settings, path string) (Node, error) {
 	node := newNode(settings, path)
 	err := node.loadNode(true)
-	// log.Printf("GetNode [%s] %s", path, err)
 	return node, err
 }
 
 func GetHead(settings Settings, path string) (Node, error) {
 	node := newNode(settings, path)
 	err := node.loadNode(false)
-	// log.Printf("GetHead [%s] %s", path, err)
 	return node, err
 }
 
@@ -90,7 +104,7 @@ func (node *Node) Patch(triples string) error {
 		return errors.New("Cannot PATCH non-RDF Source")
 	}
 
-	graph, err := rdf.StringToGraph(triples, node.uri)
+	graph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
 	if err != nil {
 		return err
 	}
@@ -113,7 +127,7 @@ func NewRdfNode(settings Settings, triples string, parentPath string, newPath st
 	path := util.UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
 
-	userGraph, err := rdf.StringToGraph(triples, node.uri)
+	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
 	if err != nil {
 		return node, err
 	}
@@ -135,10 +149,9 @@ func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, n
 }
 
 func (node Node) AddChild(child Node) error {
-	triple := rdf.NewTripleUri(node.uri, rdf.LdpContainsUri, child.uri)
+	triple := rdf.NewTriple("<"+node.uri+">", "<"+rdf.LdpContainsUri+">", "<"+child.uri+">")
 	err := node.store.AppendToFile(metaFile, triple.StringLn())
 	if err != nil {
-		log.Printf("%s", err)
 		return err
 	}
 
@@ -148,17 +161,25 @@ func (node Node) AddChild(child Node) error {
 	return nil
 }
 
+func removeAngleBrackets(text string) string {
+	if strings.HasPrefix(text, "<") {
+		return text[1 : len(text)-1]
+	}
+	return text
+}
 func (node Node) addDirectContainerChild(child Node) error {
 	// TODO: account for isMemberOfRelation
-	targetUri := node.membershipResource
+	targetUri := removeAngleBrackets(node.membershipResource)
 	targetPath := util.PathFromUri(node.rootUri, targetUri)
+
 	targetNode, err := GetNode(node.settings, targetPath)
 	if err != nil {
 		log.Printf("Could not find target node %s.", targetPath)
 		return err
 	}
 
-	tripleForTarget := rdf.NewTripleUri(targetNode.uri, node.hasMemberRelation, child.uri)
+	tripleForTarget := rdf.NewTriple("<"+targetNode.uri+">", node.hasMemberRelation, "<"+child.uri+">")
+
 	err = targetNode.store.AppendToFile(metaFile, tripleForTarget.StringLn())
 	if err != nil {
 		log.Printf("Error appending child %s to %s. %s", child.uri, targetNode.uri, err)
@@ -214,7 +235,7 @@ func (node *Node) loadMeta() error {
 		return err
 	}
 
-	if graph.IsRdfSource(node.uri) {
+	if graph.IsRdfSource("<" + node.uri + ">") {
 		node.setAsRdf(graph)
 	} else {
 		node.setAsNonRdf(graph)
@@ -237,27 +258,29 @@ func (node Node) writeToDisk(reader io.ReadCloser) error {
 	return node.store.SaveReader(dataFile, reader)
 }
 
-func defaultGraph(subject string) rdf.RdfGraph {
+func defaultGraph(uri string) rdf.RdfGraph {
+	subject := "<" + uri + ">"
 	// define the triples
-	resource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
-	rdfSource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpRdfSourceUri)
+	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
+	rdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpRdfSourceUri+">")
 	// TODO: Not all RDFs resources should be containers
-	basicContainer := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpBasicContainerUri)
-	title := rdf.NewTripleLit(subject, rdf.DcTitleUri, "This is a new entry")
-	nowString := time.Now().Format(time.RFC3339)
-	created := rdf.NewTripleLit(subject, rdf.DcCreatedUri, nowString)
+	basicContainer := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpBasicContainerUri+">")
+	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
+	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
+	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
 	// create the graph
 	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created}
 	return graph
 }
 
-func defaultNonRdfGraph(subject string) rdf.RdfGraph {
+func defaultNonRdfGraph(uri string) rdf.RdfGraph {
+	subject := "<" + uri + ">"
 	// define the triples
-	resource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpResourceUri)
-	nonRdfSource := rdf.NewTripleUri(subject, rdf.RdfTypeUri, rdf.LdpNonRdfSourceUri)
-	title := rdf.NewTripleLit(subject, rdf.DcTitleUri, "This is a new entry")
-	nowString := time.Now().Format(time.RFC3339)
-	created := rdf.NewTripleLit(subject, rdf.DcCreatedUri, nowString)
+	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
+	nonRdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpNonRdfSourceUri+">")
+	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
+	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
+	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
 	// create the graph
 	graph := rdf.RdfGraph{resource, nonRdfSource, title, created}
 	return graph
@@ -269,7 +292,7 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 	node.headers = make(map[string][]string)
 	node.headers["Content-Type"] = []string{rdf.TurtleContentType}
 
-	if graph.IsBasicContainer(node.uri) {
+	if graph.IsBasicContainer("<" + node.uri + ">") {
 		// Is there a way to indicate that PUT is allowed
 		// for creation only (and not to overwrite?)
 		node.headers["Allow"] = []string{"GET, HEAD, POST, PUT"}
@@ -279,7 +302,7 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 
 	links := make([]string, 0)
 	links = append(links, rdf.LdpResourceLink)
-	if graph.IsBasicContainer(node.uri) {
+	if graph.IsBasicContainer("<" + node.uri + ">") {
 		node.isBasicContainer = true
 		links = append(links, rdf.LdpContainerLink)
 		links = append(links, rdf.LdpBasicContainerLink)

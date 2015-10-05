@@ -7,6 +7,8 @@ import "ldpserver/web"
 import "fmt"
 
 func main() {
+	// text := "<hello>"
+	// panic(text[1 : len(text)-1])
 	rootFolder, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal("Could not determine root folder")

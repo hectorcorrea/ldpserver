@@ -4,8 +4,8 @@ import "testing"
 import "fmt"
 
 func TestGraphToString(t *testing.T) {
-	triple1 := Triple{subject: "a", predicate: "b", object: "c"}
-	triple2 := Triple{subject: "x", predicate: "y", object: "z"}
+	triple1 := Triple{subject: "<a>", predicate: "<b>", object: "<c>"}
+	triple2 := Triple{subject: "<x>", predicate: "<y>", object: "<z>"}
 	var graph RdfGraph
 	graph = append(graph, triple1, triple2)
 	str := fmt.Sprintf("%s", graph)
