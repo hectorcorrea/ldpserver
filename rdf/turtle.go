@@ -179,12 +179,20 @@ func (parser TurtleParser) charString() string {
 	return string(parser.chars[parser.index])
 }
 
+func (parser TurtleParser) isLanguageChar() bool {
+	char := parser.char()
+	return (char >= 'a' && char <= 'z') ||
+		(char >= 'A' && char <= 'Z') ||
+		(char == '-')
+}
+
 func (parser TurtleParser) isNamespacedChar() bool {
 	char := parser.char()
 	return (char >= 'a' && char <= 'z') ||
 		(char >= 'A' && char <= 'Z') ||
 		(char >= '0' && char <= '9') ||
-		(char == ':')
+		(char == ':') ||
+		(char == '_')
 }
 
 func (parser TurtleParser) isUriChar() bool {
@@ -218,14 +226,41 @@ func (parser *TurtleParser) parseNamespacedValue() string {
 	return string(parser.chars[start:parser.index])
 }
 
+func (parser *TurtleParser) parseLanguage() (string, error) {
+	start := parser.index
+	parser.advance()
+	for parser.canRead() {
+		if parser.isLanguageChar() {
+			parser.advance()
+		} else {
+			break
+		}
+	}
+	return string(parser.chars[start:parser.index]), nil
+}
+
 // Extracts a value in quotes, e.g. "hello"
 func (parser *TurtleParser) parseString() (string, error) {
 	start := parser.index
 	parser.advance()
 	for parser.canRead() {
 		if parser.char() == '"' {
-			uri := string(parser.chars[start : parser.index+1])
-			return uri, nil
+			str := string(parser.chars[start : parser.index+1])
+			lang := ""
+			// datatype := ""
+			var err error
+			canPeek, nextChar := parser.peek()
+			if canPeek {
+				switch nextChar {
+				case '@':
+					parser.advance()
+					lang, err = parser.parseLanguage()
+					str += lang
+					// case: "^"
+					// 	datatype = parser.parseType()
+				}
+			}
+			return str, err
 		}
 		parser.advance()
 	}
