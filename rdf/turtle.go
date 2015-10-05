@@ -90,6 +90,7 @@ func (parser *TurtleParser) GetNextToken() (Token, error) {
 	var value string
 
 	parser.advanceWhiteSpace()
+	parser.advanceComments()
 	if !parser.canRead() {
 		return Token{}, errors.New("No token found")
 	}
@@ -145,6 +146,22 @@ func (parser *TurtleParser) advanceWhiteSpace() {
 	for parser.canRead() {
 		if !parser.isWhiteSpaceChar() {
 			break
+		}
+		parser.advance()
+	}
+}
+
+func (parser *TurtleParser) advanceComments() {
+	if !parser.canRead() || parser.char() != '#' {
+		return
+	}
+
+	for parser.canRead() {
+		if parser.char() == '\n' {
+			parser.advanceWhiteSpace()
+			if parser.char() != '#' {
+				break
+			}
 		}
 		parser.advance()
 	}

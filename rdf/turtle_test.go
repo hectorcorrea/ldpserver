@@ -48,3 +48,11 @@ func TestTwoTriples(t *testing.T) {
 		t.Errorf("Error parsing triples %d", len(parser.Triples()))
 	}
 }
+
+func TestTwoTriplesWithComments(t *testing.T) {
+	parser := NewTurtleParser("#one comment \n <s> <p> <o> .\n# second comment \n<s2> <p2> <o2> . #last comment")
+	parser.Parse()
+	if len(parser.Triples()) != 2 {
+		t.Errorf("Error parsing triples %d", len(parser.Triples()))
+	}
+}
