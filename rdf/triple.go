@@ -8,10 +8,6 @@ type Triple struct {
 	object    string
 }
 
-// func NewTripleFromTokens(subject, predicate, object Token) Triple {
-// 	return Triple{subject: subject.value, predicate: predicate.value, object: object.value}
-// }
-
 func NewTriple(subject, predicate, object string) Triple {
 	return Triple{subject: subject, predicate: predicate, object: object}
 }
