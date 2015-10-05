@@ -38,7 +38,7 @@ func TestGoodLanguage(t *testing.T) {
 	parser := NewTurtleParser(test)
 	token, err := parser.GetNextToken()
 	if err != nil {
-		t.Errorf("Error parsing token: (%s). Error: %s.", test, err)
+		t.Errorf("Error parsing token with language: (%s). Error: %s.", test, err)
 	} else if token.value != test {
 		t.Errorf("Token with language (%s) parsed incorrectly (%s)", test, token.value)
 	}
@@ -49,26 +49,22 @@ func TestBadLanguage(t *testing.T) {
 	parser := NewTurtleParser(test)
 	token, err := parser.GetNextToken()
 	if err != nil {
-		t.Errorf("Error parsing token: (%s). Error: %s.", test, err)
+		t.Errorf("Error parsing token with bad language: (%s). Error: %s.", test, err)
 	} else if token.value != "\"hello\"@" {
-		t.Errorf("Token with bag language (%s) parsed incorrectly (%s)", test, token.value)
+		t.Errorf("Token with bad language (%s) parsed incorrectly (%s)", test, token.value)
 	}
 }
 
-// func TestType(t *testing.T) {
-// 	testA := "\"hello\"^^<http:/something>"
-// 	testB := "\"hola\"@es-mx"
-// 	tests := []string{testA, testB}
-// 	for _, test := range tests {
-// 		parser := NewTurtleParser(test)
-// 		token, err := parser.GetNextToken()
-// 		if err != nil {
-// 			t.Errorf("Error parsing token: (%s). Error: %s.", test, err)
-// 		} else if token.value != test {
-// 			t.Errorf("Token with language (%s) parsed incorrectly (%s)", test, token.value)
-// 		}
-// 	}
-// }
+func TestGoodType(t *testing.T) {
+	test := "\"hello\"^^<http:/something>"
+	parser := NewTurtleParser(test)
+	token, err := parser.GetNextToken()
+	if err != nil {
+		t.Errorf("Error parsing token with type: (%s). Error: %s.", test, err)
+	} else if token.value != test {
+		t.Errorf("Token with type (%s) parsed incorrectly (%s)", test, token.value)
+	}
+}
 
 func TestPeek(t *testing.T) {
 	parser := NewTurtleParser("abc")
