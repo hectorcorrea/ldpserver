@@ -85,7 +85,7 @@ Fetch node created
 
 Create an *LDP Direct Container* that uses `/node1` as its `membershipResource` (notice the `$'text'` syntax to preserve carriage returns in the triples)
 
-    curl -X POST --header "Content-Type: text/ntriple" -d $'<> <http://www.w3.org/ns/ldp#hasMemberRelation> <someRel> .\n<> <http://www.w3.org/ns/ldp#membershipResource> <http://localhost:9001/node1> .\n' localhost:9001
+    curl -X POST --header "Content-Type: text/turtle" -d $'<> <http://www.w3.org/ns/ldp#hasMemberRelation> <someRel> .\n<> <http://www.w3.org/ns/ldp#membershipResource> <http://localhost:9001/node1> .\n' localhost:9001
 
 
 ## Demo
@@ -135,9 +135,9 @@ A lot.
 
 * Support HTTP PATCH, and DELETE.
 
-* I am currently using n-triples rather than turtle because n-triples require less parsing (e.g. no prefixes to be aware of). This should eventually be changed to support and default to turtle.
+* Improve parsing of turtle triples to support language and type in string values, comments, and support the use of , and ; to set values. 
 
-* Make sure the ntriples pass a minimum validation. For starters take a look at this set: http://www.w3.org/2000/10/rdf-tests/rdfcore/ntriples/test.nt
+* Make sure the turtle parser pass a minimum validation. For starters take a look at this set: http://www.w3.org/2000/10/rdf-tests/rdfcore/ntriples/test.nt
 
 * Provide a mechanism to fetch the meta data for a non-RDF (e.g. via a query string or an HTTP header parameter)
 
