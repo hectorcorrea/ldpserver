@@ -16,8 +16,8 @@ func TestGoodTokens(t *testing.T) {
 		token, err := parser.GetNextToken()
 		if err != nil {
 			t.Errorf("Error parsing token: (%s). Error: %s.", test[0], err)
-		} else if token.value != test[1] {
-			t.Errorf("Token (%s) parsed incorrectly (%s)", test[1], token.value)
+		} else if token != test[1] {
+			t.Errorf("Token (%s) parsed incorrectly (%s)", test[1], token)
 		}
 	}
 }
@@ -28,7 +28,7 @@ func TestBadTokens(t *testing.T) {
 		parser := NewTurtleParser(test)
 		token, err := parser.GetNextToken()
 		if err == nil {
-			t.Errorf("Did not detect invalid token: (%s). Result: (%s)", test, token.value)
+			t.Errorf("Did not detect invalid token: (%s). Result: (%s)", test, token)
 		}
 	}
 }
@@ -39,8 +39,8 @@ func TestGoodLanguage(t *testing.T) {
 	token, err := parser.GetNextToken()
 	if err != nil {
 		t.Errorf("Error parsing token with language: (%s). Error: %s.", test, err)
-	} else if token.value != test {
-		t.Errorf("Token with language (%s) parsed incorrectly (%s)", test, token.value)
+	} else if token != test {
+		t.Errorf("Token with language (%s) parsed incorrectly (%s)", test, token)
 	}
 }
 
@@ -50,8 +50,8 @@ func TestBadLanguage(t *testing.T) {
 	token, err := parser.GetNextToken()
 	if err != nil {
 		t.Errorf("Error parsing token with bad language: (%s). Error: %s.", test, err)
-	} else if token.value != "\"hello\"@" {
-		t.Errorf("Token with bad language (%s) parsed incorrectly (%s)", test, token.value)
+	} else if token != "\"hello\"@" {
+		t.Errorf("Token with bad language (%s) parsed incorrectly (%s)", test, token)
 	}
 }
 
@@ -61,8 +61,8 @@ func TestGoodType(t *testing.T) {
 	token, err := parser.GetNextToken()
 	if err != nil {
 		t.Errorf("Error parsing token with type: (%s). Error: %s.", test, err)
-	} else if token.value != test {
-		t.Errorf("Token with type (%s) parsed incorrectly (%s)", test, token.value)
+	} else if token != test {
+		t.Errorf("Token with type (%s) parsed incorrectly (%s)", test, token)
 	}
 }
 

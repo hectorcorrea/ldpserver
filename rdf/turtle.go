@@ -2,15 +2,8 @@ package rdf
 
 import (
 	"errors"
-	"log"
+	// "log"
 )
-
-type Token struct {
-	value        string
-	isUri        bool
-	isLiteral    bool
-	isNamespaced bool
-}
 
 type TurtleParser struct {
 	index   int
@@ -61,7 +54,7 @@ func (parser TurtleParser) Triples() []Triple {
 }
 
 func (parser *TurtleParser) GetNextTriple() (Triple, error) {
-	var subject, predicate, object Token
+	var subject, predicate, object string
 	var err error
 	var triple Triple
 
@@ -73,7 +66,7 @@ func (parser *TurtleParser) GetNextTriple() (Triple, error) {
 			if err == nil {
 				err = parser.AdvanceTriple()
 				if err == nil {
-					triple = NewTripleFromTokens(subject, predicate, object)
+					triple = NewTriple(subject, predicate, object)
 				}
 			}
 		}
@@ -81,39 +74,34 @@ func (parser *TurtleParser) GetNextTriple() (Triple, error) {
 	return triple, err
 }
 
-func (parser *TurtleParser) GetNextToken() (Token, error) {
+func (parser *TurtleParser) GetNextToken() (string, error) {
 	var err error
-	var isLiteral, isUri, isNamespaced bool
 	var value string
 
 	parser.advanceWhiteSpace()
 	parser.advanceComments()
 	if !parser.canRead() {
-		return Token{}, errors.New("No token found")
+		return "", errors.New("No token found")
 	}
 
 	firstChar := parser.char()
 	switch {
 	case firstChar == '<':
-		isUri = true
 		value, err = parser.parseUri()
 	case firstChar == '"':
-		isLiteral = true
 		value, err = parser.parseString()
 	case parser.isNamespacedChar():
-		isNamespaced = true
 		value = parser.parseNamespacedValue()
 	default:
-		return Token{}, errors.New("Invalid first character: [" + parser.charString() + "]")
+		return "", errors.New("Invalid first character: [" + parser.charString() + "]")
 	}
 
 	if err != nil {
-		return Token{}, err
+		return "", err
 	}
 
 	parser.advance()
-	token := Token{value: value, isUri: isUri, isLiteral: isLiteral, isNamespaced: isNamespaced}
-	return token, nil
+	return value, nil
 }
 
 // Advances the index to the beginning of the next triple.
@@ -276,7 +264,6 @@ func (parser *TurtleParser) parseString() (string, error) {
 func (parser *TurtleParser) parseType() (string, error) {
 	canPeek, nextChar := parser.peek()
 	if !canPeek || nextChar != '^' {
-		log.Printf("%s %c", canPeek, nextChar)
 		return "", errors.New("Invalid type delimiter")
 	}
 
