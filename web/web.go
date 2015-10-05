@@ -73,7 +73,7 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 }
 
 func handlePost(resp http.ResponseWriter, req *http.Request) {
-	logHeaders(req)
+	// logHeaders(req)
 	slug := getSlug(req.Header)
 	path := safePath(req.URL.Path)
 	doPostPut(resp, req, path, slug)
