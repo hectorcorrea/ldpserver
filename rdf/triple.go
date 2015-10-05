@@ -3,46 +3,17 @@ package rdf
 import "fmt"
 
 type Triple struct {
-	subject         string // always a URI, e.g. <hello>
-	predicate       string // always a URI, e.g. <hello>
-	object          string // can be a URI or a literal, e.g. <hello> or "hello"
-	isObjectLiteral bool
+	subject   string
+	predicate string
+	object    string
 }
 
 func NewTripleFromTokens(subject, predicate, object Token) Triple {
-	if !subject.isUri {
-		// TODO: Should we allow this?
-		panic("Subject is not a URI")
-	}
-	if !predicate.isUri {
-		// TODO: Should we allow this?
-		panic("Predicate is not a URI")
-	}
-	return newTriple(subject.value, predicate.value, object.value, object.isLiteral)
+	return Triple{subject: subject.value, predicate: predicate.value, object: object.value}
 }
 
 func NewTriple(subject, predicate, object string) Triple {
 	return Triple{subject: subject, predicate: predicate, object: object}
-}
-
-// this should go away
-func NewTripleUri(subject, predicate, object string) Triple {
-	return newTriple(subject, predicate, object, false)
-}
-
-// this should go away
-func NewTripleLit(subject, predicate, object string) Triple {
-	return newTriple(subject, predicate, object, true)
-}
-
-// this should go away
-func newTripleFromNTriple(ntriple NTriple) Triple {
-	return newTriple(ntriple.Subject(), ntriple.Predicate(), ntriple.Object(), ntriple.IsObjectLiteral())
-}
-
-// this should go away
-func newTriple(subject, predicate, object string, isObjectLiteral bool) Triple {
-	return Triple{subject: subject, predicate: predicate, object: object, isObjectLiteral: isObjectLiteral}
 }
 
 func (t Triple) String() string {

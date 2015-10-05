@@ -261,13 +261,13 @@ func (node Node) writeToDisk(reader io.ReadCloser) error {
 func defaultGraph(uri string) rdf.RdfGraph {
 	subject := "<" + uri + ">"
 	// define the triples
-	resource := rdf.NewTripleUri(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
-	rdfSource := rdf.NewTripleUri(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpRdfSourceUri+">")
+	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
+	rdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpRdfSourceUri+">")
 	// TODO: Not all RDFs resources should be containers
-	basicContainer := rdf.NewTripleUri(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpBasicContainerUri+">")
-	title := rdf.NewTripleLit(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
+	basicContainer := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpBasicContainerUri+">")
+	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
 	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
-	created := rdf.NewTripleLit(subject, "<"+rdf.DcCreatedUri+">", nowString)
+	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
 	// create the graph
 	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created}
 	return graph
@@ -276,11 +276,11 @@ func defaultGraph(uri string) rdf.RdfGraph {
 func defaultNonRdfGraph(uri string) rdf.RdfGraph {
 	subject := "<" + uri + ">"
 	// define the triples
-	resource := rdf.NewTripleUri(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
-	nonRdfSource := rdf.NewTripleUri(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpNonRdfSourceUri+">")
-	title := rdf.NewTripleLit(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
+	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
+	nonRdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpNonRdfSourceUri+">")
+	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
 	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
-	created := rdf.NewTripleLit(subject, "<"+rdf.DcCreatedUri+">", nowString)
+	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
 	// create the graph
 	graph := rdf.RdfGraph{resource, nonRdfSource, title, created}
 	return graph
