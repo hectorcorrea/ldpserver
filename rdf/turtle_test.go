@@ -33,6 +33,21 @@ func TestBadTokens(t *testing.T) {
 	}
 }
 
+func TestPeek(t *testing.T) {
+	parser := NewTurtleParser("abc")
+	if _, nextChar := parser.peek(); nextChar != 'b' {
+		t.Errorf("Error on first peek")
+	}
+	parser.advance()
+	if _, nextChar := parser.peek(); nextChar != 'c' {
+		t.Errorf("Error on second peek")
+	}
+	parser.advance()
+	if canPeek, _ := parser.peek(); canPeek == true {
+		t.Errorf("Failed to detect that it cannot peek anymore")
+	}
+}
+
 func TestOneTriple(t *testing.T) {
 	parser := NewTurtleParser("<s> <p> <o> .")
 	parser.Parse()

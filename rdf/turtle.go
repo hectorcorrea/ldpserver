@@ -28,13 +28,13 @@ func NewTurtleParser(text string) TurtleParser {
 	// that use 2-4 bytes.
 	chars := stringToRunes(text)
 	parser := TurtleParser{text: text, chars: chars}
+	parser.length = len(parser.chars)
 	return parser
 }
 
 func (parser *TurtleParser) Parse() error {
 	parser.err = nil
 	parser.index = 0
-	parser.length = len(parser.chars)
 	for parser.canRead() {
 		triple, err := parser.GetNextTriple()
 		if err != nil {
@@ -48,15 +48,12 @@ func (parser *TurtleParser) Parse() error {
 }
 
 func (parser *TurtleParser) ParseOne() (Triple, error) {
-	var triple Triple
-	var err error
 	parser.err = nil
 	parser.index = 0
-	parser.length = len(parser.chars)
 	if parser.canRead() {
-		triple, err = parser.GetNextTriple()
+		return parser.GetNextTriple()
 	}
-	return triple, err
+	return Triple{}, errors.New("No triple found.")
 }
 
 func (parser TurtleParser) Triples() []Triple {
@@ -167,15 +164,11 @@ func (parser *TurtleParser) advanceComments() {
 	}
 }
 
-func (parser TurtleParser) atLastChar() bool {
-	return parser.index == (parser.length - 1)
-}
-
 func (parser *TurtleParser) canRead() bool {
-	if len(parser.chars) == 0 {
+	if parser.length == 0 {
 		return false
 	}
-	return parser.index < len(parser.chars)
+	return parser.index < parser.length
 }
 
 func (parser TurtleParser) char() rune {
@@ -254,6 +247,13 @@ func (parser *TurtleParser) parseUri() (string, error) {
 		parser.advance()
 	}
 	return "", errors.New("URI did not end with >")
+}
+
+func (parser *TurtleParser) peek() (bool, rune) {
+	if parser.length > 0 && parser.index < (parser.length-1) {
+		return true, parser.chars[parser.index+1]
+	}
+	return false, 0
 }
 
 func stringToRunes(text string) []rune {
