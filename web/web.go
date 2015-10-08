@@ -69,6 +69,15 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 			resp.Header().Add(key, value)
 		}
 	}
+
+	requestedEtag := requestEtag(req.Header)
+	if requestedEtag != "" {
+		if requestedEtag == node.Etag() {
+			resp.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
+
 	fmt.Fprint(resp, node.Content())
 }
 
@@ -199,6 +208,13 @@ func requestContentType(header http.Header) string {
 		return value
 	}
 	return rdf.TurtleContentType
+}
+
+func requestEtag(header http.Header) string {
+	for _, value := range header["If-None-Match"] {
+		return value
+	}
+	return ""
 }
 
 func isRdfContentType(header http.Header) bool {

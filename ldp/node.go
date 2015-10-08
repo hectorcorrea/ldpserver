@@ -46,6 +46,15 @@ func (node Node) String() string {
 	return node.uri
 }
 
+func (node *Node) Etag() string {
+	subject := "<" + node.uri + ">"
+	etagFound, etag := node.graph.GetObject(subject, "<"+rdf.ServerETagUri+">")
+	if !etagFound {
+		// panic("No etag found for " + node.uri)
+	}
+	return etag
+}
+
 func (node Node) Path() string {
 	return util.PathFromUri(node.rootUri, node.uri)
 }
@@ -307,7 +316,7 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 		node.headers["Allow"] = []string{"GET, HEAD"}
 	}
 
-	node.headers["Etag"] = []string{node.etag()}
+	node.headers["Etag"] = []string{node.Etag()}
 
 	links := make([]string, 0)
 	links = append(links, rdf.LdpResourceLink)
@@ -335,20 +344,10 @@ func (node *Node) setAsNonRdf(graph rdf.RdfGraph) {
 	node.headers["Content-Type"] = []string{"application/binary"}
 	// TODO: guess the content-type from meta
 
-	node.headers["Etag"] = []string{node.etag()}
+	node.headers["Etag"] = []string{node.Etag()}
 }
 
 func calculateEtag() string {
 	// TODO: Come up with a more precise value.
 	return strings.Replace(time.Now().Format(time.RFC3339), ":", "_", -1)
-}
-
-func (node *Node) etag() string {
-	subject := "<" + node.uri + ">"
-	etagFound, etag := node.graph.GetObject(subject, "<"+rdf.ServerETagUri+">")
-	if etagFound {
-		return etag
-	} else {
-		panic("No etag found for " + node.uri)
-	}
 }
