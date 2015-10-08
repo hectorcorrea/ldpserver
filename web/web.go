@@ -36,6 +36,8 @@ func homePage(resp http.ResponseWriter, req *http.Request) {
 		handlePut(resp, req)
 	} else if req.Method == "PATCH" {
 		handlePatch(resp, req)
+	} else if req.Method == "OPTIONS" {
+		handleOptions(resp, req)
 	} else {
 		log.Printf("Unknown request type %s", req.Method)
 	}
@@ -45,6 +47,7 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 	var node ldp.Node
 	var err error
 
+	logHeaders(req)
 	path := safePath(req.URL.Path)
 	if includeBody {
 		log.Printf("GET request %s", path)
@@ -81,14 +84,32 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(resp, node.Content())
 }
 
+func handleOptions(resp http.ResponseWriter, req *http.Request) {
+	logHeaders(req)
+	path := safePath(req.URL.Path)
+	node, err := theServer.GetNode(path)
+	if err != nil {
+		log.Printf("Error %s", err)
+		http.Error(resp, "Could not fetch resource", http.StatusInternalServerError)
+		return
+	}
+
+	for key, header := range node.Headers() {
+		for _, value := range header {
+			resp.Header().Add(key, value)
+		}
+	}
+}
+
 func handlePost(resp http.ResponseWriter, req *http.Request) {
-	// logHeaders(req)
+	logHeaders(req)
 	slug := getSlug(req.Header)
 	path := safePath(req.URL.Path)
 	doPostPut(resp, req, path, slug)
 }
 
 func handlePut(resp http.ResponseWriter, req *http.Request) {
+	logHeaders(req)
 	// In PUT requests we don't expect a slug in the headers...
 	if getSlug(req.Header) != "" {
 		logReqError(req, "Unexpected client provided Slug in PUT request", http.StatusBadRequest)
@@ -130,6 +151,7 @@ func doPostPut(resp http.ResponseWriter, req *http.Request, path string, slug st
 	}
 
 	if err == nil {
+		resp.Header().Add("Location", node.Uri())
 		resp.WriteHeader(http.StatusCreated)
 	} else {
 		errorMsg := err.Error()
@@ -223,7 +245,7 @@ func isRdfContentType(header http.Header) bool {
 }
 
 func logHeaders(req *http.Request) {
-	log.Printf("HTTP Headers")
+	log.Printf("HTTP Headers %s %s", req.Method, req.URL.Path)
 	for header, values := range req.Header {
 		for _, value := range values {
 			log.Printf("\t %s %s", header, value)

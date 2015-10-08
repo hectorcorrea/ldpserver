@@ -311,10 +311,11 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 	if graph.IsBasicContainer(subject) {
 		// Is there a way to indicate that PUT is allowed
 		// for creation only (and not to overwrite?)
-		node.headers["Allow"] = []string{"GET, HEAD, POST, PUT"}
+		node.headers["Allow"] = []string{"GET, HEAD, POST, PUT, PATCH"}
 	} else {
-		node.headers["Allow"] = []string{"GET, HEAD"}
+		node.headers["Allow"] = []string{"GET, HEAD, PUT, PATCH"}
 	}
+	node.headers["Accept-Post"] = []string{"text/turtle"}
 
 	node.headers["Etag"] = []string{node.Etag()}
 
@@ -340,7 +341,7 @@ func (node *Node) setAsNonRdf(graph rdf.RdfGraph) {
 	node.binary = ""
 	node.headers = make(map[string][]string)
 	node.headers["Link"] = []string{rdf.LdpNonRdfSourceLink}
-	node.headers["Allow"] = []string{"GET, HEAD"}
+	node.headers["Allow"] = []string{"GET, HEAD, PUT"}
 	node.headers["Content-Type"] = []string{"application/binary"}
 	// TODO: guess the content-type from meta
 
