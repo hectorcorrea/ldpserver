@@ -138,6 +138,7 @@ func NewRdfNode(settings Settings, triples string, parentPath string, newPath st
 
 	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
 	if err != nil {
+		log.Printf("== Triples\n%s\n==", triples)
 		return node, err
 	}
 
