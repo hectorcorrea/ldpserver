@@ -142,7 +142,7 @@ func NewRdfNode(settings Settings, triples string, parentPath string, newPath st
 func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, newPath string) (Node, error) {
 	path := util.UriConcat(parentPath, newPath)
 	node := newNode(settings, path)
-	graph := defaultNonRdfGraph(node.uri)
+	graph := defaultGraphNonRdf(node.uri)
 	node.setAsNonRdf(graph)
 	err := node.writeToDisk(reader)
 	return node, err
@@ -258,6 +258,10 @@ func (node Node) writeToDisk(reader io.ReadCloser) error {
 	return node.store.SaveReader(dataFile, reader)
 }
 
+func DefaultGraph(uri string) rdf.RdfGraph {
+	return defaultGraph(uri)
+}
+
 func defaultGraph(uri string) rdf.RdfGraph {
 	subject := "<" + uri + ">"
 	// define the triples
@@ -268,12 +272,13 @@ func defaultGraph(uri string) rdf.RdfGraph {
 	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
 	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
 	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
+	etag := rdf.NewTriple(subject, "<"+rdf.ServerETagUri+">", "\""+calculateEtag()+"\"")
 	// create the graph
-	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created}
+	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created, etag}
 	return graph
 }
 
-func defaultNonRdfGraph(uri string) rdf.RdfGraph {
+func defaultGraphNonRdf(uri string) rdf.RdfGraph {
 	subject := "<" + uri + ">"
 	// define the triples
 	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
@@ -281,18 +286,20 @@ func defaultNonRdfGraph(uri string) rdf.RdfGraph {
 	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
 	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
 	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
+	etag := rdf.NewTriple(subject, "<"+rdf.ServerETagUri+">", "\""+calculateEtag()+"\"")
 	// create the graph
-	graph := rdf.RdfGraph{resource, nonRdfSource, title, created}
+	graph := rdf.RdfGraph{resource, nonRdfSource, title, created, etag}
 	return graph
 }
 
 func (node *Node) setAsRdf(graph rdf.RdfGraph) {
+	subject := "<" + node.uri + ">"
 	node.isRdf = true
 	node.graph = graph
 	node.headers = make(map[string][]string)
 	node.headers["Content-Type"] = []string{rdf.TurtleContentType}
 
-	if graph.IsBasicContainer("<" + node.uri + ">") {
+	if graph.IsBasicContainer(subject) {
 		// Is there a way to indicate that PUT is allowed
 		// for creation only (and not to overwrite?)
 		node.headers["Allow"] = []string{"GET, HEAD, POST, PUT"}
@@ -300,9 +307,11 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 		node.headers["Allow"] = []string{"GET, HEAD"}
 	}
 
+	node.headers["Etag"] = []string{node.etag()}
+
 	links := make([]string, 0)
 	links = append(links, rdf.LdpResourceLink)
-	if graph.IsBasicContainer("<" + node.uri + ">") {
+	if graph.IsBasicContainer(subject) {
 		node.isBasicContainer = true
 		links = append(links, rdf.LdpContainerLink)
 		links = append(links, rdf.LdpBasicContainerLink)
@@ -325,4 +334,21 @@ func (node *Node) setAsNonRdf(graph rdf.RdfGraph) {
 	node.headers["Allow"] = []string{"GET, HEAD"}
 	node.headers["Content-Type"] = []string{"application/binary"}
 	// TODO: guess the content-type from meta
+
+	node.headers["Etag"] = []string{node.etag()}
+}
+
+func calculateEtag() string {
+	// TODO: Come up with a more precise value.
+	return strings.Replace(time.Now().Format(time.RFC3339), ":", "_", -1)
+}
+
+func (node *Node) etag() string {
+	subject := "<" + node.uri + ">"
+	etagFound, etag := node.graph.GetObject(subject, "<"+rdf.ServerETagUri+">")
+	if etagFound {
+		return etag
+	} else {
+		panic("No etag found for " + node.uri)
+	}
 }

@@ -83,3 +83,16 @@ func (graph RdfGraph) HasTriple(subject, predicate, object string) bool {
 	}
 	return false
 }
+
+func (graph RdfGraph) GetObject(subject, predicate string) (bool, string) {
+	found := false
+	value := ""
+	for _, triple := range graph {
+		found = (triple.subject == subject) && (triple.predicate == predicate)
+		if found {
+			value = triple.object
+			break
+		}
+	}
+	return found, value
+}

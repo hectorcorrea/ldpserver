@@ -31,5 +31,8 @@ const (
 )
 
 const (
+	ServerETagUri = "http://hectorcorrea.com/ldpserver/ns/etag"
+)
+const (
 	TurtleContentType = "text/turtle"
 )
