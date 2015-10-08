@@ -80,21 +80,6 @@ func TestBadType(t *testing.T) {
 	}
 }
 
-func TestPeek(t *testing.T) {
-	parser := NewTurtleParser("abc")
-	if _, nextChar := parser.peek(); nextChar != 'b' {
-		t.Errorf("Error on first peek")
-	}
-	parser.advance()
-	if _, nextChar := parser.peek(); nextChar != 'c' {
-		t.Errorf("Error on second peek")
-	}
-	parser.advance()
-	if canPeek, _ := parser.peek(); canPeek == true {
-		t.Errorf("Failed to detect that it cannot peek anymore")
-	}
-}
-
 func TestOneTriple(t *testing.T) {
 	parser := NewTurtleParser("<s> <p> <o> .")
 	parser.Parse()
@@ -118,3 +103,16 @@ func TestTwoTriplesWithComments(t *testing.T) {
 		t.Errorf("Error parsing triples %d", len(parser.Triples()))
 	}
 }
+
+// func TestLdpTestSuiteSample(t *testing.T) {
+// 	test := `<> a <http://www.w3.org/ns/ldp#RDFSource> , <http://example.com/ns#Bug> ;
+//         <http://example.com/ns#severity> "High" ;
+//         <http://purl.org/dc/terms/description> "Issues that need to be fixed." ;
+//         <http://purl.org/dc/terms/relation> <relatedResource> ;
+//         <http://purl.org/dc/terms/title> "Another bug to test." .`
+// 	parser := NewTurtleParser(test)
+// 	err := parser.Parse()
+// 	if err != nil {
+// 		t.Errorf("Error parsing LDP Test Suite demo\n%s\n", err)
+// 	}
+// }

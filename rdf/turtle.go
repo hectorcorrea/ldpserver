@@ -6,44 +6,31 @@ import (
 )
 
 type TurtleParser struct {
-	index   int
-	text    string
-	chars   []rune
-	length  int
+	scanner Scanner
 	triples []Triple
-	err     error
 }
 
 func NewTurtleParser(text string) TurtleParser {
-	// Convert the original string to an array of unicode runes.
-	// This allows us to iterate on it as if it was an array
-	// of ASCII chars even if there are Unicode characters on it
-	// that use 2-4 bytes.
-	chars := stringToRunes(text)
-	parser := TurtleParser{text: text, chars: chars}
-	parser.length = len(parser.chars)
+	scanner := NewScanner(text)
+	parser := TurtleParser{scanner: scanner}
 	return parser
 }
 
 func (parser *TurtleParser) Parse() error {
-	parser.err = nil
-	parser.index = 0
-	for parser.canRead() {
+	var err error
+	for parser.scanner.CanRead() {
 		triple, err := parser.GetNextTriple()
 		if err != nil {
-			parser.err = err
 			break
 		}
 		parser.triples = append(parser.triples, triple)
 		parser.advanceWhiteSpace()
 	}
-	return parser.err
+	return err
 }
 
 func (parser *TurtleParser) ParseOne() (Triple, error) {
-	parser.err = nil
-	parser.index = 0
-	if parser.canRead() {
+	if parser.scanner.CanRead() {
 		return parser.GetNextTriple()
 	}
 	return Triple{}, errors.New("No triple found.")
@@ -80,11 +67,11 @@ func (parser *TurtleParser) GetNextToken() (string, error) {
 
 	parser.advanceWhiteSpace()
 	parser.advanceComments()
-	if !parser.canRead() {
+	if !parser.scanner.CanRead() {
 		return "", errors.New("No token found")
 	}
 
-	firstChar := parser.char()
+	firstChar := parser.scanner.Char()
 	switch {
 	case firstChar == '<':
 		value, err = parser.parseUri()
@@ -93,89 +80,67 @@ func (parser *TurtleParser) GetNextToken() (string, error) {
 	case parser.isNamespacedChar():
 		value = parser.parseNamespacedValue()
 	default:
-		return "", errors.New("Invalid first character: [" + parser.charString() + "]")
+		return "", errors.New("Invalid first character: [" + parser.scanner.CharString() + "]")
 	}
 
 	if err != nil {
 		return "", err
 	}
 
-	parser.advance()
+	parser.scanner.Advance()
 	return value, nil
 }
 
 // Advances the index to the beginning of the next triple.
 func (parser *TurtleParser) AdvanceTriple() error {
-	for parser.canRead() {
-		if parser.char() == '.' {
+	for parser.scanner.CanRead() {
+		if parser.scanner.Char() == '.' {
 			break
 		}
 		if parser.isWhiteSpaceChar() {
-			parser.advance()
+			parser.scanner.Advance()
 			continue
 		}
 		return errors.New("Triple did not end with a period.")
 	}
-	parser.advance()
+	parser.scanner.Advance()
 	return nil
 }
 
-// Advances the index to the next character.
-func (parser *TurtleParser) advance() {
-	if parser.canRead() {
-		parser.index++
-	}
-}
-
 func (parser *TurtleParser) advanceWhiteSpace() {
-	for parser.canRead() {
+	for parser.scanner.CanRead() {
 		if !parser.isWhiteSpaceChar() {
 			break
 		}
-		parser.advance()
+		parser.scanner.Advance()
 	}
 }
 
 func (parser *TurtleParser) advanceComments() {
-	if !parser.canRead() || parser.char() != '#' {
+	if !parser.scanner.CanRead() || parser.scanner.Char() != '#' {
 		return
 	}
 
-	for parser.canRead() {
-		if parser.char() == '\n' {
+	for parser.scanner.CanRead() {
+		if parser.scanner.Char() == '\n' {
 			parser.advanceWhiteSpace()
-			if parser.char() != '#' {
+			if parser.scanner.Char() != '#' {
 				break
 			}
 		}
-		parser.advance()
+		parser.scanner.Advance()
 	}
-}
-
-func (parser *TurtleParser) canRead() bool {
-	if parser.length == 0 {
-		return false
-	}
-	return parser.index < parser.length
-}
-
-func (parser TurtleParser) char() rune {
-	return parser.chars[parser.index]
-}
-
-func (parser TurtleParser) charString() string {
-	return string(parser.chars[parser.index])
 }
 
 func (parser TurtleParser) isLanguageChar() bool {
-	char := parser.char()
+	char := parser.scanner.Char()
 	return (char >= 'a' && char <= 'z') ||
 		(char >= 'A' && char <= 'Z') ||
 		(char == '-')
 }
 
 func (parser TurtleParser) isNamespacedChar() bool {
-	char := parser.char()
+	char := parser.scanner.Char()
 	return (char >= 'a' && char <= 'z') ||
 		(char >= 'A' && char <= 'Z') ||
 		(char >= '0' && char <= '9') ||
@@ -184,7 +149,7 @@ func (parser TurtleParser) isNamespacedChar() bool {
 }
 
 func (parser TurtleParser) isUriChar() bool {
-	char := parser.char()
+	char := parser.scanner.Char()
 	return (char >= 'a' && char <= 'z') ||
 		(char >= 'A' && char <= 'Z') ||
 		(char >= '0' && char <= '9') ||
@@ -195,37 +160,37 @@ func (parser TurtleParser) isUriChar() bool {
 }
 
 func (parser TurtleParser) isWhiteSpaceChar() bool {
-	char := parser.char()
+	char := parser.scanner.Char()
 	return char == ' ' || char == '\t' || char == '\n' || char == '\r'
 }
 
 // Extracts a value in the form xx:yy or xx
 func (parser *TurtleParser) parseNamespacedValue() string {
-	start := parser.index
-	parser.advance()
-	for parser.canRead() {
+	start := parser.scanner.Index()
+	parser.scanner.Advance()
+	for parser.scanner.CanRead() {
 		if parser.isNamespacedChar() {
-			parser.advance()
+			parser.scanner.Advance()
 			continue
 		} else {
 			break
 		}
 	}
-	return string(parser.chars[start:parser.index])
+	return parser.scanner.SubstringFrom(start)
 }
 
 func (parser *TurtleParser) parseLanguage() string {
-	start := parser.index
-	parser.advance()
-	for parser.canRead() {
+	start := parser.scanner.Index()
+	parser.scanner.Advance()
+	for parser.scanner.CanRead() {
 		if parser.isLanguageChar() {
-			parser.advance()
+			parser.scanner.Advance()
 		} else {
 			break
 		}
 	}
 	// Should be indicate error if the language is empty?
-	return string(parser.chars[start:parser.index])
+	return parser.scanner.SubstringFrom(start)
 }
 
 // Extracts a value in quotes, for example
@@ -233,79 +198,64 @@ func (parser *TurtleParser) parseLanguage() string {
 // 		"hello"@en-us
 //		"hello"^^<http://somedomain>
 func (parser *TurtleParser) parseString() (string, error) {
-	start := parser.index
-	parser.advance()
-	for parser.canRead() {
-		if parser.char() == '"' {
-			str := string(parser.chars[start : parser.index+1])
+	start := parser.scanner.Index()
+	parser.scanner.Advance()
+	for parser.scanner.CanRead() {
+		if parser.scanner.Char() == '"' {
+			str := parser.scanner.Substring(start, parser.scanner.Index()+1)
 			lang := ""
 			datatype := ""
-			canPeek, nextChar := parser.peek()
+			canPeek, nextChar := parser.scanner.Peek()
 			var err error
 			if canPeek {
 				switch nextChar {
 				case '@':
-					parser.advance()
+					parser.scanner.Advance()
 					lang = parser.parseLanguage()
 					str += lang
 				case '^':
-					parser.advance()
+					parser.scanner.Advance()
 					datatype, err = parser.parseType()
 					str += datatype
 				}
 			}
 			return str, err
 		}
-		parser.advance()
+		parser.scanner.Advance()
 	}
 	return "", errors.New("String did not end with \"")
 }
 
 func (parser *TurtleParser) parseType() (string, error) {
-	canPeek, nextChar := parser.peek()
+	canPeek, nextChar := parser.scanner.Peek()
 	if !canPeek || nextChar != '^' {
 		return "", errors.New("Invalid type delimiter")
 	}
 
-	parser.advance()
-	canPeek, nextChar = parser.peek()
+	parser.scanner.Advance()
+	canPeek, nextChar = parser.scanner.Peek()
 	if !canPeek || nextChar != '<' {
 		return "", errors.New("Invalid URI in type delimiter")
 	}
 
-	parser.advance()
+	parser.scanner.Advance()
 	uri, err := parser.parseUri()
 	return "^^" + uri, err
 }
 
 // Extracts an URI in the form <hello>
 func (parser *TurtleParser) parseUri() (string, error) {
-	start := parser.index
-	parser.advance()
-	for parser.canRead() {
-		if parser.char() == '>' {
-			uri := string(parser.chars[start : parser.index+1])
+	start := parser.scanner.Index()
+	parser.scanner.Advance()
+	for parser.scanner.CanRead() {
+		if parser.scanner.Char() == '>' {
+			uri := parser.scanner.Substring(start, parser.scanner.Index()+1)
 			return uri, nil
 		}
 		if !parser.isUriChar() {
-			return "", errors.New("Invalid character in URI " + parser.charString())
+			return "", errors.New("Invalid character in URI " + parser.scanner.CharString())
 		}
-		parser.advance()
+		parser.scanner.Advance()
 	}
 	return "", errors.New("URI did not end with >")
-}
-
-func (parser *TurtleParser) peek() (bool, rune) {
-	if parser.length > 0 && parser.index < (parser.length-1) {
-		return true, parser.chars[parser.index+1]
-	}
-	return false, 0
-}
-
-func stringToRunes(text string) []rune {
-	var chars []rune
-	for _, c := range text {
-		chars = append(chars, c)
-	}
-	return chars
 }
