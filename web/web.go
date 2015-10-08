@@ -241,7 +241,7 @@ func requestEtag(header http.Header) string {
 
 func isRdfContentType(header http.Header) bool {
 	contentType := requestContentType(header)
-	return contentType == rdf.TurtleContentType
+	return strings.HasPrefix(contentType, rdf.TurtleContentType)
 }
 
 func logHeaders(req *http.Request) {
