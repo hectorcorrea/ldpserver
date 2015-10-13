@@ -10,6 +10,12 @@ type TurtleParser struct {
 	triples   []Triple
 }
 
+type TripleAST struct {
+	subject string
+	predicate []string  or should I do a tree structure?
+	object []string
+}
+
 func NewTurtleParser(text string) TurtleParser {
 	tokenizer := NewTokenizer(text)
 	parser := TurtleParser{tokenizer: tokenizer}
@@ -17,16 +23,15 @@ func NewTurtleParser(text string) TurtleParser {
 }
 
 func (parser *TurtleParser) Parse() error {
-	var err error
 	for parser.tokenizer.CanRead() {
 		triple, err := parser.GetNextTriple()
 		if err != nil {
-			break
+			return err
 		}
 		parser.triples = append(parser.triples, triple)
 		parser.tokenizer.AdvanceWhiteSpace()
 	}
-	return err
+	return nil
 }
 
 func (parser *TurtleParser) ParseOne() (Triple, error) {

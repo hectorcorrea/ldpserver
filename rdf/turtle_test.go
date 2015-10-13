@@ -26,15 +26,16 @@ func TestTwoTriplesWithComments(t *testing.T) {
 	}
 }
 
-// func TestLdpTestSuiteSample(t *testing.T) {
-// 	test := `<> a <http://www.w3.org/ns/ldp#RDFSource> , <http://example.com/ns#Bug> ;
-//         <http://example.com/ns#severity> "High" ;
-//         <http://purl.org/dc/terms/description> "Issues that need to be fixed." ;
-//         <http://purl.org/dc/terms/relation> <relatedResource> ;
-//         <http://purl.org/dc/terms/title> "Another bug to test." .`
-// 	parser := NewTurtleParser(test)
-// 	err := parser.Parse()
-// 	if err != nil {
-// 		t.Errorf("Error parsing LDP Test Suite demo\n%s\n", err)
-// 	}
-// }
+func TestLdpTestSuiteSample(t *testing.T) {
+	test := `<> a <http://www.w3.org/ns/ldp#RDFSource> , <http://example.com/ns#Bug> ;
+        <http://example.com/ns#severity> "High" ;
+        <http://purl.org/dc/terms/description> "Issues that need to be fixed." ;
+        <http://purl.org/dc/terms/relation> <relatedResource> ;
+        <http://purl.org/dc/terms/title> "Another bug to test." .`
+	parser := NewTurtleParser(test)
+	err := parser.Parse()
+	t.Errorf("Triples\n%s\n", parser.Triples())
+	if err != nil {
+		t.Errorf("Error parsing LDP Test Suite demo\n%s\n", err)
+	}
+}
