@@ -26,6 +26,28 @@ func TestTwoTriplesWithComments(t *testing.T) {
 	}
 }
 
+func TestLdpComma(t *testing.T) {
+	test := `<s> <p> <o1> , <o2> .`
+	parser := NewTurtleParser(test)
+	err := parser.Parse2()
+	if err != nil {
+		t.Errorf("Error parsing comma: %s", err)
+	}
+	if len(parser.Triples()) != 2 {
+		t.Errorf("Incorrect number of triples: %d", len(parser.Triples()))
+	}
+
+	t1 := parser.Triples()[0].String()
+	if t1 != "<s> <p> <o1> ." {
+		t.Errorf("Triple 1 is incorrect: %s", t1)
+	}
+
+	t2 := parser.Triples()[1].String()
+	if t2 != "<s> <p> <o2> ." {
+		t.Errorf("Triple 2 is incorrect: %s", t1)
+	}
+}
+
 // func TestLdpTestSuiteSample(t *testing.T) {
 // 	test := `<> a <http://www.w3.org/ns/ldp#RDFSource> , <http://example.com/ns#Bug> ;
 //         <http://example.com/ns#severity> "High" ;

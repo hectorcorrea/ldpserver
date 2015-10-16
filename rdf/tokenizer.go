@@ -25,6 +25,10 @@ func (tokenizer *Tokenizer) GetNextToken() (string, error) {
 
 	firstChar := tokenizer.scanner.Char()
 	switch {
+	case firstChar == '.':
+		value = "."
+	case firstChar == ',':
+		value = ","
 	case firstChar == '<':
 		value, err = tokenizer.parseUri()
 	case firstChar == '"':
