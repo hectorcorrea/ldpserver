@@ -20,16 +20,19 @@ func TestTwoTriples(t *testing.T) {
 
 func TestTwoTriplesWithComments(t *testing.T) {
 	parser := NewTurtleParser("#one comment \n <s> <p> <o> .\n# second comment \n<s2> <p2> <o2> . #last comment")
-	parser.Parse()
+	err := parser.Parse()
+	if err != nil {
+		t.Errorf("Error parsing triples %s", err)
+	}
 	if len(parser.Triples()) != 2 {
-		t.Errorf("Error parsing triples %d", len(parser.Triples()))
+		t.Errorf("Unexpected number of triples found: %d", len(parser.Triples()))
 	}
 }
 
 func TestLdpComma(t *testing.T) {
 	test := `<s> <p> <o1> , <o2> .`
 	parser := NewTurtleParser(test)
-	err := parser.Parse2()
+	err := parser.Parse()
 	if err != nil {
 		t.Errorf("Error parsing comma: %s", err)
 	}
