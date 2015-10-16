@@ -2,7 +2,7 @@ package rdf
 
 import (
 	"errors"
-	"log"
+	// "log"
 )
 
 type TurtleParser struct {
@@ -75,47 +75,26 @@ func (parser *TurtleParser) GetNextTriple() (Triple, error) {
 }
 
 func (parser *TurtleParser) GetNextTriples() ([]Triple, error) {
-	var subject, predicate string
 	var err error
 	var triples []Triple
-	var tree Tree
+	var token string
 
 	for err == nil && parser.tokenizer.CanRead() {
-
-		subject, err = parser.tokenizer.GetNextToken()
+		token, err = parser.tokenizer.GetNextToken()
 		if err != nil {
 			break
 		}
 
-		subjectNode := tree.AddNode(subject)
+		subject := NewNode(token)
 
-		predicate, err = parser.tokenizer.GetNextToken()
+		token, err = parser.tokenizer.GetNextToken()
 		if err != nil {
 			break
 		}
 
-		predicateNode := subjectNode.AddChild(predicate)
-		parser.parseObjects(predicateNode)
-		// for {
-		// 	token, err := parser.tokenizer.GetNextToken()
-		// 	if err != nil {
-		// 		break
-		// 	}
-
-		// 	switch {
-		// 	case token == ".":
-		// 		// we are done
-		// 		break
-		// 	case token == ",":
-		// 		// the next token will be for the same s/p
-		// 		// continue
-		// 	default:
-		// 		object = token
-		// 		predicateNode.AddChild(object)
-		// 	}
-		// }
-		triples = subjectNode.RenderTriples()
-		log.Printf("Triple: %s", subjectNode.Render())
+		predicate := subject.AddChild(token)
+		parser.parseObjects(predicate)
+		triples = subject.RenderTriples()
 	}
 
 	return triples, err

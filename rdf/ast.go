@@ -13,6 +13,10 @@ func NewTree() Tree {
 	return Tree{}
 }
 
+func NewNode(value string) Node {
+	return Node{value: value}
+}
+
 func (tree *Tree) AddNode(value string) *Node {
 	node := Node{value: value}
 	tree.nodes = append(tree.nodes, &node)
