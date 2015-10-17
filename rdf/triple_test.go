@@ -20,7 +20,7 @@ func TestTripleToString(t *testing.T) {
 func TestStringToTriple(t *testing.T) {
 	validTests := []string{`<a> <b> <c> .`, `<a> <b> "c" .`}
 	for _, test := range validTests {
-		_, err := StringToTriple(test, "")
+		_, err := StringToTriples(test, "")
 		if err != nil {
 			t.Errorf("Failed to parse valid triple %s. Err: %s", test, err)
 		}
@@ -28,7 +28,7 @@ func TestStringToTriple(t *testing.T) {
 
 	invalidTests := []string{`<a> <3 \< 2> <no> .`, `<a> <3 < 2> <no>.\n`, `<a> <3 \> 2> <yes> .`}
 	for _, test := range invalidTests {
-		_, err := StringToTriple(test, "")
+		_, err := StringToTriples(test, "")
 		if err == nil {
 			t.Errorf("Failed to detect bad triple in %s.", test)
 		}

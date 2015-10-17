@@ -23,8 +23,7 @@ func TestGoodTokens(t *testing.T) {
 }
 
 func TestBadTokens(t *testing.T) {
-	// tests := []string{"   ", "  \t ", "...", "<"}
-	tests := []string{"   ", "  \t ", "<"}
+	tests := []string{"<", ">", "{", "}", `"aaa`}
 	for _, test := range tests {
 		tokenizer := NewTokenizer(test)
 		token, err := tokenizer.GetNextToken()

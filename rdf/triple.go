@@ -32,11 +32,15 @@ func (triple *Triple) ReplaceBlankUri(blank string) {
 	}
 }
 
-func StringToTriple(line, blank string) (Triple, error) {
-	parser := NewTurtleParser(line)
-	triple, err := parser.ParseOne()
-	if err == nil {
+func StringToTriples(text, blank string) ([]Triple, error) {
+	var triples []Triple
+	parser := NewTurtleParser(text)
+	err := parser.Parse()
+	if err != nil {
+		return triples, err
+	}
+	for _, triple := range parser.Triples() {
 		triple.ReplaceBlankUri(blank)
 	}
-	return triple, err
+	return triples, nil
 }

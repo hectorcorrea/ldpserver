@@ -20,7 +20,7 @@ func (tokenizer *Tokenizer) GetNextToken() (string, error) {
 	tokenizer.AdvanceWhiteSpace()
 	tokenizer.AdvanceComments()
 	if !tokenizer.scanner.CanRead() {
-		return "", errors.New("No token found")
+		return "", nil
 	}
 
 	firstChar := tokenizer.scanner.Char()
