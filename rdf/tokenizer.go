@@ -29,6 +29,8 @@ func (tokenizer *Tokenizer) GetNextToken() (string, error) {
 		value = "."
 	case firstChar == ',':
 		value = ","
+	case firstChar == ';':
+		value = ";"
 	case firstChar == '<':
 		value, err = tokenizer.parseUri()
 	case firstChar == '"':

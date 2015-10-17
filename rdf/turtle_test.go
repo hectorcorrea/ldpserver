@@ -29,7 +29,7 @@ func TestTwoTriplesWithComments(t *testing.T) {
 	}
 }
 
-func TestLdpComma(t *testing.T) {
+func TestTriplesWithComma(t *testing.T) {
 	test := `<s> <p> <o1> , <o2> .`
 	parser := NewTurtleParser(test)
 	err := parser.Parse()
@@ -51,16 +51,51 @@ func TestLdpComma(t *testing.T) {
 	}
 }
 
-// func TestLdpTestSuiteSample(t *testing.T) {
-// 	test := `<> a <http://www.w3.org/ns/ldp#RDFSource> , <http://example.com/ns#Bug> ;
-//         <http://example.com/ns#severity> "High" ;
-//         <http://purl.org/dc/terms/description> "Issues that need to be fixed." ;
-//         <http://purl.org/dc/terms/relation> <relatedResource> ;
-//         <http://purl.org/dc/terms/title> "Another bug to test." .`
-// 	parser := NewTurtleParser(test)
-// 	err := parser.Parse()
-// 	t.Errorf("Triples\n%s\n", parser.Triples())
-// 	if err != nil {
-// 		t.Errorf("Error parsing LDP Test Suite demo\n%s\n", err)
-// 	}
-// }
+func TestTriplesWithSemicolon(t *testing.T) {
+	test := `<s> <p1> <o1> ; <p2> <o2> .`
+	parser := NewTurtleParser(test)
+	err := parser.Parse()
+	if err != nil {
+		t.Errorf("Error parsing semicolon: %s", err)
+	}
+	if len(parser.Triples()) != 2 {
+		t.Errorf("Incorrect number of triples: %d", len(parser.Triples()))
+	}
+
+	t0 := parser.Triples()[0].String()
+	if t0 != "<s> <p1> <o1> ." {
+		t.Errorf("Triple 1 is incorrect: %s", t0)
+	}
+
+	t1 := parser.Triples()[1].String()
+	if t1 != "<s> <p2> <o2> ." {
+		t.Errorf("Triple 2 is incorrect: %s", t1)
+	}
+}
+
+func TestTriplesWithCommaAndSemicolon(t *testing.T) {
+	test := `<> a <http://www.w3.org/ns/ldp#RDFSource> , <http://example.com/ns#Bug> ;
+	       <http://example.com/ns#severity> "High" ;
+	       <http://purl.org/dc/terms/description> "Issues that need to be fixed." ;
+	       <http://purl.org/dc/terms/relation> <relatedResource> ;
+	       <http://purl.org/dc/terms/title> "Another bug to test." .`
+	parser := NewTurtleParser(test)
+	err := parser.Parse()
+	if err != nil {
+		t.Errorf("Error parsing text: %s", err)
+	}
+
+	if len(parser.Triples()) != 6 {
+		t.Errorf("Incorrect number of triples: %d", len(parser.Triples()))
+	}
+
+	t0 := parser.Triples()[0].String()
+	if t0 != "<> a <http://www.w3.org/ns/ldp#RDFSource> ." {
+		t.Errorf("Triple 1 is incorrect: %s", t0)
+	}
+
+	t5 := parser.Triples()[5].String()
+	if t5 != `<> <http://purl.org/dc/terms/title> "Another bug to test." .` {
+		t.Errorf("Triple 6 is incorrect: %s", t5)
+	}
+}
