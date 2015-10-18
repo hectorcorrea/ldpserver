@@ -137,14 +137,12 @@ A lot.
 
 * Support HTTP PATCH, and DELETE.
 
-* Make sure the turtle parser pass a minimum validation. For starters take a look at this set: http://www.w3.org/2000/10/rdf-tests/rdfcore/ntriples/test.nt
-
 * Provide a mechanism to fetch the meta data for a non-RDF (e.g. via a query string or an HTTP header parameter)
 
 * Make sure the proper links are included in the HTTP response for all kind of resources.
 
 
-## LDP Test Suide
+## LDP Test Suite
 The W3C provides a test suite to make sure LDP server implementations meet a minimum criteria. The test suite can be found at http://w3c.github.io/ldp-testsuite/
 
 In order to run the suite against this repo you need to do the following:
