@@ -44,7 +44,7 @@ func (parser *TurtleParser) getNextTriples() ([]Triple, error) {
 		if err != nil || token == "" {
 			break
 		}
-		subject := NewNode(token)
+		subject := NewSubjectNode(token)
 		err = parser.parsePredicates(&subject)
 		if err == nil {
 			for _, triple := range subject.RenderTriples() {
@@ -55,7 +55,7 @@ func (parser *TurtleParser) getNextTriples() ([]Triple, error) {
 	return triples, err
 }
 
-func (parser *TurtleParser) parsePredicates(subject *Node) error {
+func (parser *TurtleParser) parsePredicates(subject *SubjectNode) error {
 	var err error
 	var token string
 
@@ -65,7 +65,7 @@ func (parser *TurtleParser) parsePredicates(subject *Node) error {
 			// we are done
 			break
 		}
-		predicate := subject.AddChild(token)
+		predicate := subject.AddPredicate(token)
 		token, err = parser.parseObjects(predicate)
 		if err != nil {
 			break
@@ -82,7 +82,7 @@ func (parser *TurtleParser) parsePredicates(subject *Node) error {
 	return err
 }
 
-func (parser *TurtleParser) parseObjects(predicate *Node) (string, error) {
+func (parser *TurtleParser) parseObjects(predicate *PredicateNode) (string, error) {
 	var err error
 	var token string
 	for parser.tokenizer.CanRead() {
@@ -96,7 +96,7 @@ func (parser *TurtleParser) parseObjects(predicate *Node) (string, error) {
 			continue
 		} else {
 			// it's a object, add it to the predicate
-			predicate.AddChild(token)
+			predicate.AddObject(token)
 		}
 	}
 	return token, err
