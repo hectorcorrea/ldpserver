@@ -87,7 +87,7 @@ func (tokenizer *Tokenizer) AdvanceComments() {
 	for tokenizer.CanRead() {
 		if tokenizer.scanner.Char() == '\n' {
 			tokenizer.AdvanceWhiteSpace()
-			if tokenizer.scanner.Char() != '#' {
+			if !tokenizer.CanRead() || tokenizer.scanner.Char() != '#' {
 				break
 			}
 		}
@@ -158,13 +158,20 @@ func (tokenizer *Tokenizer) parseLanguage() string {
 
 // Extracts a value in quotes, for example
 //		"hello"
+//      "hello \"world\""
 // 		"hello"@en-us
 //		"hello"^^<http://somedomain>
 func (tokenizer *Tokenizer) parseString() (string, error) {
 	start := tokenizer.scanner.Index()
+	lastChar := tokenizer.scanner.Char()
 	tokenizer.scanner.Advance()
 	for tokenizer.CanRead() {
 		if tokenizer.scanner.Char() == '"' {
+			if lastChar == '\\' {
+				lastChar = tokenizer.scanner.Char()
+				tokenizer.scanner.Advance()
+				continue
+			}
 			str := tokenizer.scanner.Substring(start, tokenizer.scanner.Index()+1)
 			lang := ""
 			datatype := ""
@@ -184,6 +191,7 @@ func (tokenizer *Tokenizer) parseString() (string, error) {
 			}
 			return str, err
 		}
+		lastChar = tokenizer.scanner.Char()
 		tokenizer.scanner.Advance()
 	}
 	return "", tokenizer.Error("String did not end with \"")
