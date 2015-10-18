@@ -1,3 +1,22 @@
+// A basic RDF Turtle parser
+// http://www.w3.org/TR/turtle/
+//
+// TurtleParser is the parser which uses Tokenizer to
+// break down the text into meaninful tokens (URIs, strings,
+// separators, et cetera.) Tokenizer in turn uses Scanner
+// to handle the character by character operations.
+//
+// TurtleParser uses a tree-like structure (via SubjectNode
+// and PredicateNode) to keep track of the subject, predicate,
+// and object values as they are parsed.
+//
+// Sample usage:
+//     parser := NewTurtleParser("<s> <p> <o> .")
+//     err := parser.Parse()
+//     for _, triple := range parser.Triples() {
+//         log.Printf("%s %s %s", triple.subject, triple.predicate, triple.object )
+//     }
+//
 package rdf
 
 import (
