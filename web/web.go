@@ -248,8 +248,19 @@ func logHeaders(req *http.Request) {
 	log.Printf("HTTP Headers %s %s", req.Method, req.URL.Path)
 	for header, values := range req.Header {
 		for _, value := range values {
-			log.Printf("\t %s %s", header, value)
+			log.Printf("\t\t %s %s", header, value)
 		}
+	}
+	log.Printf("\tHTTP Body")
+	if isRdfContentType(req.Header) {
+		text, err := fileio.ReaderToString(req.Body)
+		if err != nil {
+			log.Printf("\t\t(error parsing RDF) %s", err)
+		} else {
+			log.Printf("\t\t%s", text)
+		}
+	} else {
+		log.Printf("\t\t(non text/turtle)")
 	}
 }
 
