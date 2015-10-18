@@ -101,17 +101,17 @@ func TestTriplesWithCommaAndSemicolon(t *testing.T) {
 	}
 }
 
-// func TestW3CFile(t *testing.T) {
-// 	filename := "./w3ctest.nt"
-// 	bytes, err := ioutil.ReadFile(filename)
-// 	if err != nil {
-// 		t.Errorf("Error reading ntriples file: %s", err)
-// 	}
+func TestW3CFile(t *testing.T) {
+	filename := "./w3ctest.nt"
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Errorf("Error reading ntriples file: %s", err)
+	}
 
-// 	text := string(bytes)
-// 	parser := NewTurtleParser(text)
-// 	err = parser.Parse()
-// 	if err != nil {
-// 		t.Errorf("Error parsing W3C ntriples text: %s", err)
-// 	}
-// }
+	text := string(bytes)
+	parser := NewTurtleParser(text)
+	err = parser.Parse()
+	if err != nil {
+		t.Errorf("Error parsing W3C ntriples text: %s", err)
+	}
+}
