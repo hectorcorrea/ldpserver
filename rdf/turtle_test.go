@@ -1,6 +1,7 @@
 package rdf
 
 import "testing"
+import "io/ioutil"
 
 func TestOneTriple(t *testing.T) {
 	parser := NewTurtleParser("<s> <p> <o> .")
@@ -99,3 +100,18 @@ func TestTriplesWithCommaAndSemicolon(t *testing.T) {
 		t.Errorf("Triple 6 is incorrect: %s", t5)
 	}
 }
+
+// func TestW3CFile(t *testing.T) {
+// 	filename := "./w3ctest.nt"
+// 	bytes, err := ioutil.ReadFile(filename)
+// 	if err != nil {
+// 		t.Errorf("Error reading ntriples file: %s", err)
+// 	}
+
+// 	text := string(bytes)
+// 	parser := NewTurtleParser(text)
+// 	err = parser.Parse()
+// 	if err != nil {
+// 		t.Errorf("Error parsing W3C ntriples text: %s", err)
+// 	}
+// }

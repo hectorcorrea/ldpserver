@@ -1,10 +1,14 @@
 package rdf
 
+import "fmt"
+
 type Scanner struct {
 	index  int
 	text   string
 	chars  []rune
 	length int
+	row    int
+	col    int
 }
 
 func NewScanner(text string) Scanner {
@@ -13,7 +17,7 @@ func NewScanner(text string) Scanner {
 	// of ASCII chars even if there are Unicode characters on it
 	// that use 2-4 bytes.
 	chars := stringToRunes(text)
-	scanner := Scanner{text: text, chars: chars, length: len(chars)}
+	scanner := Scanner{text: text, chars: chars, length: len(chars), row: 1, col: 1}
 	return scanner
 }
 
@@ -33,6 +37,12 @@ func (scanner Scanner) SubstringFrom(start int) string {
 func (scanner *Scanner) Advance() {
 	if scanner.CanRead() {
 		scanner.index++
+		if scanner.CanRead() && scanner.Char() == '\n' {
+			scanner.row++
+			scanner.col = 1
+		} else {
+			scanner.col++
+		}
 	}
 }
 
@@ -56,6 +66,18 @@ func (scanner *Scanner) Peek() (bool, rune) {
 		return true, scanner.chars[scanner.index+1]
 	}
 	return false, 0
+}
+
+func (scanner Scanner) Col() int {
+	return scanner.col
+}
+
+func (scanner Scanner) Row() int {
+	return scanner.row
+}
+
+func (scanner Scanner) Position() string {
+	return fmt.Sprintf("(%d, %d)", scanner.row, scanner.col)
 }
 
 func stringToRunes(text string) []rune {

@@ -2,6 +2,7 @@ package rdf
 
 import (
 	"errors"
+	"fmt"
 	// "log"
 )
 
@@ -38,7 +39,7 @@ func (tokenizer *Tokenizer) GetNextToken() (string, error) {
 	case tokenizer.isNamespacedChar():
 		value = tokenizer.parseNamespacedValue()
 	default:
-		return "", errors.New("Invalid first character: [" + tokenizer.scanner.CharString() + "]")
+		return "", tokenizer.Error("Invalid first character")
 	}
 
 	if err != nil {
@@ -59,7 +60,7 @@ func (tokenizer *Tokenizer) AdvanceTriple() error {
 			tokenizer.scanner.Advance()
 			continue
 		}
-		return errors.New("Triple did not end with a period.")
+		return tokenizer.Error("Triple did not end with a period.")
 	}
 	tokenizer.scanner.Advance()
 	return nil
@@ -185,19 +186,19 @@ func (tokenizer *Tokenizer) parseString() (string, error) {
 		}
 		tokenizer.scanner.Advance()
 	}
-	return "", errors.New("String did not end with \"")
+	return "", tokenizer.Error("String did not end with \"")
 }
 
 func (tokenizer *Tokenizer) parseType() (string, error) {
 	canPeek, nextChar := tokenizer.scanner.Peek()
 	if !canPeek || nextChar != '^' {
-		return "", errors.New("Invalid type delimiter")
+		return "", tokenizer.Error("Invalid type delimiter")
 	}
 
 	tokenizer.scanner.Advance()
 	canPeek, nextChar = tokenizer.scanner.Peek()
 	if !canPeek || nextChar != '<' {
-		return "", errors.New("Invalid URI in type delimiter")
+		return "", tokenizer.Error("Invalid URI in type delimiter")
 	}
 
 	tokenizer.scanner.Advance()
@@ -215,9 +216,18 @@ func (tokenizer *Tokenizer) parseUri() (string, error) {
 			return uri, nil
 		}
 		if !tokenizer.isUriChar() {
-			return "", errors.New("Invalid character in URI " + tokenizer.scanner.CharString())
+			return "", tokenizer.Error("Invalid character in URI")
 		}
 		tokenizer.scanner.Advance()
 	}
-	return "", errors.New("URI did not end with >")
+	return "", tokenizer.Error("URI did not end with >")
+}
+
+func (tokenizer *Tokenizer) Error(message string) error {
+	lastChar := ""
+	if tokenizer.CanRead() {
+		lastChar = tokenizer.scanner.CharString()
+	}
+	errorMsg := fmt.Sprintf("%s. Character (%s) at %s.", message, lastChar, tokenizer.scanner.Position())
+	return errors.New(errorMsg)
 }
