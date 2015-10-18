@@ -2,7 +2,7 @@
 // http://www.w3.org/TR/turtle/
 //
 // TurtleParser is the parser which uses Tokenizer to
-// break down the text into meaninful tokens (URIs, strings,
+// break down the text into meaningful tokens (URIs, strings,
 // separators, et cetera.) Tokenizer in turn uses Scanner
 // to handle the character by character operations.
 //
@@ -11,11 +11,15 @@
 // and object values as they are parsed.
 //
 // Sample usage:
-//     parser := NewTurtleParser("<s> <p> <o> .")
+//     parser := NewTurtleParser("<s> <p1> <o1> , <o2> ; <p2> <o3> .")
 //     err := parser.Parse()
-//     for _, triple := range parser.Triples() {
-//         log.Printf("%s %s %s", triple.subject, triple.predicate, triple.object )
+//     for i, triple := range parser.Triples() {
+//         log.Printf("Triple %d: %s", i, triple)
 //     }
+// Gives:
+//     Triple 0: <s> <p1> <o1> .
+//     Triple 1: <s> <p1> <o2> .
+//     Triple 2: <s> <p2> <o3> .
 //
 package rdf
 
