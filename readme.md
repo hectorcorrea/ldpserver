@@ -129,7 +129,7 @@ Empty subjects and objects (<>) are only accepted when creating new nodes (via H
 ## TODO
 A lot.
 
-* Add validation to make sure the data in the data folder matches the URL (host:port) where the server is running. 
+* Add validation to make sure the data in the data folder matches the URL (host:port) where the server is running.
 
 * Support isMemberOfRelation in Direct Containers.
 
@@ -137,10 +137,25 @@ A lot.
 
 * Support HTTP PATCH, and DELETE.
 
-* Improve parsing of turtle triples to support the use of , and ; to set values. 
-
 * Make sure the turtle parser pass a minimum validation. For starters take a look at this set: http://www.w3.org/2000/10/rdf-tests/rdfcore/ntriples/test.nt
 
 * Provide a mechanism to fetch the meta data for a non-RDF (e.g. via a query string or an HTTP header parameter)
 
 * Make sure the proper links are included in the HTTP response for all kind of resources.
+
+
+## LDP Test Suide
+The W3C provides a test suite to make sure LDP server implementations meet a minimum criteria. The test suite can be found at http://w3c.github.io/ldp-testsuite/
+
+In order to run the suite against this repo you need to do the following:
+
+  1. Clone the ldp-testsuite repo: `git clone https://github.com/w3c/ldp-testsuite`
+  1. Download maven from http://maven.apache.org/download.cgi
+  1. Unzip maven to the `ldp-testsuite` folder
+  1. `cd ldp-testsuite`
+  1. Run `bin/mvn package`
+
+...and then you can run the following command against the LDP Server to execute the tests:
+
+    java -jar target/ldp-testsuite-0.2.0-SNAPSHOT-shaded.jar --server http://localhost:9001 --basic
+
