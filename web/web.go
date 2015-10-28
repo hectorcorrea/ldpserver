@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bufio"
 	"fmt"
 	"ldpserver/fileio"
 	"ldpserver/ldp"
@@ -9,13 +10,16 @@ import (
 	"ldpserver/util"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
+var stdin *bufio.Reader
 var theServer server.Server
 
 func Start(address, dataPath string) {
 	theServer = server.NewServer("http://"+address, dataPath)
+	stdin = bufio.NewReader(os.Stdin)
 	log.Printf("Listening for requests at %s\n", "http://"+address)
 	log.Printf("Data folder: %s\n", dataPath)
 	http.HandleFunc("/", homePage)
@@ -26,6 +30,7 @@ func Start(address, dataPath string) {
 }
 
 func homePage(resp http.ResponseWriter, req *http.Request) {
+	readline()
 	if req.Method == "GET" {
 		handleGet(true, resp, req)
 	} else if req.Method == "HEAD" {
@@ -121,9 +126,10 @@ func handlePut(resp http.ResponseWriter, req *http.Request) {
 	// slug (i.e. the ID of the resource to write.)
 	path, slug := util.DirBasePath(safePath(req.URL.Path))
 	if path == "." || slug == "." {
-		errorMsg := fmt.Sprintf("Invalid Path (%s) or Slug received (%s) in PUT request", path, slug)
+		errorMsg := fmt.Sprintf("Invalid Path (%s) or Slug received (%s) in PUT request %s", path, slug, req.URL.Path)
 		logReqError(req, errorMsg, http.StatusBadRequest)
 		http.Error(resp, "Invalid path or Slug indicated on PUT requests", http.StatusBadRequest)
+		return
 	}
 
 	doPostPut(resp, req, path, slug)
@@ -245,7 +251,7 @@ func isRdfContentType(header http.Header) bool {
 }
 
 func logHeaders(req *http.Request) {
-	log.Printf("HTTP Headers %s %s", req.Method, req.URL.Path)
+	log.Printf("==> HTTP Headers %s %s", req.Method, req.URL.Path)
 	for header, values := range req.Header {
 		for _, value := range values {
 			log.Printf("\t\t %s %s", header, value)
@@ -266,4 +272,10 @@ func logHeaders(req *http.Request) {
 
 func logReqError(req *http.Request, message string, code int) {
 	log.Printf("Error %d on %s %s: %s", code, req.Method, req.URL.Path, message)
+}
+
+func readline() {
+	return
+	log.Print("Hit [ENTER]")
+	stdin.ReadString('\n')
 }
