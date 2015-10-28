@@ -153,13 +153,16 @@ In order to run the suite against this repo you need to do the following:
   1. `cd ldp-testsuite`
   1. Run `bin/mvn package`
 
-...and then you can run the following command against the LDP Server to execute the tests:
+...and then you can run the following command against the LDP Server to execute an individual test:
+
+    java -jar target/ldp-testsuite-0.2.0-SNAPSHOT-shaded.jar --server http://localhost:9001 --test name_of_test_goes_here --basic
+
+...or as follow to run all basic container tests:
 
     java -jar target/ldp-testsuite-0.2.0-SNAPSHOT-shaded.jar --server http://localhost:9001 --basic
 
-As of 10/17/2015 these are the results:
+As of 10/17/2015 these are the results of all basic container tests:
 
     LDP Test Suite
     Total tests run: 90, Failures: 19, Skips: 27
-
 
