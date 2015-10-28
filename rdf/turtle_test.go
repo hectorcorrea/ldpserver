@@ -1,7 +1,10 @@
 package rdf
 
-import "testing"
-import "io/ioutil"
+import (
+	// "fmt"
+	"io/ioutil"
+	"testing"
+)
 
 func TestOneTriple(t *testing.T) {
 	parser := NewTurtleParser("<s> <p> <o> .")
@@ -115,3 +118,24 @@ func TestW3CFile(t *testing.T) {
 		t.Errorf("Error parsing W3C ntriples text: %s", err)
 	}
 }
+
+// func TestBaseDirective(t *testing.T) {
+// 	filename := "./w3cbase.nt"
+// 	bytes, err := ioutil.ReadFile(filename)
+// 	if err != nil {
+// 		t.Errorf("Error reading ntriples file: %s", err)
+// 	}
+
+// 	text := string(bytes)
+// 	parser := NewTurtleParser(text)
+// 	err = parser.Parse()
+// 	if err != nil {
+// 		t.Errorf("Error parsing W3C ntriples text: %s", err)
+// 	}
+
+// 	output := ""
+// 	for i, triple := range parser.Triples() {
+// 		output += fmt.Sprintf("%d: %s\n", i, triple)
+// 	}
+// 	t.Errorf("%s", output)
+// }
