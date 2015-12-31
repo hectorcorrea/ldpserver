@@ -8,6 +8,8 @@ import (
 	"os"
 )
 
+var AlreadyExistsError = errors.New("Already exists")
+
 const metaFile string = "meta.rdf"
 const dataFile string = "data.bin"
 
@@ -23,7 +25,7 @@ func NewStore(folder string) Store {
 func CreateStore(folder string) Store {
 	store := NewStore(folder)
 	if store.Exists() {
-		store.err = errors.New("Already exists")
+		store.err = AlreadyExistsError
 	} else {
 		store.err = store.SaveFile(metaFile, "")
 	}

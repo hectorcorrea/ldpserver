@@ -54,7 +54,7 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 		//       a container (e.g. what happens to contained objects?)
 		//       or overwriting an RDF Source with a Non-RDF source
 		//       (or viceversa)
-		if resource.ErrorMessage() == "Already exists" {
+		if resource.Error() == textstore.AlreadyExistsError {
 			return ldp.Node{}, ldp.DuplicateNodeError
 		}
 		return ldp.Node{}, resource.Error()
@@ -85,7 +85,7 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 	newResource := true
 	resource := server.createResource(parentPath, newPath)
 	if resource.Error() != nil {
-		if resource.ErrorMessage() == "Already exists" {
+		if resource.Error() == textstore.AlreadyExistsError {
 			node, err := ldp.GetHead(server.settings, newPath)
 			if err != nil {
 				return ldp.Node{}, errors.New("Cannot validate resource to overwrite")
