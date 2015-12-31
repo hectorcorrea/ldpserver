@@ -174,6 +174,7 @@ func doPostPut(resp http.ResponseWriter, req *http.Request, path string, slug st
 		return
 	}
 
+	log.Printf("Resource created at %s", node.Uri())
 	fmt.Fprint(resp, node.Uri())
 }
 

@@ -47,17 +47,27 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 		return ldp.Node{}, err
 	}
 
+	// TODO: Allow overwriting of resources on PUT.
+	//       Need to figure out the ramifications of overwriting
+	//       a container (e.g. what happens to contained objects?)
+	//       or overwriting an RDF Source with a Non-RDF source
+	//       (or viceversa)
+
 	resource := server.createResource(parentPath, newPath)
 	if resource.Error() != nil {
-		// TODO: Allow overwriting of resources on PUT.
-		//       Need to figure out the ramifications of overwriting
-		//       a container (e.g. what happens to contained objects?)
-		//       or overwriting an RDF Source with a Non-RDF source
-		//       (or viceversa)
-		if resource.Error() == textstore.AlreadyExistsError {
+
+		if resource.Error() != textstore.AlreadyExistsError {
+			return ldp.Node{}, resource.Error()
+		}
+
+		if slug == "" {
+			// We generated a duplicate node.
 			return ldp.Node{}, ldp.DuplicateNodeError
 		}
-		return ldp.Node{}, resource.Error()
+
+		// The user provided slug is duplicated.
+		// Let's try with one of our own.
+		return server.CreateRdfSource(triples, parentPath, "")
 	}
 
 	node, err := ldp.NewRdfNode(server.settings, triples, parentPath, newPath)
