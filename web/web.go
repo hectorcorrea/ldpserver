@@ -62,7 +62,7 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 		node, err = theServer.GetHead(path)
 	}
 	if err != nil {
-		if err.Error() == ldp.NodeNotFound {
+		if err == ldp.NodeNotFoundError {
 			log.Printf("Not found %s", path)
 			http.NotFound(resp, req)
 		} else {
@@ -162,10 +162,10 @@ func doPostPut(resp http.ResponseWriter, req *http.Request, path string, slug st
 	} else {
 		errorMsg := err.Error()
 		errorCode := http.StatusBadRequest
-		if errorMsg == ldp.NodeNotFound {
+		if err == ldp.NodeNotFoundError {
 			errorMsg = "Parent container [" + path + "] not found."
 			errorCode = http.StatusNotFound
-		} else if errorMsg == ldp.DuplicateNode {
+		} else if err == ldp.DuplicateNodeError {
 			errorMsg = fmt.Sprintf("Resource already exists. Path: %s Slug: %s", path, slug)
 			errorCode = http.StatusConflict
 		}
@@ -200,7 +200,7 @@ func handlePatch(resp http.ResponseWriter, req *http.Request) {
 	err = theServer.PatchNode(path, triples)
 	if err != nil {
 		errorMsg := err.Error()
-		if errorMsg == ldp.NodeNotFound {
+		if err == ldp.NodeNotFoundError {
 			logReqError(req, errorMsg, http.StatusNotFound)
 			http.NotFound(resp, req)
 		} else {

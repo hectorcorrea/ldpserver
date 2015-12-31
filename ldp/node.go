@@ -12,8 +12,9 @@ import (
 	"time"
 )
 
-const NodeNotFound = "Not Found"
-const DuplicateNode = "Node already exists"
+var NodeNotFoundError = errors.New("Node not found")
+var DuplicateNodeError = errors.New("Node already exists")
+
 const metaFile = "meta.rdf"
 const dataFile = "data.txt"
 
@@ -232,7 +233,7 @@ func (node *Node) loadBinary() error {
 
 func (node *Node) loadMeta() error {
 	if !node.store.Exists() {
-		return errors.New(NodeNotFound)
+		return NodeNotFoundError
 	}
 
 	meta, err := node.store.ReadFile(metaFile)

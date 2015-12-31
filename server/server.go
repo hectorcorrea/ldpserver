@@ -55,7 +55,7 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 		//       or overwriting an RDF Source with a Non-RDF source
 		//       (or viceversa)
 		if resource.ErrorMessage() == "Already exists" {
-			return ldp.Node{}, errors.New(ldp.DuplicateNode)
+			return ldp.Node{}, ldp.DuplicateNodeError
 		}
 		return ldp.Node{}, resource.Error()
 	}
