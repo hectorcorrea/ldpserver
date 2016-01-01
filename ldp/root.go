@@ -7,28 +7,28 @@ import (
 )
 
 func CreateRoot(settings Settings) {
-	if textstore.Exists(settings.dataPath) {
-		// nothing to do
+	_, err := GetHead(settings, "/")
+	if err == nil {
 		return
 	}
 
-	store := textstore.CreateStore(settings.dataPath)
-	if store.Error() != nil {
-		errorMsg := fmt.Sprintf("Could not create root store: %s", store.Error())
-		panic(errorMsg)
+	if err != NodeNotFoundError {
+		panic(fmt.Sprintf("Error reading root node: %s", err.Error()))
 	}
 
-	if err := store.SaveFile("meta.rdf.id", "0"); err != nil {
-		errorMsg := fmt.Sprintf("Could not create root ID file: %s", err.Error())
-		panic(errorMsg)
-	}
-
-	graph := DefaultGraph(settings.rootUri)
-	content := graph.String()
-	if err := store.SaveFile("meta.rdf", content); err != nil {
-		errorMsg := fmt.Sprintf("Could not create root file at %s.", err.Error())
-		panic(errorMsg)
+	_, err = NewRdfNode(settings, "", "/")
+	if err != nil {
+		panic(fmt.Sprintf("Could not create root node: %s", err.Error()))
 	}
 
 	log.Printf("Root node created on disk at : %s\n", settings.dataPath)
+	createRootIdFile(settings.dataPath)
+}
+
+func createRootIdFile(path string) {
+	// TODO: This code should not depend on the textstore
+	store := textstore.NewStore(path)
+	if err := store.SaveFile("meta.rdf.id", "0"); err != nil {
+		panic(fmt.Sprintf("Could not create root ID file: %s", err.Error()))
+	}
 }
