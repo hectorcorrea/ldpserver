@@ -47,21 +47,13 @@ func (node Node) String() string {
 	return node.uri
 }
 
-func (node *Node) EtagNoQuotes() string {
-	etag := node.Etag()
-	if len(etag) < 3 {
-		panic(fmt.Sprintf("Etag (%s) is less than 3 characters long for %s", etag, node.uri))
-	}
-	return etag[1 : len(etag)-1]
-}
-
 func (node *Node) Etag() string {
 	subject := "<" + node.uri + ">"
 	etagFound, etag := node.graph.GetObject(subject, "<"+rdf.ServerETagUri+">")
 	if !etagFound {
 		panic(fmt.Sprintf("No etag found for node %s", node.uri))
 	}
-	return etag
+	return removeQuotes(etag)
 }
 
 func (node Node) Path() string {
@@ -160,8 +152,8 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 		return Node{}, errors.New("Cannot replace RDF source without an etag")
 	}
 
-	if node.EtagNoQuotes() != etag {
-		return Node{}, fmt.Errorf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", node.EtagNoQuotes(), etag)
+	if node.Etag() != etag {
+		return Node{}, fmt.Errorf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", node.Etag(), etag)
 	}
 
 	return node, node.writeRdfToDisk(triples)
@@ -187,13 +179,6 @@ func (node Node) AddChild(child Node) error {
 		return node.addDirectContainerChild(child)
 	}
 	return nil
-}
-
-func removeAngleBrackets(text string) string {
-	if strings.HasPrefix(text, "<") {
-		return text[1 : len(text)-1]
-	}
-	return text
 }
 
 func (node Node) addDirectContainerChild(child Node) error {
@@ -300,10 +285,6 @@ func (node Node) writeToDisk(reader io.ReadCloser) error {
 	return node.store.SaveReader(dataFile, reader)
 }
 
-func DefaultGraph(uri string) rdf.RdfGraph {
-	return defaultGraph(uri)
-}
-
 func defaultGraph(uri string) rdf.RdfGraph {
 	subject := "<" + uri + ">"
 	// define the triples
@@ -332,6 +313,20 @@ func defaultGraphNonRdf(uri string) rdf.RdfGraph {
 	// create the graph
 	graph := rdf.RdfGraph{resource, nonRdfSource, title, created, etag}
 	return graph
+}
+
+func removeAngleBrackets(text string) string {
+	if strings.HasPrefix(text, "<") && strings.HasSuffix(text, ">") {
+		return text[1 : len(text)-1]
+	}
+	return text
+}
+
+func removeQuotes(text string) string {
+	if strings.HasPrefix(text, "\"") && strings.HasSuffix(text, "\"") {
+		return text[1 : len(text)-1]
+	}
+	return text
 }
 
 func (node *Node) setAsRdf(graph rdf.RdfGraph) {
