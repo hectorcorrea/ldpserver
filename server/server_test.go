@@ -154,15 +154,19 @@ func TestCreateNonRdf(t *testing.T) {
 	}
 }
 
-func TestCreateDuplicate(t *testing.T) {
-	_, err := theServer.CreateRdfSource("", "/", "abc")
+func TestCreateWithDuplicateSlug(t *testing.T) {
+	_, err := theServer.CreateRdfSource("", "/", "slug1")
 	if err != nil {
-		t.Error("Could not create new bag")
+		t.Error("Could not create new resource")
 	}
 
-	_, err = theServer.CreateRdfSource("", "/", "abc")
-	if err == nil {
-		t.Error("Failed to detect create on existing resource")
+	node, err := theServer.CreateRdfSource("", "/", "slug1")
+	if err != nil {
+		t.Error("Error creating node with duplicate slug")
+	}
+
+	if strings.HasSuffix(node.Uri(), "/slug1") {
+		t.Error("Failed to generate a new slug")
 	}
 }
 

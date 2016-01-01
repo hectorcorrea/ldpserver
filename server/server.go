@@ -36,6 +36,57 @@ func (server Server) GetHead(path string) (ldp.Node, error) {
 	return ldp.GetHead(server.settings, path)
 }
 
+// PUT
+func (server Server) ReplaceRdfSource(triples string, parentPath string, slug string, etag string) (ldp.Node, error) {
+	isRootNode := (parentPath == ".") && (slug == ".")
+	if isRootNode {
+		resource := server.createResourceFromFullPath(server.settings.DataPath())
+		if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
+			return ldp.Node{}, resource.Error()
+		}
+
+		if resource.Error() == textstore.AlreadyExistsError {
+			return ldp.ReplaceRdfNode(server.settings, triples, "/", "", etag)
+		}
+
+		return ldp.NewRdfNodeFromFullPath(server.settings, triples, "/")
+	}
+
+	// not a root node
+	newPath, err := server.getNewPath(slug)
+	if err != nil {
+		return ldp.Node{}, err
+	}
+
+	resource := server.createResource(parentPath, newPath)
+	if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
+		return ldp.Node{}, resource.Error()
+	}
+
+	if resource.Error() == textstore.AlreadyExistsError {
+		// call replace existing (must validate etag, validate that previous version was RDF too)
+		return ldp.ReplaceRdfNode(server.settings, triples, parentPath, newPath, etag)
+	}
+
+	// create new node, no need to test etag
+	node, err := ldp.NewRdfNode(server.settings, triples, parentPath, newPath)
+	if err != nil {
+		return ldp.Node{}, err
+	}
+
+	container, err := server.getContainer(parentPath)
+	if err != nil {
+		return ldp.Node{}, err
+	}
+
+	if err := container.AddChild(node); err != nil {
+		return ldp.Node{}, err
+	}
+
+	return node, nil
+}
+
+// POST
 func (server Server) CreateRdfSource(triples string, parentPath string, slug string) (ldp.Node, error) {
 	container, err := server.getContainer(parentPath)
 	if err != nil {
@@ -144,9 +195,13 @@ func (server Server) getNewPath(slug string) (string, error) {
 }
 
 func (server Server) createResource(parentPath string, newPath string) textstore.Store {
-	// Queue up the creation of a new resource
 	path := util.UriConcat(parentPath, newPath)
 	fullPath := util.PathConcat(server.settings.DataPath(), path)
+	return server.createResourceFromFullPath(fullPath)
+}
+
+func (server Server) createResourceFromFullPath(fullPath string) textstore.Store {
+	// Queue up the creation of a new resource
 	go func(fullPath string) {
 		server.nextResource <- textstore.CreateStore(fullPath)
 	}(fullPath)

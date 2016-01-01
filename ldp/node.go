@@ -47,11 +47,19 @@ func (node Node) String() string {
 	return node.uri
 }
 
+func (node *Node) EtagNoQuotes() string {
+	etag := node.Etag()
+	if len(etag) < 3 {
+		panic(fmt.Sprintf("Etag (%s) is less than 3 characters long for %s", etag, node.uri))
+	}
+	return etag[1 : len(etag)-1]
+}
+
 func (node *Node) Etag() string {
 	subject := "<" + node.uri + ">"
 	etagFound, etag := node.graph.GetObject(subject, "<"+rdf.ServerETagUri+">")
 	if !etagFound {
-		// panic("No etag found for " + node.uri)
+		panic(fmt.Sprintf("No etag found for node %s", node.uri))
 	}
 	return etag
 }
@@ -134,8 +142,44 @@ func (node *Node) Patch(triples string) error {
 }
 
 func NewRdfNode(settings Settings, triples string, parentPath string, newPath string) (Node, error) {
-	path := util.UriConcat(parentPath, newPath)
-	node := newNode(settings, path)
+	fullPath := util.UriConcat(parentPath, newPath)
+	return NewRdfNodeFromFullPath(settings, triples, fullPath)
+}
+
+func NewRdfNodeFromFullPath(settings Settings, triples string, fullPath string) (Node, error) {
+	node := newNode(settings, fullPath)
+
+	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
+	if err != nil {
+		log.Printf("== Triples\n%s\n==", triples)
+		return node, err
+	}
+
+	graph := defaultGraph(node.uri)
+	graph.Append(userGraph)
+	node.setAsRdf(graph)
+	err = node.writeToDisk(nil)
+	return node, err
+}
+
+func ReplaceRdfNode(settings Settings, triples string, parentPath string, newPath string, etag string) (Node, error) {
+	if etag == "" {
+		return Node{}, errors.New("Cannot replace source without an etag")
+	}
+
+	fullPath := util.UriConcat(parentPath, newPath)
+	node, err := GetNode(settings, fullPath)
+	if err != nil {
+		return Node{}, err
+	}
+
+	if !node.isRdf {
+		return Node{}, errors.New("Cannot replace non-RDF source with an RDF source")
+	}
+
+	if node.EtagNoQuotes() != etag {
+		return Node{}, fmt.Errorf("Cannot replace source. Etag mismatch. Expected: %s. Found: %s", node.EtagNoQuotes(), etag)
+	}
 
 	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
 	if err != nil {
@@ -178,6 +222,7 @@ func removeAngleBrackets(text string) string {
 	}
 	return text
 }
+
 func (node Node) addDirectContainerChild(child Node) error {
 	// TODO: account for isMemberOfRelation
 	targetUri := removeAngleBrackets(node.membershipResource)

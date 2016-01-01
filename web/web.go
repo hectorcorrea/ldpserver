@@ -78,9 +78,8 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	requestedEtag := requestEtag(req.Header)
-	if requestedEtag != "" {
-		if requestedEtag == node.Etag() {
+	if etag := requestIfNoneMatch(req.Header); etag != "" {
+		if etag == node.Etag() {
 			resp.WriteHeader(http.StatusNotModified)
 			return
 		}
@@ -115,24 +114,68 @@ func handlePost(resp http.ResponseWriter, req *http.Request) {
 
 func handlePut(resp http.ResponseWriter, req *http.Request) {
 	logHeaders(req)
-	// In PUT requests we don't expect a slug in the headers...
+
 	if getSlug(req.Header) != "" {
 		logReqError(req, "Unexpected client provided Slug in PUT request", http.StatusBadRequest)
 		http.Error(resp, "Slug is not accepted on PUT requests", http.StatusBadRequest)
 		return
 	}
 
-	// ...instead we use the last segment of the path as the
+	// Use the last segment of the path as the
 	// slug (i.e. the ID of the resource to write.)
+	//
+	// TODO: handle
+	// testE := []string{"a", ".", "a"}
+	// testF := []string{"a/", ".", "a"}
+	// testG := []string{"/a/", "/", "a"}
+	//
 	path, slug := util.DirBasePath(safePath(req.URL.Path))
-	if path == "." || slug == "." {
-		errorMsg := fmt.Sprintf("Invalid Path (%s) or Slug received (%s) in PUT request %s", path, slug, req.URL.Path)
-		logReqError(req, errorMsg, http.StatusBadRequest)
-		http.Error(resp, "Invalid path or Slug indicated on PUT requests", http.StatusBadRequest)
+	doPut(resp, req, path, slug)
+}
+
+func doPut(resp http.ResponseWriter, req *http.Request, path string, slug string) {
+	var node ldp.Node
+	var triples string
+	var err error
+
+	etag := requestIfMatch(req.Header)
+
+	if isNonRdfPost(req.Header) {
+		panic("TODO: re-implement PUT for non rdf")
+		// // We should pass some hints too
+		// // (e.g. application type, file name)
+		// log.Printf("Creating Non-RDF Source at %s", path)
+		// node, err = theServer.CreateNonRdfSource(req.Body, path, slug)
+	} else {
+		log.Printf("Creating RDF Source %s at %s", slug, path)
+		triples, err = fileio.ReaderToString(req.Body)
+		if err != nil {
+			logReqError(req, err.Error(), http.StatusBadRequest)
+			http.Error(resp, "Invalid request body received", http.StatusBadRequest)
+			return
+		}
+		node, err = theServer.ReplaceRdfSource(triples, path, slug, etag)
+	}
+
+	if err != nil {
+		errorMsg := err.Error()
+		errorCode := http.StatusBadRequest
+		if err == ldp.NodeNotFoundError {
+			errorMsg = "Parent container [" + path + "] not found."
+			errorCode = http.StatusNotFound
+		} else if err == ldp.DuplicateNodeError {
+			errorMsg = fmt.Sprintf("Resource already exists. Path: %s Slug: %s", path, slug)
+			errorCode = http.StatusConflict
+		}
+		logReqError(req, errorMsg, errorCode)
+		http.Error(resp, errorMsg, errorCode)
 		return
 	}
 
-	doPostPut(resp, req, path, slug)
+	resp.Header().Add("Location", node.Uri())
+	resp.WriteHeader(http.StatusCreated)
+	log.Printf("Resource created at %s", node.Uri())
+	fmt.Fprint(resp, node.Uri())
 }
 
 func doPostPut(resp http.ResponseWriter, req *http.Request, path string, slug string) {
@@ -239,8 +282,15 @@ func requestContentType(header http.Header) string {
 	return rdf.TurtleContentType
 }
 
-func requestEtag(header http.Header) string {
+func requestIfNoneMatch(header http.Header) string {
 	for _, value := range header["If-None-Match"] {
+		return value
+	}
+	return ""
+}
+
+func requestIfMatch(header http.Header) string {
+	for _, value := range header["If-Match"] {
 		return value
 	}
 	return ""
