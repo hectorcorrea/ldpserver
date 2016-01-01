@@ -38,49 +38,43 @@ func (server Server) GetHead(path string) (ldp.Node, error) {
 
 // PUT
 func (server Server) ReplaceRdfSource(triples string, parentPath string, slug string, etag string) (ldp.Node, error) {
+	var path string
 	isRootNode := (parentPath == ".") && (slug == ".")
 	if isRootNode {
-		resource := server.createResourceFromFullPath(server.settings.DataPath())
-		if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
-			return ldp.Node{}, resource.Error()
+		path = "/"
+	} else {
+		newPath, err := server.getNewPath(slug)
+		if err != nil {
+			return ldp.Node{}, err
 		}
-
-		if resource.Error() == textstore.AlreadyExistsError {
-			return ldp.ReplaceRdfNode(server.settings, triples, "/", "", etag)
-		}
-
-		return ldp.NewRdfNodeFromFullPath(server.settings, triples, "/")
+		path = util.UriConcat(parentPath, newPath)
 	}
 
-	// not a root node
-	newPath, err := server.getNewPath(slug)
-	if err != nil {
-		return ldp.Node{}, err
-	}
-
-	resource := server.createResource(parentPath, newPath)
+	resource := server.createResourceFromPath(path)
 	if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
 		return ldp.Node{}, resource.Error()
 	}
 
 	if resource.Error() == textstore.AlreadyExistsError {
 		// call replace existing (must validate etag, validate that previous version was RDF too)
-		return ldp.ReplaceRdfNode(server.settings, triples, parentPath, newPath, etag)
+		return ldp.ReplaceRdfNode(server.settings, triples, path, etag)
 	}
 
 	// create new node, no need to test etag
-	node, err := ldp.NewRdfNode(server.settings, triples, parentPath, newPath)
+	node, err := ldp.NewRdfNode(server.settings, triples, path)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	container, err := server.getContainer(parentPath)
-	if err != nil {
-		return ldp.Node{}, err
-	}
+	if !isRootNode {
+		container, err := server.getContainer(parentPath)
+		if err != nil {
+			return ldp.Node{}, err
+		}
 
-	if err := container.AddChild(node); err != nil {
-		return ldp.Node{}, err
+		if err := container.AddChild(node); err != nil {
+			return ldp.Node{}, err
+		}
 	}
 
 	return node, nil
@@ -121,7 +115,8 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 		return server.CreateRdfSource(triples, parentPath, "")
 	}
 
-	node, err := ldp.NewRdfNode(server.settings, triples, parentPath, newPath)
+	path := util.UriConcat(parentPath, newPath)
+	node, err := ldp.NewRdfNode(server.settings, triples, path)
 	if err != nil {
 		return ldp.Node{}, err
 	}
@@ -196,15 +191,15 @@ func (server Server) getNewPath(slug string) (string, error) {
 
 func (server Server) createResource(parentPath string, newPath string) textstore.Store {
 	path := util.UriConcat(parentPath, newPath)
-	fullPath := util.PathConcat(server.settings.DataPath(), path)
-	return server.createResourceFromFullPath(fullPath)
+	return server.createResourceFromPath(path)
 }
 
-func (server Server) createResourceFromFullPath(fullPath string) textstore.Store {
+func (server Server) createResourceFromPath(path string) textstore.Store {
+	pathOnDisk := util.PathConcat(server.settings.DataPath(), path)
 	// Queue up the creation of a new resource
-	go func(fullPath string) {
-		server.nextResource <- textstore.CreateStore(fullPath)
-	}(fullPath)
+	go func(pathOnDisk string) {
+		server.nextResource <- textstore.CreateStore(pathOnDisk)
+	}(pathOnDisk)
 
 	// Wait for the new resource to be available.
 	resource := <-server.nextResource

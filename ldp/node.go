@@ -141,34 +141,13 @@ func (node *Node) Patch(triples string) error {
 	return nil
 }
 
-func NewRdfNode(settings Settings, triples string, parentPath string, newPath string) (Node, error) {
-	fullPath := util.UriConcat(parentPath, newPath)
-	return NewRdfNodeFromFullPath(settings, triples, fullPath)
+func NewRdfNode(settings Settings, triples string, path string) (Node, error) {
+	node := newNode(settings, path)
+	return node, node.writeRdfToDisk(triples)
 }
 
-func NewRdfNodeFromFullPath(settings Settings, triples string, fullPath string) (Node, error) {
-	node := newNode(settings, fullPath)
-
-	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
-	if err != nil {
-		log.Printf("== Triples\n%s\n==", triples)
-		return node, err
-	}
-
-	graph := defaultGraph(node.uri)
-	graph.Append(userGraph)
-	node.setAsRdf(graph)
-	err = node.writeToDisk(nil)
-	return node, err
-}
-
-func ReplaceRdfNode(settings Settings, triples string, parentPath string, newPath string, etag string) (Node, error) {
-	if etag == "" {
-		return Node{}, errors.New("Cannot replace source without an etag")
-	}
-
-	fullPath := util.UriConcat(parentPath, newPath)
-	node, err := GetNode(settings, fullPath)
+func ReplaceRdfNode(settings Settings, triples string, path string, etag string) (Node, error) {
+	node, err := GetNode(settings, path)
 	if err != nil {
 		return Node{}, err
 	}
@@ -177,21 +156,15 @@ func ReplaceRdfNode(settings Settings, triples string, parentPath string, newPat
 		return Node{}, errors.New("Cannot replace non-RDF source with an RDF source")
 	}
 
+	if etag == "" {
+		return Node{}, errors.New("Cannot replace RDF source without an etag")
+	}
+
 	if node.EtagNoQuotes() != etag {
-		return Node{}, fmt.Errorf("Cannot replace source. Etag mismatch. Expected: %s. Found: %s", node.EtagNoQuotes(), etag)
+		return Node{}, fmt.Errorf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", node.EtagNoQuotes(), etag)
 	}
 
-	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
-	if err != nil {
-		log.Printf("== Triples\n%s\n==", triples)
-		return node, err
-	}
-
-	graph := defaultGraph(node.uri)
-	graph.Append(userGraph)
-	node.setAsRdf(graph)
-	err = node.writeToDisk(nil)
-	return node, err
+	return node, node.writeRdfToDisk(triples)
 }
 
 func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, newPath string) (Node, error) {
@@ -297,6 +270,19 @@ func (node *Node) loadMeta() error {
 		node.setAsNonRdf(graph)
 	}
 	return nil
+}
+
+func (node *Node) writeRdfToDisk(triples string) error {
+	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
+	if err != nil {
+		log.Printf("== Triples \n%s\n==", triples)
+		return err
+	}
+
+	graph := defaultGraph(node.uri)
+	graph.Append(userGraph)
+	node.setAsRdf(graph)
+	return node.writeToDisk(nil)
 }
 
 func (node Node) writeToDisk(reader io.ReadCloser) error {
