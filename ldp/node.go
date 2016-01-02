@@ -75,7 +75,7 @@ func (node *Node) Etag() string {
 	if !etagFound {
 		panic(fmt.Sprintf("No etag found for node %s", node.uri))
 	}
-	return removeQuotes(etag)
+	return etag
 }
 
 func (node Node) HasTriple(predicate, object string) bool {
@@ -165,8 +165,9 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 		return Node{}, errors.New("Cannot replace RDF source without an etag")
 	}
 
-	if node.Etag() != etag {
-		return Node{}, fmt.Errorf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", node.Etag(), etag)
+	nodeEtag = removeQuotes(node.Etag())
+	if nodeEtag != etag {
+		return Node{}, fmt.Errorf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", nodeEtag, etag)
 	}
 
 	return node, node.writeRdfToDisk(triples)
