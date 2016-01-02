@@ -14,6 +14,7 @@ import (
 
 var NodeNotFoundError = errors.New("Node not found")
 var DuplicateNodeError = errors.New("Node already exists")
+var EtagMismatchError = errors.New("Etag mismatch")
 
 const metaFile = "meta.rdf"
 const dataFile = "data.txt"
@@ -167,7 +168,8 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 
 	nodeEtag := removeQuotes(node.Etag())
 	if nodeEtag != etag {
-		return Node{}, fmt.Errorf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", nodeEtag, etag)
+		// log.Printf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", nodeEtag, etag)
+		return Node{}, EtagMismatchError
 	}
 
 	return node, node.writeRdfToDisk(triples)

@@ -166,6 +166,9 @@ func doPut(resp http.ResponseWriter, req *http.Request, path string, slug string
 		} else if err == ldp.DuplicateNodeError {
 			errorMsg = fmt.Sprintf("Resource already exists. Path: %s Slug: %s", path, slug)
 			errorCode = http.StatusConflict
+		} else if err == ldp.EtagMismatchError {
+			errorMsg = fmt.Sprintf("Etag mismatch. Path: %s Slug: %s", path, slug)
+			errorCode = http.StatusPreconditionFailed
 		}
 		logReqError(req, errorMsg, errorCode)
 		http.Error(resp, errorMsg, errorCode)
