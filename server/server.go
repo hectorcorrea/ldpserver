@@ -38,7 +38,7 @@ func (server Server) GetHead(path string) (ldp.Node, error) {
 
 // PUT
 func (server Server) ReplaceRdfSource(triples string, parentPath string, slug string, etag string) (ldp.Node, error) {
-	path, err := server.getNewPath(parentPath, slug)
+	path, err := server.newPathFromSlug(parentPath, slug)
 	if err != nil {
 		return ldp.Node{}, err
 	}
@@ -68,7 +68,7 @@ func (server Server) ReplaceRdfSource(triples string, parentPath string, slug st
 
 // POST
 func (server Server) CreateRdfSource(triples string, parentPath string, slug string) (ldp.Node, error) {
-	path, err := server.getNewPath(parentPath, slug)
+	path, err := server.newPathFromSlug(parentPath, slug)
 	if err != nil {
 		return ldp.Node{}, err
 	}
@@ -108,7 +108,7 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 		return ldp.Node{}, err
 	}
 
-	newPath, err := server.getNewPath(parentPath, slug)
+	newPath, err := server.newPathFromSlug(parentPath, slug)
 	if err != nil {
 		return ldp.Node{}, err
 	}
@@ -160,11 +160,10 @@ func (server Server) addNodeToContainer(node ldp.Node, path string) error {
 	return container.AddChild(node)
 }
 
-func (server Server) getNewPath(parentPath string, slug string) (string, error) {
+func (server Server) newPathFromSlug(parentPath string, slug string) (string, error) {
 	isRootNode := (parentPath == ".") && (slug == ".")
 	if isRootNode {
-		// special case
-		return "/", nil
+		return "/", nil // special case
 	}
 
 	if slug == "" {
@@ -173,7 +172,7 @@ func (server Server) getNewPath(parentPath string, slug string) (string, error) 
 	}
 
 	if !util.IsValidSlug(slug) {
-		return "", fmt.Errorf("Invalid Slug received (%s)", slug)
+		return "", fmt.Errorf("Invalid Slug (%s)", slug)
 	}
 	return util.UriConcat(parentPath, slug), nil
 }
