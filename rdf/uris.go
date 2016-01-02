@@ -11,7 +11,7 @@ const (
 	LdpContainerUri       = "http://www.w3.org/ns/ldp#Container"
 	LdpBasicContainerUri  = "http://www.w3.org/ns/ldp#BasicContainer"
 	LdpDirectContainerUri = "http://www.w3.org/ns/ldp#DirectContainer"
-	LdpContainsUri        = "http://www.w3.org/ns/ldp#Contains"
+	LdpContainsUri        = "http://www.w3.org/ns/ldp#contains"
 	LdpMembershipResource = "http://www.w3.org/ns/ldp#membershipResource"
 	LdpHasMemberRelation  = "http://www.w3.org/ns/ldp#hasMemberRelation"
 )

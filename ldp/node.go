@@ -333,13 +333,14 @@ func defaultGraph(uri string) rdf.RdfGraph {
 	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
 	rdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpRdfSourceUri+">")
 	// TODO: Not all RDFs resources should be containers
+	container := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpContainerUri+">")
 	basicContainer := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpBasicContainerUri+">")
 	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
 	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
 	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
 	etag := rdf.NewTriple(subject, "<"+rdf.ServerETagUri+">", "\""+calculateEtag()+"\"")
 	// create the graph
-	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created, etag}
+	graph := rdf.RdfGraph{resource, rdfSource, container, basicContainer, title, created, etag}
 	return graph
 }
 
