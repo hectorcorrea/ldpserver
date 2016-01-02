@@ -36,8 +36,8 @@ func (server Server) GetHead(path string) (ldp.Node, error) {
 	return ldp.GetHead(server.settings, path)
 }
 
-// PUT
-func (server Server) ReplaceRdfSource(triples string, parentPath string, slug string, etag string) (ldp.Node, error) {
+// POST
+func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string, slug string) (ldp.Node, error) {
 	path, err := server.newPathFromSlug(parentPath, slug)
 	if err != nil {
 		return ldp.Node{}, err
@@ -49,14 +49,20 @@ func (server Server) ReplaceRdfSource(triples string, parentPath string, slug st
 	}
 
 	if resource.Error() == textstore.AlreadyExistsError {
-		// Replace existing node
-		return ldp.ReplaceRdfNode(server.settings, triples, path, etag)
+		if slug == "" {
+			// We generated a duplicate node.
+			return ldp.Node{}, ldp.DuplicateNodeError
+		}
+
+		// The user provided slug is duplicated.
+		// Let's try with one of our own.
+		return server.CreateNonRdfSource(reader, parentPath, "")
 	}
 
 	// Create new node
-	node, err := ldp.NewRdfNode(server.settings, triples, path)
+	node, err := ldp.NewNonRdfNode(server.settings, reader, path)
 	if err != nil {
-		return ldp.Node{}, err
+		return node, err
 	}
 
 	if path != "/" {
@@ -133,8 +139,8 @@ func (server Server) ReplaceNonRdfSource(reader io.ReadCloser, parentPath string
 	return node, err
 }
 
-// POST
-func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string, slug string) (ldp.Node, error) {
+// PUT
+func (server Server) ReplaceRdfSource(triples string, parentPath string, slug string, etag string) (ldp.Node, error) {
 	path, err := server.newPathFromSlug(parentPath, slug)
 	if err != nil {
 		return ldp.Node{}, err
@@ -146,20 +152,14 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 	}
 
 	if resource.Error() == textstore.AlreadyExistsError {
-		if slug == "" {
-			// We generated a duplicate node.
-			return ldp.Node{}, ldp.DuplicateNodeError
-		}
-
-		// The user provided slug is duplicated.
-		// Let's try with one of our own.
-		return server.CreateNonRdfSource(reader, parentPath, "")
+		// Replace existing node
+		return ldp.ReplaceRdfNode(server.settings, triples, path, etag)
 	}
 
 	// Create new node
-	node, err := ldp.NewNonRdfNode(server.settings, reader, path)
+	node, err := ldp.NewRdfNode(server.settings, triples, path)
 	if err != nil {
-		return node, err
+		return ldp.Node{}, err
 	}
 
 	if path != "/" {
