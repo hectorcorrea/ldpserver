@@ -208,16 +208,15 @@ func TestCreateNonRdf(t *testing.T) {
 }
 
 func TestReplaceNonRdf(t *testing.T) {
+	path := "/non-rdf-test"
 	reader := util.FakeReaderCloser{Text: "HELLO"}
-	node, err := theServer.ReplaceNonRdfSource(reader, "/", "non-rdf-test", "ignored-etag")
+	node, err := theServer.ReplaceNonRdfSource(reader, path, "ignored-etag")
 	if err != nil {
 		t.Errorf("Error creating a new non-RDF node with replace: %s", err)
 	}
 
-	path := node.Path()[1:]
-	etag := node.Etag()
 	reader2 := util.FakeReaderCloser{Text: "BYE"}
-	node, err = theServer.ReplaceNonRdfSource(reader2, "/", path, etag)
+	node, err = theServer.ReplaceNonRdfSource(reader2, path, node.Etag())
 	if err != nil {
 		t.Errorf("Error replacing Non-RDF node: %s", err)
 	}
@@ -226,12 +225,12 @@ func TestReplaceNonRdf(t *testing.T) {
 		t.Errorf("Non-RDF content was not replaced. %s", node.Content())
 	}
 
-	_, err = theServer.ReplaceNonRdfSource(reader, "/", path, "bad-etag")
+	_, err = theServer.ReplaceNonRdfSource(reader, path, "bad-etag")
 	if err != ldp.EtagMismatchError {
 		t.Errorf("Failed to detect etag mismatch: %s", err)
 	}
 
-	_, err = theServer.ReplaceNonRdfSource(reader, "/", path, "")
+	_, err = theServer.ReplaceNonRdfSource(reader, path, "")
 	if err != ldp.EtagMissingError {
 		t.Errorf("Failed to detect missing etag: %s", err)
 	}

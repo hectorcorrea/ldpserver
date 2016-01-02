@@ -109,13 +109,11 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 }
 
 // PUT
-// TODO: this should receive a full path
-func (server Server) ReplaceNonRdfSource(reader io.ReadCloser, parentPath string, path000 string, etag string) (ldp.Node, error) {
-	if path000 == "" {
-		return ldp.Node{}, errors.New("Cannot replace without a path")
+func (server Server) ReplaceNonRdfSource(reader io.ReadCloser, path string, etag string) (ldp.Node, error) {
+	if isRootPath(path) {
+		return ldp.Node{}, errors.New("Cannot replace root node with an Non-RDF source")
 	}
 
-	path := util.UriConcat(parentPath, path000)
 	resource := server.createResource(path)
 	if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
 		return ldp.Node{}, resource.Error()
@@ -132,10 +130,8 @@ func (server Server) ReplaceNonRdfSource(reader io.ReadCloser, parentPath string
 		return ldp.Node{}, err
 	}
 
-	if path != "/" {
-		err = server.addNodeToContainer(node, parentPath)
-	}
-
+	parentPath := util.ParentUriPath(path)
+	err = server.addNodeToContainer(node, parentPath)
 	return node, err
 }
 

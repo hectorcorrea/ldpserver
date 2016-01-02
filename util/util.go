@@ -39,6 +39,14 @@ func PathFromUri(rootUri, uri string) string {
 	return uri
 }
 
+func ParentUriPath(fullPath string) string {
+	parent, _ := DirBasePath(fullPath)
+	if parent == "" || parent == "." {
+		return "/"
+	}
+	return parent
+}
+
 func DirBasePath(fullPath string) (string, string) {
 	var dir string
 	var base string

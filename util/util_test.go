@@ -112,7 +112,8 @@ func TestDirBasePath(t *testing.T) {
 	testE := []string{"a", ".", "a"}
 	testF := []string{"a/", ".", "a"}
 	testG := []string{"/a/", "/", "a"}
-	tests := [][]string{testA, testB, testC, testD, testE, testF, testG}
+	testH := []string{"/a", "/", "a"}
+	tests := [][]string{testA, testB, testC, testD, testE, testF, testG, testH}
 	for _, test := range tests {
 		dir, base := DirBasePath(test[0])
 		if dir != test[1] || base != test[2] {
