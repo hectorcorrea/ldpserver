@@ -1,4 +1,4 @@
-@base          <http://localhost:9001> .
+@base          <http://ourbaseuri> .
 <>      a       <http://www.w3.org/ns/ldp#RDFSource> , <http://www.w3.org/ns/ldp#BasicContainer> , <http://www.w3.org/ns/ldp#Resource> ;
         <http://example.com/ns#comment>
                 "modified" ;

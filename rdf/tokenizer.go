@@ -32,6 +32,8 @@ func (tokenizer *Tokenizer) GetNextToken() (string, error) {
 		value = ","
 	case firstChar == ';':
 		value = ";"
+	case firstChar == '@':
+		value, err = tokenizer.parseDirective()
 	case firstChar == '<':
 		value, err = tokenizer.parseUri()
 	case firstChar == '"':
@@ -102,6 +104,13 @@ func (tokenizer Tokenizer) isLanguageChar() bool {
 		(char == '-')
 }
 
+func (tokenizer Tokenizer) isDirectiveChar() bool {
+	char := tokenizer.scanner.Char()
+	return (char >= 'a' && char <= 'z') ||
+		(char >= 'A' && char <= 'Z') ||
+		(char == '@')
+}
+
 func (tokenizer Tokenizer) isNamespacedChar() bool {
 	char := tokenizer.scanner.Char()
 	return (char >= 'a' && char <= 'z') ||
@@ -154,6 +163,26 @@ func (tokenizer *Tokenizer) parseLanguage() string {
 	}
 	// Should be indicate error if the language is empty?
 	return tokenizer.scanner.SubstringFrom(start)
+}
+
+// Extracts a value in the form @hello
+func (tokenizer *Tokenizer) parseDirective() (string, error) {
+	start := tokenizer.scanner.Index()
+	tokenizer.scanner.Advance()
+	for tokenizer.CanRead() {
+		if tokenizer.isDirectiveChar() {
+			tokenizer.scanner.Advance()
+		} else {
+			break
+		}
+	}
+
+	directive := tokenizer.scanner.SubstringFrom(start)
+	if directive == "" {
+		return "", tokenizer.Error("Empty directive detected")
+	}
+
+	return directive, nil
 }
 
 // Extracts a value in quotes, for example

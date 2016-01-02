@@ -3,12 +3,15 @@
 //
 // TurtleParser is the parser which uses Tokenizer to
 // break down the text into meaningful tokens (URIs, strings,
-// separators, et cetera.) Tokenizer in turn uses Scanner
-// to handle the character by character operations.
+// separators, et cetera.)
+
+// Tokenizer in turn uses Scanner to handle the character by
+// character operations.
 //
 // TurtleParser uses a tree-like structure (via SubjectNode
 // and PredicateNode) to keep track of the subject, predicate,
-// and object values as they are parsed.
+// and object values as they are parsed. This structure allows
+// us to parse multi-predicate (;) and multi-object (,) triples.
 //
 // Sample usage:
 //     parser := NewTurtleParser("<s> <p1> <o1> , <o2> ; <p2> <o3> .")
@@ -26,11 +29,18 @@ package rdf
 import (
 	"errors"
 	// "log"
+	"strings"
 )
 
+type Directive struct {
+	name  string
+	value string
+}
+
 type TurtleParser struct {
-	tokenizer Tokenizer
-	triples   []Triple
+	tokenizer  Tokenizer
+	triples    []Triple
+	directives []Directive
 }
 
 func NewTurtleParser(text string) TurtleParser {
@@ -41,15 +51,14 @@ func NewTurtleParser(text string) TurtleParser {
 
 func (parser *TurtleParser) Parse() error {
 	for parser.tokenizer.CanRead() {
-		triples, err := parser.getNextTriples()
+		err := parser.parseNextTriples()
 		if err != nil {
 			return err
 		}
-		for _, triple := range triples {
-			parser.triples = append(parser.triples, triple)
-		}
 		parser.tokenizer.AdvanceWhiteSpace()
 	}
+
+	parser.applyBaseDirective()
 	return nil
 }
 
@@ -57,9 +66,29 @@ func (parser TurtleParser) Triples() []Triple {
 	return parser.triples
 }
 
-func (parser *TurtleParser) getNextTriples() ([]Triple, error) {
+func (parser *TurtleParser) applyBaseDirective() {
+	if len(parser.directives) == 0 {
+		return
+	}
+
+	if parser.directives[0].name != "@base" {
+		// unknown directive
+		return
+	}
+
+	base := parser.directives[0]
+	for i, triple := range parser.triples {
+		if triple.subject == "<>" {
+			parser.triples[i].subject = base.value
+		}
+		if triple.object == "<>" {
+			parser.triples[i].object = base.value
+		}
+	}
+}
+
+func (parser *TurtleParser) parseNextTriples() error {
 	var err error
-	var triples []Triple
 	var token string
 
 	for err == nil && parser.tokenizer.CanRead() {
@@ -67,15 +96,46 @@ func (parser *TurtleParser) getNextTriples() ([]Triple, error) {
 		if err != nil || token == "" {
 			break
 		}
+
+		isDirective := strings.HasPrefix(token, "@")
+		if isDirective {
+			err = parser.parseNextDirective(token)
+			continue
+		}
+
+		// triples
 		subject := NewSubjectNode(token)
 		err = parser.parsePredicates(&subject)
 		if err == nil {
 			for _, triple := range subject.RenderTriples() {
-				triples = append(triples, triple)
+				parser.triples = append(parser.triples, triple)
 			}
 		}
+
 	}
-	return triples, err
+	return err
+}
+
+func (parser *TurtleParser) parseNextDirective(name string) error {
+	if !parser.tokenizer.CanRead() {
+		return errors.New("No value found for directive (" + name + ")")
+	}
+
+	value, err := parser.tokenizer.GetNextToken()
+	if err != nil {
+		return err
+	}
+
+	token, err := parser.tokenizer.GetNextToken()
+	if token != "." {
+		return errors.New("Could not find end of directive (" + name + ")")
+	}
+
+	if err == nil {
+		directive := Directive{name: name, value: value}
+		parser.directives = append(parser.directives, directive)
+	}
+	return err
 }
 
 func (parser *TurtleParser) parsePredicates(subject *SubjectNode) error {

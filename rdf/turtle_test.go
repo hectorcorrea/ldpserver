@@ -108,7 +108,7 @@ func TestW3CFile(t *testing.T) {
 	filename := "./w3ctest.nt"
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		t.Errorf("Error reading ntriples file: %s", err)
+		t.Errorf("Error reading w3ctest.nt file: %s", err)
 	}
 
 	text := string(bytes)
@@ -119,23 +119,23 @@ func TestW3CFile(t *testing.T) {
 	}
 }
 
-// func TestBaseDirective(t *testing.T) {
-// 	filename := "./w3cbase.nt"
-// 	bytes, err := ioutil.ReadFile(filename)
-// 	if err != nil {
-// 		t.Errorf("Error reading ntriples file: %s", err)
-// 	}
+func TestBaseDirective(t *testing.T) {
+	filename := "./w3cbase.nt"
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Errorf("Error reading w3cbase.nt file: %s", err)
+	}
 
-// 	text := string(bytes)
-// 	parser := NewTurtleParser(text)
-// 	err = parser.Parse()
-// 	if err != nil {
-// 		t.Errorf("Error parsing W3C ntriples text: %s", err)
-// 	}
+	text := string(bytes)
+	parser := NewTurtleParser(text)
+	err = parser.Parse()
+	if err != nil {
+		t.Errorf("Error parsing W3C base triples: %s", err)
+	}
 
-// 	output := ""
-// 	for i, triple := range parser.Triples() {
-// 		output += fmt.Sprintf("%d: %s\n", i, triple)
-// 	}
-// 	t.Errorf("%s", output)
-// }
+	for _, triple := range parser.Triples() {
+		if triple.subject != "<http://ourbaseuri>" {
+			t.Errorf("Base not replaced correctly for %s", triple)
+		}
+	}
+}
