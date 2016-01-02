@@ -116,6 +116,7 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 	}
 
 	path := util.UriConcat(parentPath, newPath)
+	// log.Printf("== triples passed by the client: \r\n%s\r\n\r\n\r\n", triples)
 	node, err := ldp.NewRdfNode(server.settings, triples, path)
 	if err != nil {
 		return ldp.Node{}, err

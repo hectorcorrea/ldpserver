@@ -311,17 +311,6 @@ func logHeaders(req *http.Request) {
 			log.Printf("\t\t %s %s", header, value)
 		}
 	}
-	log.Printf("\tHTTP Body")
-	if isRdfContentType(req.Header) {
-		text, err := fileio.ReaderToString(req.Body)
-		if err != nil {
-			log.Printf("\t\t(error parsing RDF) %s", err)
-		} else {
-			log.Printf("\t\t%s", text)
-		}
-	} else {
-		log.Printf("\t\t(non text/turtle)")
-	}
 }
 
 func logReqError(req *http.Request, message string, code int) {
