@@ -165,7 +165,7 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 		return Node{}, errors.New("Cannot replace RDF source without an etag")
 	}
 
-	nodeEtag = removeQuotes(node.Etag())
+	nodeEtag := removeQuotes(node.Etag())
 	if nodeEtag != etag {
 		return Node{}, fmt.Errorf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", nodeEtag, etag)
 	}
