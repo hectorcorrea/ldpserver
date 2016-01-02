@@ -14,6 +14,7 @@ import (
 
 var NodeNotFoundError = errors.New("Node not found")
 var DuplicateNodeError = errors.New("Node already exists")
+var EtagMissingError = errors.New("Missing Etag")
 var EtagMismatchError = errors.New("Etag mismatch")
 
 const metaFile = "meta.rdf"
@@ -163,12 +164,11 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 	}
 
 	if etag == "" {
-		return Node{}, errors.New("Cannot replace RDF source without an etag")
+		return Node{}, EtagMissingError
 	}
 
-	nodeEtag := removeQuotes(node.Etag())
-	if nodeEtag != etag {
-		// log.Printf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", nodeEtag, etag)
+	if node.Etag() != etag {
+		// log.Printf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", node.Etag(), etag)
 		return Node{}, EtagMismatchError
 	}
 
@@ -374,13 +374,6 @@ func newNode(settings Settings, path string) Node {
 
 func removeAngleBrackets(text string) string {
 	if strings.HasPrefix(text, "<") && strings.HasSuffix(text, ">") {
-		return text[1 : len(text)-1]
-	}
-	return text
-}
-
-func removeQuotes(text string) string {
-	if strings.HasPrefix(text, "\"") && strings.HasSuffix(text, "\"") {
 		return text[1 : len(text)-1]
 	}
 	return text
