@@ -38,73 +38,47 @@ func (server Server) GetHead(path string) (ldp.Node, error) {
 
 // PUT
 func (server Server) ReplaceRdfSource(triples string, parentPath string, slug string, etag string) (ldp.Node, error) {
-	var path string
-	isRootNode := (parentPath == ".") && (slug == ".")
-	if isRootNode {
-		path = "/"
-	} else {
-		newPath, err := server.getNewPath(slug)
-		if err != nil {
-			return ldp.Node{}, err
-		}
-		path = util.UriConcat(parentPath, newPath)
+	path, err := server.getNewPath(parentPath, slug)
+	if err != nil {
+		return ldp.Node{}, err
 	}
 
-	resource := server.createResourceFromPath(path)
+	resource := server.createResource(path)
 	if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
 		return ldp.Node{}, resource.Error()
 	}
 
 	if resource.Error() == textstore.AlreadyExistsError {
-		// call replace existing (must validate etag, validate that previous version was RDF too)
+		// Replace existing node
 		return ldp.ReplaceRdfNode(server.settings, triples, path, etag)
 	}
 
-	// create new node, no need to test etag
+	// Create new node
 	node, err := ldp.NewRdfNode(server.settings, triples, path)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	if !isRootNode {
-		container, err := server.getContainer(parentPath)
-		if err != nil {
-			return ldp.Node{}, err
-		}
-
-		if err := container.AddChild(node); err != nil {
-			return ldp.Node{}, err
-		}
+	if path != "/" {
+		err = server.addNodeToContainer(node, parentPath)
 	}
 
-	return node, nil
+	return node, err
 }
 
 // POST
 func (server Server) CreateRdfSource(triples string, parentPath string, slug string) (ldp.Node, error) {
-	container, err := server.getContainer(parentPath)
+	path, err := server.getNewPath(parentPath, slug)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	newPath, err := server.getNewPath(slug)
-	if err != nil {
-		return ldp.Node{}, err
+	resource := server.createResource(path)
+	if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
+		return ldp.Node{}, resource.Error()
 	}
 
-	// TODO: Allow overwriting of resources on PUT.
-	//       Need to figure out the ramifications of overwriting
-	//       a container (e.g. what happens to contained objects?)
-	//       or overwriting an RDF Source with a Non-RDF source
-	//       (or viceversa)
-
-	resource := server.createResource(parentPath, newPath)
-	if resource.Error() != nil {
-
-		if resource.Error() != textstore.AlreadyExistsError {
-			return ldp.Node{}, resource.Error()
-		}
-
+	if resource.Error() == textstore.AlreadyExistsError {
 		if slug == "" {
 			// We generated a duplicate node.
 			return ldp.Node{}, ldp.DuplicateNodeError
@@ -115,17 +89,17 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 		return server.CreateRdfSource(triples, parentPath, "")
 	}
 
-	path := util.UriConcat(parentPath, newPath)
-	// log.Printf("== triples passed by the client: \r\n%s\r\n\r\n\r\n", triples)
+	// Create new node
 	node, err := ldp.NewRdfNode(server.settings, triples, path)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
-	if err := container.AddChild(node); err != nil {
-		return ldp.Node{}, err
+	if path != "/" {
+		err = server.addNodeToContainer(node, parentPath)
 	}
-	return node, nil
+
+	return node, err
 }
 
 func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string, slug string) (ldp.Node, error) {
@@ -134,13 +108,14 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 		return ldp.Node{}, err
 	}
 
-	newPath, err := server.getNewPath(slug)
+	newPath, err := server.getNewPath(parentPath, slug)
 	if err != nil {
 		return ldp.Node{}, err
 	}
 
 	newResource := true
-	resource := server.createResource(parentPath, newPath)
+	path := util.UriConcat(parentPath, newPath)
+	resource := server.createResource(path)
 	if resource.Error() != nil {
 		if resource.Error() == textstore.AlreadyExistsError {
 			node, err := ldp.GetHead(server.settings, newPath)
@@ -177,25 +152,33 @@ func (server Server) PatchNode(path string, triples string) error {
 	return node.Patch(triples)
 }
 
-func (server Server) getNewPath(slug string) (string, error) {
+func (server Server) addNodeToContainer(node ldp.Node, path string) error {
+	container, err := server.getContainer(path)
+	if err != nil {
+		return err
+	}
+	return container.AddChild(node)
+}
+
+func (server Server) getNewPath(parentPath string, slug string) (string, error) {
+	isRootNode := (parentPath == ".") && (slug == ".")
+	if isRootNode {
+		// special case
+		return "/", nil
+	}
+
 	if slug == "" {
 		// Generate a new server URI (e.g. node34)
-		return MintNextUri(defaultSlug, server.minter), nil
+		slug = MintNextUri(defaultSlug, server.minter)
 	}
 
 	if !util.IsValidSlug(slug) {
-		errorMsg := fmt.Sprintf("Invalid Slug received (%s). Slug must not include special characters.", slug)
-		return "", errors.New(errorMsg)
+		return "", fmt.Errorf("Invalid Slug received (%s)", slug)
 	}
-	return slug, nil
+	return util.UriConcat(parentPath, slug), nil
 }
 
-func (server Server) createResource(parentPath string, newPath string) textstore.Store {
-	path := util.UriConcat(parentPath, newPath)
-	return server.createResourceFromPath(path)
-}
-
-func (server Server) createResourceFromPath(path string) textstore.Store {
+func (server Server) createResource(path string) textstore.Store {
 	pathOnDisk := util.PathConcat(server.settings.DataPath(), path)
 	// Queue up the creation of a new resource
 	go func(pathOnDisk string) {
