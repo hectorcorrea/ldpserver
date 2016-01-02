@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"ldpserver/ldp"
 	"ldpserver/rdf"
 	"ldpserver/util"
 	"os"
@@ -13,7 +14,7 @@ import (
 var dataPath string
 var theServer Server
 var rootUrl = "http://localhost:9001/"
-var slug = ""
+var emptySlug = ""
 
 func init() {
 	dataPath, _ := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -28,14 +29,54 @@ func TestBadSlug(t *testing.T) {
 }
 
 func TestCreateRdf(t *testing.T) {
-	node, err := theServer.CreateRdfSource("", "/", slug)
-	if !node.IsRdf() {
+	_, err := theServer.CreateRdfSource("", "/", "slugA")
+	if err != nil {
 		t.Errorf("Error creating RDF. Error: %s", err)
 	}
 
-	node, err = theServer.GetNode(node.Path())
-	if err != nil || node.Uri() != util.UriConcat(rootUrl, node.Path()) {
-		t.Errorf("err %s, uri %s", err, node.Uri())
+	node, err := theServer.GetNode("/slugA")
+	if err != nil {
+		t.Errorf("Error fetching new node /slugA. Error: %s", err)
+	}
+
+	if !node.IsRdf() {
+		t.Errorf("RDF source was created but not as RDF")
+	}
+
+	node2, err := theServer.CreateRdfSource("", "/", "slugA")
+	if err != nil {
+		t.Errorf("Error %s while attemping to create duplicate node", err)
+	}
+
+	if node2.Path() == "/slugA" {
+		t.Errorf("A duplicate node was created")
+	}
+}
+
+func TestReplaceRdf(t *testing.T) {
+	triples := "<> xx:version \"version1\" ."
+	node, err := theServer.CreateRdfSource(triples, "/", emptySlug)
+
+	path := node.Path()[1:]
+	etag := node.Etag()
+	triples = "<> xx:version \"version2\" ."
+	node, err = theServer.ReplaceRdfSource(triples, "/", path, etag)
+	if err != nil {
+		t.Errorf("Error replacing RDF node: %s", err)
+	}
+
+	if !node.HasTriple("xx:version", "\"version2\"") {
+		t.Errorf("Error replacing RDF node. Updated triple not found")
+	}
+
+	_, err = theServer.ReplaceRdfSource(triples, "/", path, "bad-etag")
+	if err != ldp.EtagMismatchError {
+		t.Errorf("Failed to detect etag mismatch: %s", err)
+	}
+
+	_, err = theServer.ReplaceRdfSource(triples, "/", path, "")
+	if err != ldp.EtagMissingError {
+		t.Errorf("Failed to detect missing etag: %s", err)
 	}
 }
 
@@ -78,9 +119,9 @@ func TestCreateDirectContainer(t *testing.T) {
 }
 
 func TestCreateChildRdf(t *testing.T) {
-	parentNode, _ := theServer.CreateRdfSource("", "/", slug)
+	parentNode, _ := theServer.CreateRdfSource("", "/", emptySlug)
 
-	rdfNode, err := theServer.CreateRdfSource("", parentNode.Path(), slug)
+	rdfNode, err := theServer.CreateRdfSource("", parentNode.Path(), emptySlug)
 	if err != nil {
 		t.Errorf("Error creating child RDF node under %s", err, parentNode.Uri())
 	}
@@ -90,13 +131,13 @@ func TestCreateChildRdf(t *testing.T) {
 	}
 
 	invalidPath := parentNode.Path() + "/invalid"
-	invalidNode, err := theServer.CreateRdfSource("", invalidPath, slug)
+	invalidNode, err := theServer.CreateRdfSource("", invalidPath, emptySlug)
 	if err == nil {
 		t.Errorf("A node was added to an invalid path %s %s", err, invalidNode.Uri())
 	}
 
 	reader := util.FakeReaderCloser{Text: "HELLO"}
-	nonRdfNode, err := theServer.CreateNonRdfSource(reader, parentNode.Path(), slug)
+	nonRdfNode, err := theServer.CreateNonRdfSource(reader, parentNode.Path(), emptySlug)
 	if err != nil {
 		t.Errorf("Error creating child non-RDF node under %s. Error: %s", parentNode.Uri(), err)
 	}
@@ -105,7 +146,7 @@ func TestCreateChildRdf(t *testing.T) {
 		t.Errorf("Child URI %s does not seem to be under the parent URI %s", nonRdfNode.Uri(), parentNode.Uri())
 	}
 
-	_, err = theServer.CreateRdfSource("", nonRdfNode.Path(), slug)
+	_, err = theServer.CreateRdfSource("", nonRdfNode.Path(), emptySlug)
 	if err == nil {
 		t.Errorf("A child was added to a non-RDF node! %s", nonRdfNode.Uri())
 	}
@@ -113,7 +154,7 @@ func TestCreateChildRdf(t *testing.T) {
 
 func TestCreateRdfWithTriples(t *testing.T) {
 	triples := "<> <b> <c> .\n<x> <y> <z> .\n"
-	node, err := theServer.CreateRdfSource(triples, "/", slug)
+	node, err := theServer.CreateRdfSource(triples, "/", emptySlug)
 	if err != nil || !node.IsRdf() {
 		t.Errorf("Error creating RDF")
 	}
@@ -135,9 +176,13 @@ func TestCreateRdfWithTriples(t *testing.T) {
 
 func TestCreateNonRdf(t *testing.T) {
 	reader := util.FakeReaderCloser{Text: "HELLO"}
-	node, err := theServer.CreateNonRdfSource(reader, "/", slug)
-	if err != nil || node.IsRdf() {
+	node, err := theServer.CreateNonRdfSource(reader, "/", emptySlug)
+	if err != nil {
 		t.Errorf("Error creating Non RDF")
+	}
+
+	if node.IsRdf() {
+		t.Errorf("Created RDF rather than Non RDF")
 	}
 
 	node, err = theServer.GetNode(node.Path())
@@ -154,25 +199,9 @@ func TestCreateNonRdf(t *testing.T) {
 	}
 }
 
-func TestCreateWithDuplicateSlug(t *testing.T) {
-	_, err := theServer.CreateRdfSource("", "/", "slug1")
-	if err != nil {
-		t.Error("Could not create new resource")
-	}
-
-	node, err := theServer.CreateRdfSource("", "/", "slug1")
-	if err != nil {
-		t.Error("Error creating node with duplicate slug")
-	}
-
-	if strings.HasSuffix(node.Uri(), "/slug1") {
-		t.Error("Failed to generate a new slug")
-	}
-}
-
 func TestPatchRdf(t *testing.T) {
 	triples := "<> <p1> <o1> .\n<> <p2> <o2> .\n"
-	node, _ := theServer.CreateRdfSource(triples, "/", slug)
+	node, _ := theServer.CreateRdfSource(triples, "/", emptySlug)
 	node, _ = theServer.GetNode(node.Path())
 	if !node.HasTriple("<p1>", "<o1>") || !node.HasTriple("<p2>", "<o2>") {
 		t.Errorf("Expected triple not found %s", node.Content())
@@ -191,7 +220,7 @@ func TestPatchRdf(t *testing.T) {
 
 func TestPatchNonRdf(t *testing.T) {
 	reader1 := util.FakeReaderCloser{Text: "HELLO"}
-	node, _ := theServer.CreateNonRdfSource(reader1, "/", slug)
+	node, _ := theServer.CreateNonRdfSource(reader1, "/", emptySlug)
 	node, _ = theServer.GetNode(node.Path())
 	if node.Content() != "HELLO" {
 		t.Errorf("Unexpected non-RDF content found %s", node.Content())
