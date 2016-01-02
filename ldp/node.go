@@ -290,6 +290,7 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 		node.headers["Allow"] = []string{"GET, HEAD, PUT, PATCH"}
 	}
 	node.headers["Accept-Post"] = []string{"text/turtle"}
+	node.headers["Accept-Patch"] = []string{"text/turtle"}
 
 	node.headers["Etag"] = []string{node.Etag()}
 
