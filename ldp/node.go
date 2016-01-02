@@ -36,52 +36,24 @@ type Node struct {
 	// TODO isMemberOfRelation string
 }
 
+func (node Node) AddChild(child Node) error {
+	triple := rdf.NewTriple("<"+node.uri+">", "<"+rdf.LdpContainsUri+">", "<"+child.uri+">")
+	err := node.store.AppendToFile(metaFile, triple.StringLn())
+	if err != nil {
+		return err
+	}
+
+	if node.isDirectContainer {
+		return node.addDirectContainerChild(child)
+	}
+	return nil
+}
+
 func (node Node) Content() string {
 	if node.isRdf {
 		return node.graph.String()
 	}
 	return node.binary
-}
-
-func (node Node) String() string {
-	return node.uri
-}
-
-func (node *Node) Etag() string {
-	subject := "<" + node.uri + ">"
-	etagFound, etag := node.graph.GetObject(subject, "<"+rdf.ServerETagUri+">")
-	if !etagFound {
-		panic(fmt.Sprintf("No etag found for node %s", node.uri))
-	}
-	return removeQuotes(etag)
-}
-
-func (node Node) Path() string {
-	return util.PathFromUri(node.rootUri, node.uri)
-}
-
-func (node Node) Headers() map[string][]string {
-	return node.headers
-}
-
-func (node Node) IsRdf() bool {
-	return node.isRdf
-}
-
-func (node Node) IsBasicContainer() bool {
-	return node.isBasicContainer
-}
-
-func (node Node) IsDirectContainer() bool {
-	return node.isDirectContainer
-}
-
-func (node Node) HasTriple(predicate, object string) bool {
-	return node.graph.HasTriple("<"+node.uri+">", predicate, object)
-}
-
-func (node Node) Uri() string {
-	return node.uri
 }
 
 func (node Node) DebugString() string {
@@ -97,16 +69,37 @@ func (node Node) DebugString() string {
 	return debugString
 }
 
-func GetNode(settings Settings, path string) (Node, error) {
-	node := newNode(settings, path)
-	err := node.loadNode(true)
-	return node, err
+func (node *Node) Etag() string {
+	subject := "<" + node.uri + ">"
+	etagFound, etag := node.graph.GetObject(subject, "<"+rdf.ServerETagUri+">")
+	if !etagFound {
+		panic(fmt.Sprintf("No etag found for node %s", node.uri))
+	}
+	return removeQuotes(etag)
 }
 
-func GetHead(settings Settings, path string) (Node, error) {
-	node := newNode(settings, path)
-	err := node.loadNode(false)
-	return node, err
+func (node Node) HasTriple(predicate, object string) bool {
+	return node.graph.HasTriple("<"+node.uri+">", predicate, object)
+}
+
+func (node Node) Headers() map[string][]string {
+	return node.headers
+}
+
+func (node Node) IsBasicContainer() bool {
+	return node.isBasicContainer
+}
+
+func (node Node) IsDirectContainer() bool {
+	return node.isDirectContainer
+}
+
+func (node Node) IsRdf() bool {
+	return node.isRdf
+}
+
+func (node Node) Uri() string {
+	return node.uri
 }
 
 func (node *Node) Patch(triples string) error {
@@ -131,6 +124,26 @@ func (node *Node) Patch(triples string) error {
 	}
 
 	return nil
+}
+
+func (node Node) Path() string {
+	return util.PathFromUri(node.rootUri, node.uri)
+}
+
+func (node Node) String() string {
+	return node.uri
+}
+
+func GetNode(settings Settings, path string) (Node, error) {
+	node := newNode(settings, path)
+	err := node.loadNode(true)
+	return node, err
+}
+
+func GetHead(settings Settings, path string) (Node, error) {
+	node := newNode(settings, path)
+	err := node.loadNode(false)
+	return node, err
 }
 
 func NewRdfNode(settings Settings, triples string, path string) (Node, error) {
@@ -168,19 +181,6 @@ func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, n
 	return node, err
 }
 
-func (node Node) AddChild(child Node) error {
-	triple := rdf.NewTriple("<"+node.uri+">", "<"+rdf.LdpContainsUri+">", "<"+child.uri+">")
-	err := node.store.AppendToFile(metaFile, triple.StringLn())
-	if err != nil {
-		return err
-	}
-
-	if node.isDirectContainer {
-		return node.addDirectContainerChild(child)
-	}
-	return nil
-}
-
 func (node Node) addDirectContainerChild(child Node) error {
 	// TODO: account for isMemberOfRelation
 	targetUri := removeAngleBrackets(node.membershipResource)
@@ -200,19 +200,6 @@ func (node Node) addDirectContainerChild(child Node) error {
 		return err
 	}
 	return nil
-}
-
-func newNode(settings Settings, path string) Node {
-	if strings.HasPrefix(path, "http://") {
-		panic("newNode expects a path, received a URI: " + path)
-	}
-	var node Node
-	node.settings = settings
-	pathOnDisk := util.PathConcat(settings.dataPath, path)
-	node.store = textstore.NewStore(pathOnDisk)
-	node.rootUri = settings.RootUri()
-	node.uri = util.UriConcat(node.rootUri, path)
-	return node
 }
 
 func (node *Node) loadNode(isIncludeBody bool) error {
@@ -285,50 +272,6 @@ func (node Node) writeToDisk(reader io.ReadCloser) error {
 	return node.store.SaveReader(dataFile, reader)
 }
 
-func defaultGraph(uri string) rdf.RdfGraph {
-	subject := "<" + uri + ">"
-	// define the triples
-	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
-	rdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpRdfSourceUri+">")
-	// TODO: Not all RDFs resources should be containers
-	basicContainer := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpBasicContainerUri+">")
-	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
-	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
-	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
-	etag := rdf.NewTriple(subject, "<"+rdf.ServerETagUri+">", "\""+calculateEtag()+"\"")
-	// create the graph
-	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created, etag}
-	return graph
-}
-
-func defaultGraphNonRdf(uri string) rdf.RdfGraph {
-	subject := "<" + uri + ">"
-	// define the triples
-	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
-	nonRdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpNonRdfSourceUri+">")
-	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
-	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
-	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
-	etag := rdf.NewTriple(subject, "<"+rdf.ServerETagUri+">", "\""+calculateEtag()+"\"")
-	// create the graph
-	graph := rdf.RdfGraph{resource, nonRdfSource, title, created, etag}
-	return graph
-}
-
-func removeAngleBrackets(text string) string {
-	if strings.HasPrefix(text, "<") && strings.HasSuffix(text, ">") {
-		return text[1 : len(text)-1]
-	}
-	return text
-}
-
-func removeQuotes(text string) string {
-	if strings.HasPrefix(text, "\"") && strings.HasSuffix(text, "\"") {
-		return text[1 : len(text)-1]
-	}
-	return text
-}
-
 func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 	subject := "<" + node.uri + ">"
 	node.isRdf = true
@@ -379,4 +322,61 @@ func (node *Node) setAsNonRdf(graph rdf.RdfGraph) {
 func calculateEtag() string {
 	// TODO: Come up with a more precise value.
 	return strings.Replace(time.Now().Format(time.RFC3339), ":", "_", -1)
+}
+
+func defaultGraph(uri string) rdf.RdfGraph {
+	subject := "<" + uri + ">"
+	// define the triples
+	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
+	rdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpRdfSourceUri+">")
+	// TODO: Not all RDFs resources should be containers
+	basicContainer := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpBasicContainerUri+">")
+	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
+	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
+	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
+	etag := rdf.NewTriple(subject, "<"+rdf.ServerETagUri+">", "\""+calculateEtag()+"\"")
+	// create the graph
+	graph := rdf.RdfGraph{resource, rdfSource, basicContainer, title, created, etag}
+	return graph
+}
+
+func defaultGraphNonRdf(uri string) rdf.RdfGraph {
+	subject := "<" + uri + ">"
+	// define the triples
+	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
+	nonRdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpNonRdfSourceUri+">")
+	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
+	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
+	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
+	etag := rdf.NewTriple(subject, "<"+rdf.ServerETagUri+">", "\""+calculateEtag()+"\"")
+	// create the graph
+	graph := rdf.RdfGraph{resource, nonRdfSource, title, created, etag}
+	return graph
+}
+
+func newNode(settings Settings, path string) Node {
+	if strings.HasPrefix(path, "http://") {
+		panic("newNode expects a path, received a URI: " + path)
+	}
+	var node Node
+	node.settings = settings
+	pathOnDisk := util.PathConcat(settings.dataPath, path)
+	node.store = textstore.NewStore(pathOnDisk)
+	node.rootUri = settings.RootUri()
+	node.uri = util.UriConcat(node.rootUri, path)
+	return node
+}
+
+func removeAngleBrackets(text string) string {
+	if strings.HasPrefix(text, "<") && strings.HasSuffix(text, ">") {
+		return text[1 : len(text)-1]
+	}
+	return text
+}
+
+func removeQuotes(text string) string {
+	if strings.HasPrefix(text, "\"") && strings.HasSuffix(text, "\"") {
+		return text[1 : len(text)-1]
+	}
+	return text
 }
