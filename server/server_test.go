@@ -55,7 +55,10 @@ func TestCreateRdf(t *testing.T) {
 
 func TestReplaceRdf(t *testing.T) {
 	triples := "<> xx:version \"version1\" ."
-	node, err := theServer.CreateRdfSource(triples, "/", emptySlug)
+	node, err := theServer.ReplaceRdfSource(triples, "/", "rdf-test", "ignore-etag")
+	if err != nil {
+		t.Errorf("Error creating a new RDF node with replace: %s", err)
+	}
 
 	path := node.Path()[1:]
 	etag := node.Etag()
@@ -176,18 +179,14 @@ func TestCreateRdfWithTriples(t *testing.T) {
 
 func TestCreateNonRdf(t *testing.T) {
 	reader := util.FakeReaderCloser{Text: "HELLO"}
-	node, err := theServer.CreateNonRdfSource(reader, "/", emptySlug)
+	_, err := theServer.CreateNonRdfSource(reader, "/", "hello")
 	if err != nil {
 		t.Errorf("Error creating Non RDF")
 	}
 
-	if node.IsRdf() {
-		t.Errorf("Created RDF rather than Non RDF")
-	}
-
-	node, err = theServer.GetNode(node.Path())
-	if err != nil || node.Uri() != util.UriConcat(rootUrl, node.Path()) {
-		t.Errorf("err %v, uri %s", err, node.Uri())
+	node, err := theServer.GetNode("hello")
+	if err != nil {
+		t.Errorf("Could not read new Non-RDF node: %s", err)
 	}
 
 	if node.IsRdf() {
@@ -196,6 +195,45 @@ func TestCreateNonRdf(t *testing.T) {
 
 	if node.Content() != "HELLO" {
 		t.Errorf("Non-RDF content is not the expected one, %s", node.Content())
+	}
+
+	node, err = theServer.CreateNonRdfSource(reader, "/", "hello")
+	if err != nil {
+		t.Errorf("Error when attempting to create a duplicate node. Error: %s", err)
+	}
+
+	if node.Path() == "/hello" {
+		t.Errorf("Failed to generate a new slug for the duplicate node")
+	}
+}
+
+func TestReplaceNonRdf(t *testing.T) {
+	reader := util.FakeReaderCloser{Text: "HELLO"}
+	node, err := theServer.ReplaceNonRdfSource(reader, "/", "non-rdf-test", "ignored-etag")
+	if err != nil {
+		t.Errorf("Error creating a new non-RDF node with replace: %s", err)
+	}
+
+	path := node.Path()[1:]
+	etag := node.Etag()
+	reader2 := util.FakeReaderCloser{Text: "BYE"}
+	node, err = theServer.ReplaceNonRdfSource(reader2, "/", path, etag)
+	if err != nil {
+		t.Errorf("Error replacing Non-RDF node: %s", err)
+	}
+
+	if node.Content() != "BYE" {
+		t.Errorf("Non-RDF content was not replaced. %s", node.Content())
+	}
+
+	_, err = theServer.ReplaceNonRdfSource(reader, "/", path, "bad-etag")
+	if err != ldp.EtagMismatchError {
+		t.Errorf("Failed to detect etag mismatch: %s", err)
+	}
+
+	_, err = theServer.ReplaceNonRdfSource(reader, "/", path, "")
+	if err != ldp.EtagMissingError {
+		t.Errorf("Failed to detect missing etag: %s", err)
 	}
 }
 

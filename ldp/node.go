@@ -153,6 +153,32 @@ func NewRdfNode(settings Settings, triples string, path string) (Node, error) {
 	return node, node.writeRdfToDisk(triples)
 }
 
+func NewNonRdfNode(settings Settings, reader io.ReadCloser, path string) (Node, error) {
+	node := newNode(settings, path)
+	return node, node.writeNonRdfToDisk(reader)
+}
+
+func ReplaceNonRdfNode(settings Settings, reader io.ReadCloser, path string, etag string) (Node, error) {
+	node, err := GetHead(settings, path)
+	if err != nil {
+		return Node{}, err
+	}
+
+	if node.isRdf {
+		return Node{}, errors.New("Cannot replace RDF source with a Non-RDF source")
+	}
+
+	if etag == "" {
+		return Node{}, EtagMissingError
+	}
+
+	if node.Etag() != etag {
+		// log.Printf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", node.Etag(), etag)
+		return Node{}, EtagMismatchError
+	}
+	return node, node.writeNonRdfToDisk(reader)
+}
+
 func ReplaceRdfNode(settings Settings, triples string, path string, etag string) (Node, error) {
 	node, err := GetNode(settings, path)
 	if err != nil {
@@ -173,15 +199,6 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 	}
 
 	return node, node.writeRdfToDisk(triples)
-}
-
-func NewNonRdfNode(settings Settings, reader io.ReadCloser, parentPath string, newPath string) (Node, error) {
-	path := util.UriConcat(parentPath, newPath)
-	node := newNode(settings, path)
-	graph := defaultGraphNonRdf(node.uri)
-	node.setAsNonRdf(graph)
-	err := node.writeToDisk(reader)
-	return node, err
 }
 
 func (node Node) addDirectContainerChild(child Node) error {
@@ -247,6 +264,12 @@ func (node *Node) loadMeta() error {
 	return nil
 }
 
+func (node *Node) writeNonRdfToDisk(reader io.ReadCloser) error {
+	graph := defaultGraphNonRdf(node.uri)
+	node.setAsNonRdf(graph)
+	return node.writeToDisk(reader)
+}
+
 func (node *Node) writeRdfToDisk(triples string) error {
 	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
 	if err != nil {
@@ -260,7 +283,7 @@ func (node *Node) writeRdfToDisk(triples string) error {
 	return node.writeToDisk(nil)
 }
 
-func (node Node) writeToDisk(reader io.ReadCloser) error {
+func (node *Node) writeToDisk(reader io.ReadCloser) error {
 	// Write the RDF metadata
 	err := node.store.SaveFile(metaFile, node.graph.String())
 	if err != nil {
@@ -271,8 +294,17 @@ func (node Node) writeToDisk(reader io.ReadCloser) error {
 		return nil
 	}
 
-	// Write the binary
-	return node.store.SaveReader(dataFile, reader)
+	// Write the binary...
+	err = node.store.SaveReader(dataFile, reader)
+	if err != nil {
+		return err
+	}
+
+	// ...update the copy in memory (this would get
+	// tricky when we switch "node.binary" to a
+	// reader.
+	node.binary, err = node.store.ReadFile(dataFile)
+	return err
 }
 
 func (node *Node) setAsRdf(graph rdf.RdfGraph) {
