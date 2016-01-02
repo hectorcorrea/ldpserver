@@ -161,8 +161,8 @@ In order to run the suite against this repo you need to do the following:
 
     java -jar target/ldp-testsuite-0.2.0-SNAPSHOT-shaded.jar --server http://localhost:9001 --basic
 
-As of 10/17/2015 these are the results of all basic container tests:
+As of 1/1/2016 these are the results of all basic container tests:
 
     LDP Test Suite
-    Total tests run: 90, Failures: 19, Skips: 27
+    Total tests run: 90, Failures: 18, Skips: 27
 
