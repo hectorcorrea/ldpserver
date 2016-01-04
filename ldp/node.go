@@ -16,6 +16,7 @@ var NodeNotFoundError = errors.New("Node not found")
 var DuplicateNodeError = errors.New("Node already exists")
 var EtagMissingError = errors.New("Missing Etag")
 var EtagMismatchError = errors.New("Etag mismatch")
+var ServerManagedPropertyError = errors.New("Attempted to update server managed property")
 
 const metaFile = "meta.rdf"
 const dataFile = "data.txt"
@@ -196,6 +197,12 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 	if node.Etag() != etag {
 		// log.Printf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", node.Etag(), etag)
 		return Node{}, EtagMismatchError
+	}
+
+	// TODO: What other server-managed properties should we handle?
+	graph, _ := rdf.StringToGraph(triples, "<"+node.uri+">")
+	if graph.HasPredicate("<" + rdf.LdpContainsUri + ">") {
+		return Node{}, ServerManagedPropertyError
 	}
 
 	return node, node.writeRdfToDisk(triples)

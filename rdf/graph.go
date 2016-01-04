@@ -74,6 +74,15 @@ func (graph RdfGraph) GetDirectContainerInfo() (string, string, bool) {
 	return "", "", false
 }
 
+func (graph RdfGraph) HasPredicate(predicate string) bool {
+	for _, triple := range graph {
+		if triple.predicate == predicate {
+			return true
+		}
+	}
+	return false
+}
+
 func (graph RdfGraph) HasTriple(subject, predicate, object string) bool {
 	for _, triple := range graph {
 		found := (triple.subject == subject) && (triple.predicate == predicate) && (triple.object == object)

@@ -179,6 +179,9 @@ func handlePostPutError(resp http.ResponseWriter, req *http.Request, err error) 
 	} else if err == ldp.EtagMismatchError {
 		errorMsg = fmt.Sprintf("Etag mismatch. Path: %s Slug: %s", path, slug)
 		errorCode = http.StatusPreconditionFailed
+	} else if err == ldp.ServerManagedPropertyError {
+		errorMsg = fmt.Sprintf("Cannot overwrite server-managed property")
+		errorCode = http.StatusConflict
 	}
 	logReqError(req, errorMsg, errorCode)
 	http.Error(resp, errorMsg, errorCode)
