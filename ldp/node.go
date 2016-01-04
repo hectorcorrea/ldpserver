@@ -201,7 +201,7 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 
 	// TODO: What other server-managed properties should we handle?
 	graph, _ := rdf.StringToGraph(triples, "<"+node.uri+">")
-	if graph.HasPredicate("<" + rdf.LdpContainsUri + ">") {
+	if graph.HasPredicate("<"+node.uri+">", "<"+rdf.LdpContainsUri+">") {
 		return Node{}, ServerManagedPropertyError
 	}
 
