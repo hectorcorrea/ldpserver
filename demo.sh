@@ -18,7 +18,7 @@
 BLOG_URI="$(curl -X POST localhost:9001)"
 
 # Add an entry to the blog
-ENTRY_URI="$(curl -X POST --header "Content-Type: text/turtle" --header 'Slug: entry' -d '<> <dc:title> "blog one title" .' ${BLOG_URI})"
+ENTRY_URI="$(curl -X POST --header "Content-Type: text/turtle" --header 'Slug: entry' -d '<> dc:title "blog one title" .' ${BLOG_URI})"
 
 # Add the content for the blog (non-RDF)
 CONTENT_URI="$(curl -X POST --header "Content-Type: text/plain" --header 'Slug: content' -d 'content of the blog entry' ${BLOG_URI})"
@@ -27,14 +27,14 @@ CONTENT_URI="$(curl -X POST --header "Content-Type: text/plain" --header 'Slug: 
 COMMENTS_URI="$(curl -X POST --header 'Slug: comments' ${ENTRY_URI})"
 
 # ...and bind it to the entry
-TRIPLE1="<> <http://www.w3.org/ns/ldp#hasMemberRelation> <hasComment> ."
+TRIPLE1="<> <http://www.w3.org/ns/ldp#hasMemberRelation> hasComment ."
 TRIPLE2="<> <http://www.w3.org/ns/ldp#membershipResource> <${ENTRY_URI}> ."
 curl -X PATCH --header "Content-Type: text/turtle" -d "${TRIPLE1}" ${COMMENTS_URI}
 curl -X PATCH --header "Content-Type: text/turtle" -d "${TRIPLE2}" ${COMMENTS_URI}
 
 # # Add a couple of comments to the direct container
-COMMENT1_URI="$(curl -X POST --header "Content-Type: text/turtle" --header 'Slug: comment1' -d $'<> <dc:description> "this is a comment" .' ${COMMENTS_URI})"
-COMMENT2_URI="$(curl -X POST --header "Content-Type: text/turtle" --header "Slug: comment2" -d $'<> <dc:description> "this is another comment" .' ${COMMENTS_URI})"
+COMMENT1_URI="$(curl -X POST --header "Content-Type: text/turtle" --header 'Slug: comment1' -d $'<> dc:description "this is a comment" .' ${COMMENTS_URI})"
+COMMENT2_URI="$(curl -X POST --header "Content-Type: text/turtle" --header "Slug: comment2" -d $'<> dc:description "this is another comment" .' ${COMMENTS_URI})"
 
 echo "** The following URIs were created:"
 echo "  BLOG_URI     = ${BLOG_URI}"
