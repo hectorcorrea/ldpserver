@@ -48,10 +48,64 @@ func TestHasTriple(t *testing.T) {
 	graph := RdfGraph{triple}
 
 	if !graph.HasTriple("s", "p", "o") {
-		t.Errorf("Is() test failed for graph [%s]", graph)
+		t.Errorf("HasTriple test failed for graph [%s]", graph)
 	}
 
 	if graph.HasTriple("s", "x", "o") {
-		t.Errorf("Is() test failed for graph [%s]", graph)
+		t.Errorf("HasTriple test failed for graph [%s]", graph)
+	}
+}
+
+func TestFindTriple(t *testing.T) {
+	triple := Triple{subject: "s", predicate: "a", object: "something"}
+	graph := RdfGraph{triple, triple}
+
+	if _, found := graph.FindTriple("s", "a"); !found {
+		t.Errorf("FindTriple test failed for valid triple")
+	}
+
+	if _, found := graph.FindTriple("s", "b"); found {
+		t.Errorf("FindTriple test failed for invalid triple")
+	}
+}
+
+func TestFindTripleAliasA(t *testing.T) {
+	triple := Triple{subject: "s", predicate: "a", object: "something"}
+	graph := RdfGraph{triple, triple}
+
+	if _, found := graph.FindTriple("s", "<"+RdfTypeUri+">"); !found {
+		t.Errorf("FindTriple test failed when using rdf type in fullname")
+	}
+}
+
+func TestFindTripleAliasRdfType(t *testing.T) {
+	triple := Triple{subject: "s", predicate: "<" + RdfTypeUri + ">", object: "something"}
+	graph := RdfGraph{triple, triple}
+
+	if _, found := graph.FindTriple("s", "a"); !found {
+		t.Errorf("FindTriple test failed when using 'a' rather than rdf type fullname")
+	}
+}
+
+func TestSetObject(t *testing.T) {
+	triple := Triple{subject: "s", predicate: "p", object: "o"}
+	graph := RdfGraph{triple}
+
+	graph.SetObject("s", "p", "o2")
+	if graph.HasTriple("s", "p", "o") {
+		t.Errorf("SetObject found the original triple (after it was replaced)")
+	}
+
+	if !graph.HasTriple("s", "p", "o2") {
+		t.Errorf("SetObject did not find triple with new value")
+	}
+
+	graph.SetObject("s", "p2", "o3")
+	if !graph.HasTriple("s", "p2", "o3") {
+		t.Errorf("SetObject did not find new triple")
+	}
+
+	if !graph.HasTriple("s", "p", "o2") {
+		t.Errorf("SetObject did not triple with new value (after adding new triple)")
 	}
 }

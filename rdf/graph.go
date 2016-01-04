@@ -38,6 +38,11 @@ func (graph *RdfGraph) Append(newGraph RdfGraph) {
 	}
 }
 
+func (graph *RdfGraph) AppendTriple(triple Triple) {
+	newGraph := RdfGraph{triple}
+	graph.Append(newGraph)
+}
+
 func (graph RdfGraph) IsRdfSource(subject string) bool {
 	predicate := "<" + RdfTypeUri + ">"
 	object := "<" + LdpRdfSourceUri + ">"
@@ -83,8 +88,31 @@ func (graph RdfGraph) HasPredicate(predicate string) bool {
 	return false
 }
 
+func (graph *RdfGraph) FindTriple(subject, predicate string) (*Triple, bool) {
+	// I don't quite like this dereferrencing of the graph into triples
+	// (*graph) and then getting a pointer to each individual item
+	// &triples[i] but I am not sure if there is a better way.
+	triples := *graph
+	for i, _ := range triples {
+		triple := &triples[i]
+		if triple.subject == subject && triple.predicate == predicate {
+			return triple, true
+		}
+	}
+	// "a" is an alias for RdfType
+	// look to see if we can find it by alias
+	switch {
+	case predicate == "a":
+		return graph.FindTriple(subject, "<"+RdfTypeUri+">")
+	case predicate == "<"+RdfTypeUri+">":
+		return graph.FindTriple(subject, "a")
+	}
+	return nil, false
+}
+
 func (graph RdfGraph) HasTriple(subject, predicate, object string) bool {
 	for _, triple := range graph {
+		// TODO: this does not handle the a/rdftype alias case
 		found := (triple.subject == subject) && (triple.predicate == predicate) && (triple.object == object)
 		if found {
 			return true
@@ -93,15 +121,23 @@ func (graph RdfGraph) HasTriple(subject, predicate, object string) bool {
 	return false
 }
 
-func (graph RdfGraph) GetObject(subject, predicate string) (bool, string) {
-	found := false
-	value := ""
-	for _, triple := range graph {
-		found = (triple.subject == subject) && (triple.predicate == predicate)
-		if found {
-			value = triple.object
-			break
-		}
+func (graph RdfGraph) GetObject(subject, predicate string) (string, bool) {
+	triple, found := graph.FindTriple(subject, predicate)
+	if found {
+		return triple.object, true
 	}
-	return found, value
+	return "", false
+}
+
+func (graph *RdfGraph) SetObject(subject, predicate, object string) {
+	var t *Triple
+	t, found := graph.FindTriple(subject, predicate)
+	if found {
+		t.object = object
+		return
+	}
+
+	// Add a new triple to the graph with the subject/predicate/object
+	newTriple := NewTriple(subject, predicate, object)
+	graph.AppendTriple(newTriple)
 }
