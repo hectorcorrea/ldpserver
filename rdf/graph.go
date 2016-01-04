@@ -28,16 +28,6 @@ func StringToGraph(theString, rootUri string) (RdfGraph, error) {
 	return graph, err
 }
 
-func (graph *RdfGraph) Append(newGraph RdfGraph) {
-	// TODO: Is it OK to duplicate a triple (same subject, pred, and object)
-	// or should Append remove duplicates?
-	// TODO: There are some triples that cannot be duplicated (e.g. direct container definition triples)
-	//       but perhaps that should be validated in the LDP module, not on the RDF module.
-	for _, triple := range newGraph {
-		*graph = append(*graph, triple)
-	}
-}
-
 func (graph RdfGraph) IsRdfSource(subject string) bool {
 	// predicate := "<" + RdfTypeUri + ">"
 	object := "<" + LdpRdfSourceUri + ">"
@@ -74,13 +64,9 @@ func (graph RdfGraph) GetDirectContainerInfo() (string, string, bool) {
 	return "", "", false
 }
 
-func (graph RdfGraph) HasPredicate(predicate string) bool {
-	for _, triple := range graph {
-		if triple.predicate == predicate {
-			return true
-		}
-	}
-	return false
+func (graph RdfGraph) HasPredicate(subject, predicate string) bool {
+	_, found := graph.FindTriple(subject, predicate)
+	return found
 }
 
 func (graph *RdfGraph) FindTriple(subject, predicate string) (*Triple, bool) {
@@ -131,9 +117,14 @@ func (graph *RdfGraph) appendTriple(subject, predicate, object string, recurr bo
 
 	// Append the new triple
 	newTriple := NewTriple(subject, predicate, object)
-	newGraph := RdfGraph{newTriple}
-	graph.Append(newGraph)
+	*graph = append(*graph, newTriple)
 	return true
+}
+
+func (graph *RdfGraph) Append(newGraph RdfGraph) {
+	for _, triple := range newGraph {
+		graph.AppendTriple(triple)
+	}
 }
 
 func (graph *RdfGraph) AppendTriple(t Triple) bool {
@@ -168,8 +159,9 @@ func (graph RdfGraph) GetObject(subject, predicate string) (string, bool) {
 }
 
 // Set the object for a subject/predicate
-// This is only useful for triples that can appear only once
-// on the graph.
+// This is only useful for subject/predicates that can appear only once
+// on the graph. If a subject/predicate can appear multiple times, this
+// method will find and overwrite the first instance only.
 func (graph *RdfGraph) SetObject(subject, predicate, object string) {
 	triple, found := graph.FindTriple(subject, predicate)
 	if found {
