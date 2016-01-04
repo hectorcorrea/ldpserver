@@ -139,6 +139,14 @@ func (node Node) String() string {
 	return node.uri
 }
 
+func (node *Node) appendTriple(predicate, object string) {
+	node.graph.AppendTriple2("<"+node.uri+">", predicate, object)
+}
+
+func (node *Node) setETag() {
+	node.graph.SetObject("<"+node.uri+">", etagPredicate, calculateEtag())
+}
+
 func GetNode(settings Settings, path string) (Node, error) {
 	node := newNode(settings, path)
 	err := node.loadNode(true)
@@ -268,41 +276,36 @@ func (node *Node) loadMeta() error {
 		return err
 	}
 
-	graph, err := rdf.StringToGraph(meta, node.uri)
+	node.graph, err = rdf.StringToGraph(meta, node.uri)
 	if err != nil {
 		return err
 	}
 
-	if graph.IsRdfSource("<" + node.uri + ">") {
-		node.setAsRdf(graph)
+	if node.graph.IsRdfSource("<" + node.uri + ">") {
+		node.setAsRdf()
 	} else {
-		node.setAsNonRdf(graph)
+		node.setAsNonRdf()
 	}
 	return nil
 }
 
 func (node *Node) writeNonRdfToDisk(reader io.ReadCloser) error {
-	subject := "<" + node.uri + ">"
-	graph := rdf.RdfGraph{}
-	graph.SetObject(subject, etagPredicate, calculateEtag())
-
-	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpResourceUri+">"))
-	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpNonRdfSourceUri+">"))
-
-	node.setAsNonRdf(graph)
+	node.graph = rdf.RdfGraph{}
+	node.setETag()
+	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpResourceUri+">")
+	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpNonRdfSourceUri+">")
+	node.setAsNonRdf()
 	return node.writeToDisk(reader)
 }
 
 func (node *Node) writeRdfToDisk(graph rdf.RdfGraph) error {
-	subject := "<" + node.uri + ">"
-	graph.SetObject(subject, etagPredicate, calculateEtag())
-
-	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpResourceUri+">"))
-	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpRdfSourceUri+">"))
-	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpContainerUri+">"))
-	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpBasicContainerUri+">"))
-
-	node.setAsRdf(graph)
+	node.graph = graph
+	node.setETag()
+	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpResourceUri+">")
+	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpRdfSourceUri+">")
+	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpContainerUri+">")
+	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpBasicContainerUri+">")
+	node.setAsRdf()
 	return node.writeToDisk(nil)
 }
 
@@ -330,14 +333,13 @@ func (node *Node) writeToDisk(reader io.ReadCloser) error {
 	return err
 }
 
-func (node *Node) setAsRdf(graph rdf.RdfGraph) {
+func (node *Node) setAsRdf() {
 	subject := "<" + node.uri + ">"
 	node.isRdf = true
-	node.graph = graph
 	node.headers = make(map[string][]string)
 	node.headers["Content-Type"] = []string{rdf.TurtleContentType}
 
-	if graph.IsBasicContainer(subject) {
+	if node.graph.IsBasicContainer(subject) {
 		// Is there a way to indicate that PUT is allowed
 		// for creation only (and not to overwrite?)
 		node.headers["Allow"] = []string{"GET, HEAD, POST, PUT, PATCH"}
@@ -351,12 +353,12 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 
 	links := make([]string, 0)
 	links = append(links, rdf.LdpResourceLink)
-	if graph.IsBasicContainer(subject) {
+	if node.graph.IsBasicContainer(subject) {
 		node.isBasicContainer = true
 		links = append(links, rdf.LdpContainerLink)
 		links = append(links, rdf.LdpBasicContainerLink)
 		// TODO: validate membershipResource is a sub-URI of rootURI
-		node.membershipResource, node.hasMemberRelation, node.isDirectContainer = graph.GetDirectContainerInfo()
+		node.membershipResource, node.hasMemberRelation, node.isDirectContainer = node.graph.GetDirectContainerInfo()
 		if node.isDirectContainer {
 			links = append(links, rdf.LdpDirectContainerLink)
 		}
@@ -364,10 +366,9 @@ func (node *Node) setAsRdf(graph rdf.RdfGraph) {
 	node.headers["Link"] = links
 }
 
-func (node *Node) setAsNonRdf(graph rdf.RdfGraph) {
+func (node *Node) setAsNonRdf() {
 	// TODO Figure out a way to pass the binary as a stream
 	node.isRdf = false
-	node.graph = graph
 	node.binary = ""
 	node.headers = make(map[string][]string)
 	node.headers["Link"] = []string{rdf.LdpNonRdfSourceLink}

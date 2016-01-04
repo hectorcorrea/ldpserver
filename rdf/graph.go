@@ -131,6 +131,10 @@ func (graph *RdfGraph) AppendTriple(t Triple) bool {
 	return graph.appendTriple(t.subject, t.predicate, t.object, true)
 }
 
+func (graph *RdfGraph) AppendTriple2(subject, predicate, object string) bool {
+	return graph.appendTriple(subject, predicate, object, true)
+}
+
 func (graph RdfGraph) SubjectIs(subject, object string) bool {
 	if graph.HasTriple(subject, "a", object) {
 		return true

@@ -5,6 +5,7 @@ import (
 	"ldpserver/ldp"
 	"ldpserver/rdf"
 	"ldpserver/util"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -56,6 +57,7 @@ func TestCreateRdf(t *testing.T) {
 func TestReplaceRdf(t *testing.T) {
 	triples := "<> xx:version \"version1\" ."
 	node, err := theServer.ReplaceRdfSource(triples, "/", "rdf-test", "ignore-etag")
+	log.Printf("1. %s", node.Content())
 	if err != nil {
 		t.Errorf("Error creating a new RDF node with replace: %s", err)
 	}
@@ -64,6 +66,7 @@ func TestReplaceRdf(t *testing.T) {
 	etag := node.Etag()
 	triples = "<> xx:version \"version2\" ."
 	node, err = theServer.ReplaceRdfSource(triples, "/", path, etag)
+	log.Printf("2. %s", node.Content())
 	if err != nil {
 		t.Errorf("Error replacing RDF node: %s", err)
 	}
