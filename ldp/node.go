@@ -20,6 +20,8 @@ var ServerManagedPropertyError = errors.New("Attempted to update server managed 
 
 const metaFile = "meta.rdf"
 const dataFile = "data.txt"
+const etagPredicate = "<" + rdf.ServerETagUri + ">"
+const rdfTypePredicate = "<" + rdf.RdfTypeUri + ">"
 
 type Node struct {
 	isRdf   bool
@@ -280,20 +282,25 @@ func (node *Node) loadMeta() error {
 }
 
 func (node *Node) writeNonRdfToDisk(reader io.ReadCloser) error {
-	graph := defaultGraphNonRdf(node.uri)
+	subject := "<" + node.uri + ">"
+	graph := rdf.RdfGraph{}
+	graph.SetObject(subject, etagPredicate, calculateEtag())
+
+	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpResourceUri+">"))
+	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpNonRdfSourceUri+">"))
+
 	node.setAsNonRdf(graph)
 	return node.writeToDisk(reader)
 }
 
 func (node *Node) writeRdfToDisk(graph rdf.RdfGraph) error {
 	subject := "<" + node.uri + ">"
-	etagPredicate := "<" + rdf.ServerETagUri + ">"
 	graph.SetObject(subject, etagPredicate, calculateEtag())
 
-	graph.AppendTriple(rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">"))
-	graph.AppendTriple(rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpRdfSourceUri+">"))
-	graph.AppendTriple(rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpContainerUri+">"))
-	graph.AppendTriple(rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpBasicContainerUri+">"))
+	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpResourceUri+">"))
+	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpRdfSourceUri+">"))
+	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpContainerUri+">"))
+	graph.AppendTriple(rdf.NewTriple(subject, rdfTypePredicate, "<"+rdf.LdpBasicContainerUri+">"))
 
 	node.setAsRdf(graph)
 	return node.writeToDisk(nil)
@@ -376,20 +383,6 @@ func calculateEtag() string {
 	now := time.Now().Format(time.RFC3339)
 	etag := strings.Replace(now, ":", "_", -1)
 	return "\"" + etag + "\""
-}
-
-func defaultGraphNonRdf(uri string) rdf.RdfGraph {
-	subject := "<" + uri + ">"
-	// define the triples
-	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
-	nonRdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpNonRdfSourceUri+">")
-	title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
-	nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
-	created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
-	etag := rdf.NewTriple(subject, "<"+rdf.ServerETagUri+">", calculateEtag())
-	// create the graph
-	graph := rdf.RdfGraph{resource, nonRdfSource, title, created, etag}
-	return graph
 }
 
 func newNode(settings Settings, path string) Node {
