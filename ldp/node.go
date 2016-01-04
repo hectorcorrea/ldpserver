@@ -151,7 +151,11 @@ func GetHead(settings Settings, path string) (Node, error) {
 
 func NewRdfNode(settings Settings, triples string, path string) (Node, error) {
 	node := newNode(settings, path)
-	return node, node.writeRdfToDisk(triples)
+	graph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
+	if err != nil {
+		return Node{}, err
+	}
+	return node, node.writeRdfToDisk(graph)
 }
 
 func NewNonRdfNode(settings Settings, reader io.ReadCloser, path string) (Node, error) {
@@ -199,13 +203,17 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 		return Node{}, EtagMismatchError
 	}
 
+	graph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
+	if err != nil {
+		return Node{}, err
+	}
+
 	// TODO: What other server-managed properties should we handle?
-	graph, _ := rdf.StringToGraph(triples, "<"+node.uri+">")
 	if graph.HasPredicate("<"+node.uri+">", "<"+rdf.LdpContainsUri+">") {
 		return Node{}, ServerManagedPropertyError
 	}
 
-	return node, node.writeGraphToDisk(graph)
+	return node, node.writeRdfToDisk(graph)
 }
 
 func (node Node) addDirectContainerChild(child Node) error {
@@ -277,7 +285,7 @@ func (node *Node) writeNonRdfToDisk(reader io.ReadCloser) error {
 	return node.writeToDisk(reader)
 }
 
-func (node *Node) writeGraphToDisk(graph rdf.RdfGraph) error {
+func (node *Node) writeRdfToDisk(graph rdf.RdfGraph) error {
 	subject := "<" + node.uri + ">"
 	etagPredicate := "<" + rdf.ServerETagUri + ">"
 	graph.SetObject(subject, etagPredicate, calculateEtag())
@@ -287,19 +295,6 @@ func (node *Node) writeGraphToDisk(graph rdf.RdfGraph) error {
 	graph.AppendTriple(rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpContainerUri+">"))
 	graph.AppendTriple(rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpBasicContainerUri+">"))
 
-	node.setAsRdf(graph)
-	return node.writeToDisk(nil)
-}
-
-func (node *Node) writeRdfToDisk(triples string) error {
-	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
-	if err != nil {
-		log.Printf("== Triples \n%s\n==", triples)
-		return err
-	}
-
-	graph := defaultGraph(node.uri)
-	graph.Append(userGraph)
 	node.setAsRdf(graph)
 	return node.writeToDisk(nil)
 }
@@ -381,23 +376,6 @@ func calculateEtag() string {
 	now := time.Now().Format(time.RFC3339)
 	etag := strings.Replace(now, ":", "_", -1)
 	return "\"" + etag + "\""
-}
-
-func defaultGraph(uri string) rdf.RdfGraph {
-	subject := "<" + uri + ">"
-	// define the triples
-	resource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpResourceUri+">")
-	rdfSource := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpRdfSourceUri+">")
-	// TODO: Not all RDFs resources should be containers
-	container := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpContainerUri+">")
-	basicContainer := rdf.NewTriple(subject, "<"+rdf.RdfTypeUri+">", "<"+rdf.LdpBasicContainerUri+">")
-	// title := rdf.NewTriple(subject, "<"+rdf.DcTitleUri+">", "\"This is a new entry\"")
-	// nowString := "\"" + time.Now().Format(time.RFC3339) + "\""
-	// created := rdf.NewTriple(subject, "<"+rdf.DcCreatedUri+">", nowString)
-	etag := rdf.NewTriple(subject, "<"+rdf.ServerETagUri+">", calculateEtag())
-	// create the graph
-	graph := rdf.RdfGraph{resource, rdfSource, container, basicContainer, etag}
-	return graph
 }
 
 func defaultGraphNonRdf(uri string) rdf.RdfGraph {
