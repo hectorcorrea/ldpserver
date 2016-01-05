@@ -16,7 +16,7 @@ func WriteFile(filename, content string) error {
 	return ioutil.WriteFile(filename, []byte(content), normalAccess)
 }
 
-func CreateFile(filename string) error {
+func CreateFile(filename string, content string) error {
 	err := createPathForFilename(filename)
 	if err != nil {
 		return err
@@ -27,7 +27,8 @@ func CreateFile(filename string) error {
 		return err
 	}
 	defer file.Close()
-	return nil
+	_, err = file.WriteString(content)
+	return err
 }
 
 func AppendToFile(filename, text string) error {

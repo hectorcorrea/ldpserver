@@ -19,11 +19,12 @@ type Server struct {
 
 func NewServer(rootUri string, dataPath string) Server {
 	settings := ldp.SettingsNew(rootUri, dataPath)
-	ldp.CreateRoot(settings)
 	var server Server
 	server.settings = settings
 	server.minter = CreateMinter(server.settings.IdFile())
 	server.nextResource = make(chan textstore.Store)
+	server.createIdFile()
+	server.createRoot()
 	return server
 }
 

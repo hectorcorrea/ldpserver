@@ -4,6 +4,19 @@ import "fmt"
 import "strconv"
 import "ldpserver/fileio"
 
+// TODO: Move the handling of the IdFile to its own class.
+func (server Server) createIdFile() {
+	idFile := server.settings.IdFile()
+	if fileio.FileExists(idFile) {
+		return
+	}
+
+	err := fileio.CreateFile(idFile, "0")
+	if err != nil {
+		panic(fmt.Sprintf("Could not create ID file: %s", err.Error()))
+	}
+}
+
 func CreateMinter(idFile string) chan string {
 	nextId := make(chan string)
 	go func(idFile string) {
