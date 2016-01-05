@@ -83,10 +83,17 @@ Fetch node created
 
     curl localhost:9001/demo
 
-Create an *LDP Direct Container* that uses `/node1` as its `membershipResource` (notice the `$'text'` syntax to preserve carriage returns in the triples)
+Create an *LDP Direct Container* `/dc1` that uses `/node1` as its `membershipResource` and `someRel` as the member relation...
 
-    curl -X POST --header "Content-Type: text/turtle" -d $'<> <http://www.w3.org/ns/ldp#hasMemberRelation> <someRel> .\n<> <http://www.w3.org/ns/ldp#membershipResource> <http://localhost:9001/node1> .\n' localhost:9001
+    curl -X POST --header "Content-Type: text/turtle" --header "Slug: dc1" -d "<> <http://www.w3.org/ns/ldp#hasMemberRelation> someRel ; <http://www.w3.org/ns/ldp#membershipResource> <http://localhost:9001/node1> ." localhost:9001
 
+...add a node to the direct container
+
+    curl -X POST --header "Slug: child1" localhost:9001/dc1
+
+...fetch `/node1` and notice that it references `/dc1/child1` with the predicate `someRel` that we defined in the direct container:
+
+    curl localhost:9001/dc1
 
 ## Demo
 Take a look at `demo.sh` file for an example of a shell script that executes some of the operations supported. To run this demo make sure the LDP Server is running in a separate terminal window, for example:
