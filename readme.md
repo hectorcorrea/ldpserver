@@ -129,10 +129,6 @@ For example, if we have two nodes (blog1 and blog2) and blog1 is an RDF node and
 * `rdf/` contains utilities to parse and update RDF triples and graphs.
 
 
-## Misc Notes
-Empty subjects and objects (<>) are only accepted when creating new nodes (via HTTP POST) and they are immediately converted to the actual URI that they represent.
-
-
 ## TODO
 A lot.
 
