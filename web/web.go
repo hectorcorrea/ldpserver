@@ -1,7 +1,6 @@
 package web
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"ldpserver/fileio"
@@ -11,16 +10,13 @@ import (
 	"ldpserver/util"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 )
 
-var stdin *bufio.Reader
 var theServer server.Server
 
 func Start(address, dataPath string) {
 	theServer = server.NewServer("http://"+address, dataPath)
-	stdin = bufio.NewReader(os.Stdin)
 	log.Printf("Listening for requests at %s\n", "http://"+address)
 	log.Printf("Data folder: %s\n", dataPath)
 	http.HandleFunc("/", homePage)
@@ -31,7 +27,6 @@ func Start(address, dataPath string) {
 }
 
 func homePage(resp http.ResponseWriter, req *http.Request) {
-	readline()
 	if req.Method == "GET" {
 		handleGet(true, resp, req)
 	} else if req.Method == "HEAD" {
@@ -294,10 +289,4 @@ func logHeaders(req *http.Request) {
 
 func logReqError(req *http.Request, message string, code int) {
 	log.Printf("Error %d on %s %s: %s", code, req.Method, req.URL.Path, message)
-}
-
-func readline() {
-	return
-	log.Print("Hit [ENTER]")
-	stdin.ReadString('\n')
 }
