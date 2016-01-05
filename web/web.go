@@ -177,6 +177,8 @@ func handlePostPutError(resp http.ResponseWriter, req *http.Request, err error) 
 	} else if err == ldp.ServerManagedPropertyError {
 		errorMsg = fmt.Sprintf("Cannot overwrite server-managed property")
 		errorCode = http.StatusConflict
+		constrainedBy := "<" + req.URL.Path + ">; rel=\"" + rdf.LdpConstrainedBy + "\""
+		resp.Header().Add("Link", constrainedBy)
 	}
 	logReqError(req, errorMsg, errorCode)
 	http.Error(resp, errorMsg, errorCode)
