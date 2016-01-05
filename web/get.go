@@ -31,11 +31,7 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	for key, header := range node.Headers() {
-		for _, value := range header {
-			resp.Header().Add(key, value)
-		}
-	}
+	setResponseHeaders(resp, node)
 
 	if etag := requestIfNoneMatch(req.Header); etag != "" {
 		if etag == node.Etag() {

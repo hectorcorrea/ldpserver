@@ -1,6 +1,7 @@
 package web
 
 import (
+	"ldpserver/ldp"
 	"ldpserver/rdf"
 	"log"
 	"net/http"
@@ -16,6 +17,14 @@ func safePath(rawPath string) string {
 		return rawPath
 	}
 	return rawPath + "/"
+}
+
+func setResponseHeaders(resp http.ResponseWriter, node ldp.Node) {
+	for key, header := range node.Headers() {
+		for _, value := range header {
+			resp.Header().Add(key, value)
+		}
+	}
 }
 
 func requestSlug(header http.Header) string {

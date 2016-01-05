@@ -15,9 +15,5 @@ func handleOptions(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	for key, header := range node.Headers() {
-		for _, value := range header {
-			resp.Header().Add(key, value)
-		}
-	}
+	setResponseHeaders(resp, node)
 }

@@ -16,28 +16,31 @@ func handlePostPutSuccess(resp http.ResponseWriter, node ldp.Node) {
 }
 
 func handlePostPutError(resp http.ResponseWriter, req *http.Request, err error) {
-	errorMsg := err.Error()
-	errorCode := http.StatusBadRequest
+	msg := err.Error()
+	code := http.StatusBadRequest
 	path := req.URL.Path
 	slug := requestSlug(req.Header)
-	if err == ldp.NodeNotFoundError {
-		errorMsg = "Parent container [" + path + "] not found."
-		errorCode = http.StatusNotFound
-	} else if err == ldp.DuplicateNodeError {
-		errorMsg = fmt.Sprintf("Resource already exists. Path: %s Slug: %s", path, slug)
-		errorCode = http.StatusConflict
-	} else if err == ldp.EtagMissingError {
-		errorMsg = fmt.Sprintf("Etag missing. Path: %s Slug: %s", path, slug)
-		errorCode = 428 // precondition required
-	} else if err == ldp.EtagMismatchError {
-		errorMsg = fmt.Sprintf("Etag mismatch. Path: %s Slug: %s", path, slug)
-		errorCode = http.StatusPreconditionFailed
-	} else if err == ldp.ServerManagedPropertyError {
-		errorMsg = fmt.Sprintf("Cannot overwrite server-managed property")
-		errorCode = http.StatusConflict
+
+	switch err {
+	case ldp.NodeNotFoundError:
+		msg = "Parent container [" + path + "] not found."
+		code = http.StatusNotFound
+	case ldp.DuplicateNodeError:
+		msg = fmt.Sprintf("Resource already exists. Path: %s Slug: %s", path, slug)
+		code = http.StatusConflict
+	case ldp.EtagMissingError:
+		msg = fmt.Sprintf("Etag missing. Path: %s Slug: %s", path, slug)
+		code = 428 // precondition required
+	case ldp.EtagMismatchError:
+		msg = fmt.Sprintf("Etag mismatch. Path: %s Slug: %s", path, slug)
+		code = http.StatusPreconditionFailed
+	case ldp.ServerManagedPropertyError:
+		msg = fmt.Sprintf("Cannot overwrite server-managed property")
+		code = http.StatusConflict
 		constrainedBy := "<" + req.URL.Path + ">; rel=\"" + rdf.LdpConstrainedBy + "\""
 		resp.Header().Add("Link", constrainedBy)
 	}
-	logReqError(req, errorMsg, errorCode)
-	http.Error(resp, errorMsg, errorCode)
+
+	logReqError(req, msg, code)
+	http.Error(resp, msg, code)
 }
