@@ -16,10 +16,10 @@ func handlePostPutSuccess(resp http.ResponseWriter, node ldp.Node) {
 }
 
 func handlePostPutError(resp http.ResponseWriter, req *http.Request, err error) {
-	msg := err.Error()
-	code := http.StatusBadRequest
 	path := req.URL.Path
 	slug := requestSlug(req.Header)
+	msg := err.Error()
+	code := http.StatusBadRequest
 
 	switch err {
 	case ldp.NodeNotFoundError:

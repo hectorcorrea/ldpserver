@@ -22,7 +22,7 @@ func handlePost(resp http.ResponseWriter, req *http.Request) {
 }
 
 func doPost(resp http.ResponseWriter, req *http.Request, path string, slug string) (ldp.Node, error) {
-	if isNonRdfPost(req.Header) {
+	if isNonRdfRequest(req.Header) {
 		// We should pass some hints too
 		// (e.g. application type, file name)
 		log.Printf("Creating Non-RDF Source at %s", path)

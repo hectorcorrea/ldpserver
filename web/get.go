@@ -20,14 +20,15 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 		log.Printf("HEAD request %s", path)
 		node, err = theServer.GetHead(path)
 	}
-	if err != nil {
-		if err == ldp.NodeNotFoundError {
-			log.Printf("Not found %s", path)
-			http.NotFound(resp, req)
-		} else {
-			log.Printf("Error %s", err)
-			http.Error(resp, "Could not fetch resource", http.StatusInternalServerError)
-		}
+
+	switch {
+	case err == ldp.NodeNotFoundError:
+		log.Printf("Not found %s", path)
+		http.NotFound(resp, req)
+		return
+	case err != nil:
+		log.Printf("Error %s", err)
+		http.Error(resp, "Could not fetch resource", http.StatusInternalServerError)
 		return
 	}
 

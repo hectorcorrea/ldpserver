@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func isNonRdfPost(header http.Header) bool {
+func isNonRdfRequest(header http.Header) bool {
 	return !isRdfContentType(header)
 }
 

@@ -28,7 +28,7 @@ func doPut(resp http.ResponseWriter, req *http.Request) (ldp.Node, error) {
 
 	etag := requestIfMatch(req.Header)
 
-	if isNonRdfPost(req.Header) {
+	if isNonRdfRequest(req.Header) {
 		// We should pass some hints too
 		// (e.g. application type, file name)
 		path := req.URL.Path
