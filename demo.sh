@@ -25,9 +25,7 @@ CONTENT_URI="$(curl -X POST --header "Content-Type: text/plain" --header 'Slug: 
 
 # Create a direct container for comments
 # and bind it to the entry
-TRIPLE1="<> <http://www.w3.org/ns/ldp#hasMemberRelation> hasComment ."
-TRIPLE2="<> <http://www.w3.org/ns/ldp#membershipResource> <${ENTRY_URI}> ."
-DC_TRIPLES="${TRIPLE1} ${TRIPLE2}"
+DC_TRIPLES="<> <http://www.w3.org/ns/ldp#hasMemberRelation> hasComment ; <http://www.w3.org/ns/ldp#membershipResource> <${ENTRY_URI}> ."
 COMMENTS_URI="$(curl -X POST --header "Content-Type: text/turtle" --header 'Slug: comments' -d "${DC_TRIPLES}" ${ENTRY_URI})"
 
 # Add a couple of comments to the direct container
