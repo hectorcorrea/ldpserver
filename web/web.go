@@ -139,7 +139,7 @@ func handlePatch(resp http.ResponseWriter, req *http.Request) {
 func handlePost(resp http.ResponseWriter, req *http.Request) {
 	logHeaders(req)
 
-	slug := getSlug(req.Header)
+	slug := requestSlug(req.Header)
 	path := safePath(req.URL.Path)
 	node, err := doPost(resp, req, path, slug)
 	if err != nil {
@@ -161,7 +161,7 @@ func handlePostPutError(resp http.ResponseWriter, req *http.Request, err error) 
 	errorMsg := err.Error()
 	errorCode := http.StatusBadRequest
 	path := req.URL.Path
-	slug := getSlug(req.Header)
+	slug := requestSlug(req.Header)
 	if err == ldp.NodeNotFoundError {
 		errorMsg = "Parent container [" + path + "] not found."
 		errorCode = http.StatusNotFound
@@ -213,7 +213,7 @@ func doPost(resp http.ResponseWriter, req *http.Request, path string, slug strin
 }
 
 func doPut(resp http.ResponseWriter, req *http.Request) (ldp.Node, error) {
-	if getSlug(req.Header) != "" {
+	if requestSlug(req.Header) != "" {
 		return ldp.Node{}, errors.New("Slug is not accepted on PUT requests")
 	}
 
@@ -247,32 +247,27 @@ func safePath(rawPath string) string {
 	return rawPath + "/"
 }
 
-func getSlug(header http.Header) string {
-	for _, value := range header["Slug"] {
-		return value
-	}
-	return ""
+func requestSlug(header http.Header) string {
+	return headerValue(header, "Slug", "")
 }
 
 func requestContentType(header http.Header) string {
-	for _, value := range header["Content-Type"] {
-		return value
-	}
-	return rdf.TurtleContentType
+	return headerValue(header, "Content-Type", rdf.TurtleContentType)
 }
 
 func requestIfNoneMatch(header http.Header) string {
-	for _, value := range header["If-None-Match"] {
-		return value
-	}
-	return ""
+	return headerValue(header, "If-None-Match", "")
 }
 
 func requestIfMatch(header http.Header) string {
-	for _, value := range header["If-Match"] {
+	return headerValue(header, "If-Match", "")
+}
+
+func headerValue(header http.Header, name, defaultValue string) string {
+	for _, value := range header[name] {
 		return value
 	}
-	return ""
+	return defaultValue
 }
 
 func isRdfContentType(header http.Header) bool {
