@@ -3,11 +3,9 @@ package server
 import (
 	"errors"
 	"fmt"
-	"io"
 	"ldpserver/ldp"
 	"ldpserver/textstore"
 	"ldpserver/util"
-	// "log"
 )
 
 const defaultSlug string = "node"
@@ -15,14 +13,15 @@ const defaultSlug string = "node"
 type Server struct {
 	settings ldp.Settings
 	minter   chan string
-	// this should use an interface to it's not tied to "textStore"
+	// this should use an interface so it's not tied to "textStore"
 	nextResource chan textstore.Store
 }
 
 func NewServer(rootUri string, dataPath string) Server {
+	settings := ldp.SettingsNew(rootUri, dataPath)
+	ldp.CreateRoot(settings)
 	var server Server
-	server.settings = ldp.SettingsNew(rootUri, dataPath)
-	ldp.CreateRoot(server.settings)
+	server.settings = settings
 	server.minter = CreateMinter(server.settings.IdFile())
 	server.nextResource = make(chan textstore.Store)
 	return server
@@ -34,135 +33,6 @@ func (server Server) GetNode(path string) (ldp.Node, error) {
 
 func (server Server) GetHead(path string) (ldp.Node, error) {
 	return ldp.GetHead(server.settings, path)
-}
-
-// POST
-func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string, slug string) (ldp.Node, error) {
-	path, err := server.newPathFromSlug(parentPath, slug)
-	if err != nil {
-		return ldp.Node{}, err
-	}
-
-	resource := server.createResource(path)
-	if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
-		return ldp.Node{}, resource.Error()
-	}
-
-	if resource.Error() == textstore.AlreadyExistsError {
-		if slug == "" {
-			// We generated a duplicate node.
-			return ldp.Node{}, ldp.DuplicateNodeError
-		}
-
-		// The user provided slug is duplicated.
-		// Let's try with one of our own.
-		return server.CreateNonRdfSource(reader, parentPath, "")
-	}
-
-	// Create new node
-	node, err := ldp.NewNonRdfNode(server.settings, reader, path)
-	if err != nil {
-		return node, err
-	}
-
-	if path != "/" {
-		err = server.addNodeToContainer(node, parentPath)
-	}
-
-	return node, err
-}
-
-// POST
-func (server Server) CreateRdfSource(triples string, parentPath string, slug string) (ldp.Node, error) {
-	path, err := server.newPathFromSlug(parentPath, slug)
-	if err != nil {
-		return ldp.Node{}, err
-	}
-
-	resource := server.createResource(path)
-	if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
-		return ldp.Node{}, resource.Error()
-	}
-
-	if resource.Error() == textstore.AlreadyExistsError {
-		if slug == "" {
-			// We generated a duplicate node.
-			return ldp.Node{}, ldp.DuplicateNodeError
-		}
-
-		// The user provided slug is duplicated.
-		// Let's try with one of our own.
-		return server.CreateRdfSource(triples, parentPath, "")
-	}
-
-	// Create new node
-	node, err := ldp.NewRdfNode(server.settings, triples, path)
-	if err != nil {
-		return ldp.Node{}, err
-	}
-
-	if path != "/" {
-		err = server.addNodeToContainer(node, parentPath)
-	}
-
-	return node, err
-}
-
-// PUT
-func (server Server) ReplaceNonRdfSource(reader io.ReadCloser, path string, etag string) (ldp.Node, error) {
-	if isRootPath(path) {
-		return ldp.Node{}, errors.New("Cannot replace root node with an Non-RDF source")
-	}
-
-	resource := server.createResource(path)
-	if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
-		return ldp.Node{}, resource.Error()
-	}
-
-	if resource.Error() == textstore.AlreadyExistsError {
-		// Replace existing node
-		return ldp.ReplaceNonRdfNode(server.settings, reader, path, etag)
-	}
-
-	// Create new node
-	node, err := ldp.NewNonRdfNode(server.settings, reader, path)
-	if err != nil {
-		return ldp.Node{}, err
-	}
-
-	parentPath := util.ParentUriPath(path)
-	err = server.addNodeToContainer(node, parentPath)
-	return node, err
-}
-
-// PUT
-func (server Server) ReplaceRdfSource(triples string, parentPath string, slug string, etag string) (ldp.Node, error) {
-	path, err := server.newPathFromSlug(parentPath, slug)
-	if err != nil {
-		return ldp.Node{}, err
-	}
-
-	resource := server.createResource(path)
-	if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
-		return ldp.Node{}, resource.Error()
-	}
-
-	if resource.Error() == textstore.AlreadyExistsError {
-		// Replace existing node
-		return ldp.ReplaceRdfNode(server.settings, triples, path, etag)
-	}
-
-	// Create new node
-	node, err := ldp.NewRdfNode(server.settings, triples, path)
-	if err != nil {
-		return ldp.Node{}, err
-	}
-
-	if path != "/" {
-		err = server.addNodeToContainer(node, parentPath)
-	}
-
-	return node, err
 }
 
 func (server Server) PatchNode(path string, triples string) error {
