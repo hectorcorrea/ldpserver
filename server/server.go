@@ -21,9 +21,9 @@ func NewServer(rootUri string, dataPath string) Server {
 	settings := ldp.SettingsNew(rootUri, dataPath)
 	var server Server
 	server.settings = settings
+	server.createIdFile()
 	server.minter = CreateMinter(server.settings.IdFile())
 	server.nextResource = make(chan textstore.Store)
-	server.createIdFile()
 	server.createRoot()
 	return server
 }
