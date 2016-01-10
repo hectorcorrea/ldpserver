@@ -14,13 +14,13 @@ func handleCommonErrors(resp http.ResponseWriter, req *http.Request, err error) 
 	}
 
 	if err == ldp.NodeNotFoundError {
-    log.Printf("Not found %s", req.URL.Path)
-    http.NotFound(resp, req)
-    return
+		log.Printf("Not found %s", req.URL.Path)
+		http.NotFound(resp, req)
+		return
 	}
 
-  log.Printf("Error %s", err)
-  http.Error(resp, "Error processing request", http.StatusInternalServerError)
+	log.Printf("Error %s", err)
+	http.Error(resp, "Error processing request", http.StatusInternalServerError)
 }
 
 func isRdfRequest(header http.Header) bool {
@@ -96,7 +96,6 @@ func defaultNonRdfTriples(header http.Header) string {
 		triples = "<> <" + rdf.ServerContentTypeUri + "> \"" + contentType + "\" ."
 	}
 	// TODO: We should also try to read the file name from the header (if available)
-	log.Printf("default triples: %s\n", triples)
 	return triples
 }
 
