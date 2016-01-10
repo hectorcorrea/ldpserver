@@ -8,6 +8,21 @@ import (
 	"strings"
 )
 
+func handleCommonErrors(resp http.ResponseWriter, req *http.Request, err error) {
+	if err == nil {
+		panic("No error to handle")
+	}
+
+	if err == ldp.NodeNotFoundError {
+    log.Printf("Not found %s", req.URL.Path)
+    http.NotFound(resp, req)
+    return
+	}
+
+  log.Printf("Error %s", err)
+  http.Error(resp, "Error processing request", http.StatusInternalServerError)
+}
+
 func isRdfRequest(header http.Header) bool {
 	contentType := requestContentType(header)
 	if contentType == "" {

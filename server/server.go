@@ -6,6 +6,7 @@ import (
 	"ldpserver/ldp"
 	"ldpserver/textstore"
 	"ldpserver/util"
+	// "log"
 )
 
 const defaultSlug string = "node"
@@ -43,6 +44,33 @@ func (server Server) PatchNode(path string, triples string) error {
 	}
 	return node.Patch(triples)
 }
+
+func (server Server) DeleteNode(path string) error {
+	if isRootPath(path) {
+		return errors.New("Cannot delete root node")
+	}
+
+	node, err := ldp.GetNode(server.settings, path)
+	if err != nil {
+		return err
+	}
+
+	parentPath := util.ParentUriPath(path)
+	parent, err := server.getContainer(parentPath)
+	if err != nil {
+		return err
+	}
+
+	// First remove the reference to the node to be deleted...
+	err = parent.RemoveContainsUri("<" + node.Uri() + ">")
+	if err != nil {
+		return err
+	}
+
+	// ...then delete the requested node
+	return node.Delete()
+}
+
 
 func (server Server) addNodeToContainer(node ldp.Node, path string) error {
 	container, err := server.getContainer(path)

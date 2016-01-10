@@ -109,3 +109,25 @@ func TestSetObject(t *testing.T) {
 		t.Errorf("SetObject did not triple with new value (after adding new triple)")
 	}
 }
+
+
+func TestDeleteTriple(t *testing.T) {
+	t1 := Triple{subject: "s1", predicate: "p1", object: "o1"}
+	t2 := Triple{subject: "s2", predicate: "p2", object: "o2"}
+	t3 := Triple{subject: "s3", predicate: "p3", object: "o3"}
+	graph := RdfGraph{t1, t2, t3}
+
+	deleted := graph.DeleteTriple("s2", "p2", "o2")
+	if !deleted {
+		t.Errorf("Did not delete triple from graph")
+	}
+
+	if graph.HasTriple("s2", "p2", "o2") {
+		t.Errorf("Deleted triple found in graph")
+	}
+
+	deleted = graph.DeleteTriple("s2", "p2", "o2")
+	if deleted {
+		t.Errorf("Delete triple deleted a non-existing triple")
+	}
+}

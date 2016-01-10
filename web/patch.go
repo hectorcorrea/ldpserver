@@ -3,7 +3,6 @@ package web
 import (
 	"fmt"
 	"ldpserver/fileio"
-	"ldpserver/ldp"
 	"log"
 	"net/http"
 )
@@ -29,14 +28,7 @@ func handlePatch(resp http.ResponseWriter, req *http.Request) {
 
 	err = theServer.PatchNode(path, triples)
 	if err != nil {
-		errorMsg := err.Error()
-		if err == ldp.NodeNotFoundError {
-			logReqError(req, errorMsg, http.StatusNotFound)
-			http.NotFound(resp, req)
-		} else {
-			logReqError(req, errorMsg, http.StatusInternalServerError)
-			http.Error(resp, errorMsg, http.StatusInternalServerError)
-		}
+		handleCommonErrors(resp, req, err)
 		return
 	}
 

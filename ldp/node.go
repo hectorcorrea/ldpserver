@@ -159,6 +159,22 @@ func (node *Node) setETag() {
 	node.graph.SetObject("<"+node.uri+">", etagPredicate, calculateEtag())
 }
 
+func (node *Node) Delete() error {
+	// TODO: implement
+	return nil
+}
+
+func (node *Node) RemoveContainsUri(uri string) error {
+	subject := "<" + node.uri + ">"
+	predicate := "<" + rdf.LdpContainsUri + ">"
+	object := uri
+	deleted := node.graph.DeleteTriple(subject, predicate, object)
+	if !deleted {
+		return errors.New("Failed to deleted the containment triple")
+	}
+	return node.writeRdfToDisk(node.graph)
+}
+
 func GetNode(settings Settings, path string) (Node, error) {
 	node := newNode(settings, path)
 	err := node.loadNode(true)
