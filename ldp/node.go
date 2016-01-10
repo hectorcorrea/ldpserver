@@ -18,8 +18,6 @@ var EtagMissingError = errors.New("Missing Etag")
 var EtagMismatchError = errors.New("Etag mismatch")
 var ServerManagedPropertyError = errors.New("Attempted to update server managed property")
 
-const metaFile = "meta.rdf"
-const dataFile = "data.txt"
 const etagPredicate = "<" + rdf.ServerETagUri + ">"
 const rdfTypePredicate = "<" + rdf.RdfTypeUri + ">"
 const contentTypePredicate = "<" + rdf.ServerContentTypeUri + ">"
@@ -44,7 +42,7 @@ type Node struct {
 
 func (node Node) AddChild(child Node) error {
 	triple := rdf.NewTriple("<"+node.uri+">", "<"+rdf.LdpContainsUri+">", "<"+child.uri+">")
-	err := node.store.AppendToFile(metaFile, triple.StringLn())
+	err := node.store.AppendToMetaFile(triple.StringLn())
 	if err != nil {
 		return err
 	}
@@ -160,8 +158,7 @@ func (node *Node) setETag() {
 }
 
 func (node *Node) Delete() error {
-	// TODO: implement
-	return nil
+	return node.store.Delete()
 }
 
 func (node *Node) RemoveContainsUri(uri string) error {
@@ -279,7 +276,7 @@ func (node Node) addDirectContainerChild(child Node) error {
 
 	tripleForTarget := rdf.NewTriple("<"+targetNode.uri+">", node.hasMemberRelation, "<"+child.uri+">")
 
-	err = targetNode.store.AppendToFile(metaFile, tripleForTarget.StringLn())
+	err = targetNode.store.AppendToMetaFile(tripleForTarget.StringLn())
 	if err != nil {
 		log.Printf("Error appending child %s to %s. %s", child.uri, targetNode.uri, err)
 		return err
@@ -302,7 +299,7 @@ func (node *Node) loadNode(isIncludeBody bool) error {
 
 func (node *Node) loadBinary() error {
 	var err error
-	node.binary, err = node.store.ReadFile(dataFile)
+	node.binary, err = node.store.ReadDataFile()
 	return err
 }
 
@@ -311,7 +308,7 @@ func (node *Node) loadMeta() error {
 		return NodeNotFoundError
 	}
 
-	meta, err := node.store.ReadFile(metaFile)
+	meta, err := node.store.ReadMetaFile()
 	if err != nil {
 		return err
 	}
@@ -351,7 +348,7 @@ func (node *Node) writeRdfToDisk(graph rdf.RdfGraph) error {
 
 func (node *Node) writeToDisk(reader io.ReadCloser) error {
 	// Write the RDF metadata
-	err := node.store.SaveFile(metaFile, node.graph.String())
+	err := node.store.SaveMetaFile(node.graph.String())
 	if err != nil {
 		return err
 	}
@@ -361,7 +358,7 @@ func (node *Node) writeToDisk(reader io.ReadCloser) error {
 	}
 
 	// Write the binary...
-	err = node.store.SaveReader(dataFile, reader)
+	err = node.store.SaveDataFile(reader)
 	if err != nil {
 		return err
 	}
@@ -369,7 +366,7 @@ func (node *Node) writeToDisk(reader io.ReadCloser) error {
 	// ...update the copy in memory (this would get
 	// tricky when we switch "node.binary" to a
 	// reader.
-	node.binary, err = node.store.ReadFile(dataFile)
+	node.binary, err = node.store.ReadDataFile()
 	return err
 }
 

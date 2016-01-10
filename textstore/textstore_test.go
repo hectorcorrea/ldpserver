@@ -1,6 +1,7 @@
 package textstore
 
 import (
+	"ldpserver/util"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,13 +24,14 @@ func TestTextStore(t *testing.T) {
 		t.Errorf("Error creating text store at %s", store.Path())
 	}
 
-	if err := store.SaveFile("demo.txt", "hello"); err != nil {
-		t.Errorf("Error %s saving text file demo.txt at %s", err, store.Path())
+	reader := util.FakeReaderCloser{Text: "hello"}
+	if err := store.SaveDataFile(reader); err != nil {
+		t.Errorf("Error %s saving text to data file at %s", err, store.Path())
 	}
 
-	text, err := store.ReadFile("demo.txt")
+	text, err := store.ReadDataFile()
 	if err != nil {
-		t.Errorf("Error %s reading text file demo.txt at %s", err, store.Path())
+		t.Errorf("Error %s reading text from data file at %s", err, store.Path())
 	}
 
 	if text != "hello" {

@@ -1,9 +1,11 @@
 package util
 
-import "strings"
-import "io"
-import "regexp"
-import "path"
+import (
+	"io"
+	"path"
+	"regexp"
+	"strings"
+)
 
 func PathConcat(path1, path2 string) string {
 	if strings.HasSuffix(path1, "/") {

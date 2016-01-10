@@ -27,7 +27,7 @@ func CreateStore(folder string) Store {
 	if store.Exists() {
 		store.err = AlreadyExistsError
 	} else {
-		store.err = store.SaveFile(metaFile, "")
+		store.err = store.SaveMetaFile("")
 	}
 	return store
 }
@@ -60,18 +60,39 @@ func (store Store) ErrorMessage() string {
 	return ""
 }
 
-func (store Store) SaveFile(filename string, content string) error {
-	fullFilename := util.PathConcat(store.folder, filename)
+func (store Store) Delete() error {
+	// delete the metafile
+	metaFileFullPath := util.PathConcat(store.folder, metaFile)
+	err := os.Remove(metaFileFullPath)
+	if err != nil {
+		return err
+	}
+
+	// delete the data file
+	dataFileFullPath := util.PathConcat(store.folder, dataFile)
+	if fileio.FileExists(dataFileFullPath) {
+		err = os.Remove(dataFileFullPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	// delete the store folder
+	return os.Remove(store.folder)
+}
+
+func (store Store) SaveMetaFile(content string) error {
+	fullFilename := util.PathConcat(store.folder, metaFile)
 	return fileio.WriteFile(fullFilename, content)
 }
 
-func (store Store) AppendToFile(filename string, content string) error {
-	fullFilename := util.PathConcat(store.folder, filename)
+func (store Store) AppendToMetaFile(content string) error {
+	fullFilename := util.PathConcat(store.folder, metaFile)
 	return fileio.AppendToFile(fullFilename, content)
 }
 
-func (store Store) SaveReader(filename string, reader io.ReadCloser) error {
-	fullFilename := util.PathConcat(store.folder, filename)
+func (store Store) SaveDataFile(reader io.ReadCloser) error {
+	fullFilename := util.PathConcat(store.folder, dataFile)
 	out, err := os.Create(fullFilename)
 	if err != nil {
 		return err
@@ -81,7 +102,12 @@ func (store Store) SaveReader(filename string, reader io.ReadCloser) error {
 	return out.Close()
 }
 
-func (store Store) ReadFile(filename string) (string, error) {
-	fullFilename := util.PathConcat(store.folder, filename)
+func (store Store) ReadMetaFile() (string, error) {
+	fullFilename := util.PathConcat(store.folder, metaFile)
+	return fileio.ReadFile(fullFilename)
+}
+
+func (store Store) ReadDataFile() (string, error) {
+	fullFilename := util.PathConcat(store.folder, dataFile)
 	return fileio.ReadFile(fullFilename)
 }
