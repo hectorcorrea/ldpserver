@@ -32,32 +32,21 @@ func CreateStore(folder string) Store {
 	return store
 }
 
-func Exists(folder string) bool {
-	return StoreExists(folder)
-}
-
 func (store Store) Exists() bool {
-	return StoreExists(store.folder)
+	return storeExists(store.folder)
 }
 
 func (store Store) Path() string {
 	return store.folder
 }
 
-func StoreExists(folder string) bool {
+func storeExists(folder string) bool {
 	metaRdf := util.PathConcat(folder, metaFile)
 	return fileio.FileExists(metaRdf)
 }
 
 func (store Store) Error() error {
 	return store.err
-}
-
-func (store Store) ErrorMessage() string {
-	if store.err != nil {
-		return store.err.Error()
-	}
-	return ""
 }
 
 func (store Store) Delete() error {
@@ -102,11 +91,13 @@ func (store Store) SaveDataFile(reader io.ReadCloser) error {
 	return out.Close()
 }
 
+// Should this return a reader?
 func (store Store) ReadMetaFile() (string, error) {
 	fullFilename := util.PathConcat(store.folder, metaFile)
 	return fileio.ReadFile(fullFilename)
 }
 
+// Should this return a reader?
 func (store Store) ReadDataFile() (string, error) {
 	fullFilename := util.PathConcat(store.folder, dataFile)
 	return fileio.ReadFile(fullFilename)

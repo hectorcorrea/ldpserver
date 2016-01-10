@@ -42,5 +42,4 @@ func TestTextStore(t *testing.T) {
 	if store.Error() == nil {
 		t.Errorf("Failed to detect override on create")
 	}
-
 }

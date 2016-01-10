@@ -136,13 +136,13 @@ For example, if we have two nodes (blog1 and blog2) and blog1 is an RDF node and
 ## TODO
 A lot.
 
-* Add validation to make sure the data in the data folder matches the URL (host:port) where the server is running.
+* Add validation to make sure the data in the root node matches the URL (host:port) where the server is running.
 
 * Support isMemberOfRelation in Direct Containers.
 
 * Support Indirect Containers.
 
-* Support HTTP PATCH, and DELETE.
+* Do not allow reusing URIs of deleted nodes.
 
 
 ## LDP Test Suite
