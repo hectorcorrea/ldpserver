@@ -35,12 +35,24 @@ func setResponseHeaders(resp http.ResponseWriter, node ldp.Node) {
 	}
 }
 
+func setResponseHeadersMetadataOnly(resp http.ResponseWriter, node ldp.Node) {
+	resp.Header().Add("Content-Type", rdf.TurtleContentType)
+	resp.Header().Add("Allow", "GET")
+	resp.Header().Add("Allow", "HEAD")
+	resp.Header().Add("Etag", node.Etag())
+}
+
 func requestSlug(header http.Header) string {
 	return headerValue(header, "Slug")
 }
 
 func requestContentType(header http.Header) string {
-	return headerValue(header, "Content-Type")
+	value := headerValue(header, "Content-Type")
+	// TODO: remove this horrible hack
+	if strings.HasSuffix(value, "; charset=ISO-8859-1") {
+		return strings.Replace(value, "; charset=ISO-8859-1", "", 1)
+	}
+	return value
 }
 
 func requestIfNoneMatch(header http.Header) string {
@@ -56,6 +68,10 @@ func headerValue(header http.Header, name string) string {
 		return value
 	}
 	return ""
+}
+
+func isNonRdfMetadataOnlyRequest(req *http.Request) bool {
+	return req.URL.Query().Get("metadata") == "yes"
 }
 
 func defaultNonRdfTriples(header http.Header) string {

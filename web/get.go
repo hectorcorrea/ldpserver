@@ -13,6 +13,7 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 
 	logHeaders(req)
 	path := safePath(req.URL.Path)
+
 	if includeBody {
 		log.Printf("GET request %s", path)
 		node, err = theServer.GetNode(path)
@@ -32,8 +33,6 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	setResponseHeaders(resp, node)
-
 	if etag := requestIfNoneMatch(req.Header); etag != "" {
 		if etag == node.Etag() {
 			resp.WriteHeader(http.StatusNotModified)
@@ -41,5 +40,12 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	if !node.IsRdf() && isNonRdfMetadataOnlyRequest(req) {
+		setResponseHeadersMetadataOnly(resp, node)
+		fmt.Fprint(resp, node.Metadata())
+		return
+	}
+
+	setResponseHeaders(resp, node)
 	fmt.Fprint(resp, node.Content())
 }

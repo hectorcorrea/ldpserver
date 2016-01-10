@@ -9,7 +9,12 @@ import (
 )
 
 func handlePostPutSuccess(resp http.ResponseWriter, node ldp.Node) {
-	resp.Header().Add("Location", node.Uri())
+	setResponseHeaders(resp, node)
+	location := node.Uri()
+	// if !node.IsRdf() {
+	// 	location += "?metadata=yes"
+	// }
+	resp.Header().Add("Location", location)
 	resp.WriteHeader(http.StatusCreated)
 	log.Printf("Resource created at %s", node.Uri())
 	fmt.Fprint(resp, node.Uri())

@@ -140,10 +140,6 @@ A lot.
 
 * Support HTTP PATCH, and DELETE.
 
-* Provide a mechanism to fetch the meta data for a non-RDF (e.g. via a query string or an HTTP header parameter)
-
-* Make sure the proper links are included in the HTTP response for all kind of resources.
-
 
 ## LDP Test Suite
 The W3C provides a test suite to make sure LDP server implementations meet a minimum criteria. The test suite can be found at http://w3c.github.io/ldp-testsuite/
@@ -160,12 +156,11 @@ In order to run the suite against this repo you need to do the following:
 
     java -jar target/ldp-testsuite-0.2.0-SNAPSHOT-shaded.jar --server http://localhost:9001 --test name_of_test_goes_here --basic
 
-...or as follow to run all basic container tests:
+...or as follow to run all basic container tests (including support for non-RDF):
 
-    java -jar target/ldp-testsuite-0.2.0-SNAPSHOT-shaded.jar --server http://localhost:9001 --basic
+    java -jar target/ldp-testsuite-0.2.0-SNAPSHOT-shaded.jar --server http://localhost:9001 --basic --non-rdf
 
-As of 1/4/2016 these are the results of all basic container tests:
+As of 1/9/2016 these are the results of all basic container tests (including support for non-RDF):
 
     LDP Test Suite
-    Total tests run: 90, Failures: 5, Skips: 27
-
+    Total tests run: 112, Failures: 8, Skips: 29

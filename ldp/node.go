@@ -62,6 +62,10 @@ func (node Node) Content() string {
 	return node.binary
 }
 
+func (node Node) Metadata() string {
+	return node.graph.String()
+}
+
 func (node Node) nonRdfContentType() string {
 	if node.isRdf {
 		panic("Cannot call NonRdfContentType() for an RDF node")
@@ -365,8 +369,6 @@ func (node *Node) setAsRdf() {
 	node.headers["Content-Type"] = []string{rdf.TurtleContentType}
 
 	if node.graph.IsBasicContainer(subject) {
-		// Is there a way to indicate that PUT is allowed
-		// for creation only (and not to overwrite?)
 		node.headers["Allow"] = []string{"GET, HEAD, POST, PUT, PATCH"}
 	} else {
 		node.headers["Allow"] = []string{"GET, HEAD, PUT, PATCH"}
@@ -396,7 +398,10 @@ func (node *Node) setAsNonRdf() {
 	node.isRdf = false
 	node.binary = ""
 	node.headers = make(map[string][]string)
-	node.headers["Link"] = []string{rdf.LdpResourceLink, rdf.LdpNonRdfSourceLink}
+
+	describedByLink := fmt.Sprintf("<%s?metadata=yes>; rel=\"describedby\"; anchor=\"%s\"", node.uri, node.uri)
+	node.headers["Link"] = []string{describedByLink, rdf.LdpResourceLink, rdf.LdpNonRdfSourceLink}
+
 	node.headers["Allow"] = []string{"GET, HEAD, PUT"}
 	node.headers["Content-Type"] = []string{node.nonRdfContentType()}
 	node.headers["Etag"] = []string{node.Etag()}
