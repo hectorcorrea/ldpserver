@@ -9,7 +9,7 @@ import (
 )
 
 var AlreadyExistsError = errors.New("Already exists")
-var CreateDeletedError = errors.New("Attempting to create a store that has been deleted")
+var CreateDeletedError = errors.New("Attempting to create a store that has been previously deleted")
 
 const metaFile string = "meta.rdf"
 const dataFile string = "data.bin"
@@ -31,7 +31,6 @@ func CreateStore(folder string) Store {
 		store.err = AlreadyExistsError
 	case store.isDeleted():
 		store.err = CreateDeletedError
-		// errors.New("Attempting to create store that has been deleted: " + folder)
 	default:
 		store.err = store.SaveMetaFile("")
 	}
@@ -40,24 +39,6 @@ func CreateStore(folder string) Store {
 
 func (store Store) Exists() bool {
 	return storeExists(store.folder)
-}
-
-func (store Store) Path() string {
-	return store.folder
-}
-
-func storeExists(folder string) bool {
-	// we consider that it exists as long as there is a
-	// metadata file on it.
-	// Notice that we don't look for the Deleted Mark File
-	// when determining if it exists or not.
-	metaRdf := util.PathConcat(folder, metaFile)
-	return fileio.FileExists(metaRdf)
-}
-
-func (store Store) isDeleted() bool {
-	deletedFile := util.PathConcat(store.folder, deletedMarkFile)
-	return fileio.FileExists(deletedFile)
 }
 
 func (store Store) Error() error {
@@ -81,7 +62,7 @@ func (store Store) Delete() error {
 		}
 	}
 
-	return store.MarkAsDeleted()
+	return store.markAsDeleted()
 }
 
 func (store Store) SaveMetaFile(content string) error {
@@ -117,7 +98,21 @@ func (store Store) ReadDataFile() (string, error) {
 	return fileio.ReadFile(fullFilename)
 }
 
-func (store Store) MarkAsDeleted() error {
+func (store Store) isDeleted() bool {
+	deletedFile := util.PathConcat(store.folder, deletedMarkFile)
+	return fileio.FileExists(deletedFile)
+}
+
+func (store Store) markAsDeleted() error {
 	fullFilename := util.PathConcat(store.folder, deletedMarkFile)
 	return fileio.WriteFile(fullFilename, "deleted")
+}
+
+func storeExists(folder string) bool {
+	// we consider that it exists as long as there is a
+	// metadata file on it.
+	// Notice that we don't look for the Deleted Mark File
+	// when determining if it exists or not.
+	metaRdf := util.PathConcat(folder, metaFile)
+	return fileio.FileExists(metaRdf)
 }
