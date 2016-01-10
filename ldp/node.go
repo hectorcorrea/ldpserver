@@ -128,23 +128,19 @@ func (node *Node) Patch(triples string) error {
 		return errors.New("Cannot PATCH non-RDF Source")
 	}
 
-	graph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
+	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
 	if err != nil {
 		return err
 	}
 
-	// This is pretty useless as-is since it does not allow to update
-	// a triple. It always adds triples.
-	// Also, there are some triples that can exist only once (e.g. direct container triples)
-	// and this code does not validate them.
-	node.graph.Append(graph)
-
-	// write it to disk
-	if err := node.writeToDisk(nil); err != nil {
-		return err
+	if hasServerManagedProperties(userGraph, node.uri) {
+		return ServerManagedPropertyError
 	}
 
-	return nil
+	// This is pretty useless as-is since it does not allow to update
+	// a triple. It always adds triples.
+	node.graph.Append(userGraph)
+	return node.writeRdfToDisk(node.graph)
 }
 
 func (node Node) Path() string {
@@ -247,8 +243,7 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 		return Node{}, err
 	}
 
-	// TODO: What other server-managed properties should we handle?
-	if graph.HasPredicate("<"+node.uri+">", "<"+rdf.LdpContainsUri+">") {
+	if hasServerManagedProperties(graph, node.uri) {
 		return Node{}, ServerManagedPropertyError
 	}
 
@@ -405,6 +400,22 @@ func (node *Node) setAsNonRdf() {
 	node.headers["Allow"] = []string{"GET, HEAD, PUT"}
 	node.headers["Content-Type"] = []string{removeQuotes(node.nonRdfContentType())}
 	node.headers["Etag"] = []string{node.Etag()}
+}
+
+func hasServerManagedProperties(graph rdf.RdfGraph, uri string) bool {
+	subject := "<" + uri + ">"
+
+	// TODO: What other server-managed properties should we handle?
+	properties := []string{rdf.LdpResourceUri, rdf.LdpRdfSourceUri, rdf.LdpNonRdfSourceUri,
+		rdf.LdpContainerUri, rdf.LdpBasicContainerUri, rdf.LdpDirectContainerUri, rdf.LdpContainsUri,
+		rdf.LdpConstrainedBy}
+
+	for _, property := range properties {
+		if graph.HasPredicate(subject, "<"+property+">") {
+			return true
+		}
+	}
+	return false
 }
 
 func calculateEtag() string {
