@@ -20,6 +20,7 @@ func Start(address, dataPath string) {
 }
 
 func homePage(resp http.ResponseWriter, req *http.Request) {
+	logHeaders(req)
 	if req.Method == "GET" {
 		handleGet(true, resp, req)
 	} else if req.Method == "HEAD" {

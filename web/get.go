@@ -11,7 +11,6 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 	var node ldp.Node
 	var err error
 
-	logHeaders(req)
 	path := safePath(req.URL.Path)
 
 	if includeBody {

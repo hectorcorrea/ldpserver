@@ -6,7 +6,6 @@ import (
 )
 
 func handleOptions(resp http.ResponseWriter, req *http.Request) {
-	logHeaders(req)
 	path := safePath(req.URL.Path)
 	node, err := theServer.GetNode(path)
 	if err != nil {

@@ -8,8 +8,6 @@ import (
 )
 
 func handlePost(resp http.ResponseWriter, req *http.Request) {
-	logHeaders(req)
-
 	slug := requestSlug(req.Header)
 	path := safePath(req.URL.Path)
 	node, err := doPost(resp, req, path, slug)

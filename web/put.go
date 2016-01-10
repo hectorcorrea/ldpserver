@@ -10,8 +10,6 @@ import (
 )
 
 func handlePut(resp http.ResponseWriter, req *http.Request) {
-	logHeaders(req)
-
 	node, err := doPut(resp, req)
 	if err != nil {
 		handlePostPutError(resp, req, err)
