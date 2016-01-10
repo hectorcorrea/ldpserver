@@ -1,8 +1,12 @@
 This is a mini LDP Server in Go.
 
-LDP stands for Linked Data Platform and the W3 spec for it can be found [here]( http://www.w3.org/TR/ldp/)
+Linked Data Platform (LDP) is a W3C recommendation that defines rules for how to
+implement an HTTP API for read-write Linked Data. The official recommendation can
+be found [here](http://www.w3.org/TR/ldp/).
+You can also find a more gentle introduction to LDP in
+[my blog](http://hectorcorrea.com/blog/introduction-to-ldp/67).
 
-*Warning*: This is my sandbox project as I learn both Go and LDP. The code in this repo very likely does not follow Go's best practices and it certainly does not conform to the LDP spec.
+*Warning*: This is my sandbox project as I learn both Go and LDP. The code in this repo very likely does not follow Go's best practices and it certainly does not conform to the LDP spec (yet).
 
 
 ## Compile and run the server
