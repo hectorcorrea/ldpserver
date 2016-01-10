@@ -167,4 +167,4 @@ In order to run the suite against this repo you need to do the following:
 As of 1/9/2016 these are the results of all basic container tests (including support for non-RDF):
 
     LDP Test Suite
-    Total tests run: 112, Failures: 6, Skips: 28
+    Total tests run: 112, Failures: 4, Skips: 28
