@@ -9,9 +9,11 @@ import (
 )
 
 var AlreadyExistsError = errors.New("Already exists")
+var CreateDeletedError = errors.New("Attempting to create a store that has been deleted")
 
 const metaFile string = "meta.rdf"
 const dataFile string = "data.bin"
+const deletedMarkFile string = "deleted"
 
 type Store struct {
 	folder string
@@ -24,9 +26,13 @@ func NewStore(folder string) Store {
 
 func CreateStore(folder string) Store {
 	store := NewStore(folder)
-	if store.Exists() {
+	switch {
+	case store.Exists():
 		store.err = AlreadyExistsError
-	} else {
+	case store.isDeleted():
+		store.err = CreateDeletedError
+		// errors.New("Attempting to create store that has been deleted: " + folder)
+	default:
 		store.err = store.SaveMetaFile("")
 	}
 	return store
@@ -41,8 +47,17 @@ func (store Store) Path() string {
 }
 
 func storeExists(folder string) bool {
+	// we consider that it exists as long as there is a
+	// metadata file on it.
+	// Notice that we don't look for the Deleted Mark File
+	// when determining if it exists or not.
 	metaRdf := util.PathConcat(folder, metaFile)
 	return fileio.FileExists(metaRdf)
+}
+
+func (store Store) isDeleted() bool {
+	deletedFile := util.PathConcat(store.folder, deletedMarkFile)
+	return fileio.FileExists(deletedFile)
 }
 
 func (store Store) Error() error {
@@ -66,8 +81,7 @@ func (store Store) Delete() error {
 		}
 	}
 
-	// delete the store folder
-	return os.Remove(store.folder)
+	return store.MarkAsDeleted()
 }
 
 func (store Store) SaveMetaFile(content string) error {
@@ -101,4 +115,9 @@ func (store Store) ReadMetaFile() (string, error) {
 func (store Store) ReadDataFile() (string, error) {
 	fullFilename := util.PathConcat(store.folder, dataFile)
 	return fileio.ReadFile(fullFilename)
+}
+
+func (store Store) MarkAsDeleted() error {
+	fullFilename := util.PathConcat(store.folder, deletedMarkFile)
+	return fileio.WriteFile(fullFilename, "deleted")
 }

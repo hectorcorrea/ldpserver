@@ -13,11 +13,12 @@ func (server Server) CreateRdfSource(triples string, parentPath string, slug str
 	}
 
 	resource := server.createResource(path)
-	if resource.Error() != nil && resource.Error() != textstore.AlreadyExistsError {
+	err = resource.Error()
+	if err != nil && err != textstore.AlreadyExistsError && err != textstore.CreateDeletedError {
 		return ldp.Node{}, resource.Error()
 	}
 
-	if resource.Error() == textstore.AlreadyExistsError {
+	if err == textstore.AlreadyExistsError || err == textstore.CreateDeletedError {
 		if slug == "" {
 			// We generated a duplicate node.
 			return ldp.Node{}, ldp.DuplicateNodeError
