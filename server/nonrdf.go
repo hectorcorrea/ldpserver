@@ -9,7 +9,7 @@ import (
 )
 
 // POST
-func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string, slug string) (ldp.Node, error) {
+func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath, slug, triples string) (ldp.Node, error) {
 	path, err := server.newPathFromSlug(parentPath, slug)
 	if err != nil {
 		return ldp.Node{}, err
@@ -28,11 +28,11 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 
 		// The user provided slug is duplicated.
 		// Let's try with one of our own.
-		return server.CreateNonRdfSource(reader, parentPath, "")
+		return server.CreateNonRdfSource(reader, parentPath, "", triples)
 	}
 
 	// Create new node
-	node, err := ldp.NewNonRdfNode(server.settings, reader, path)
+	node, err := ldp.NewNonRdfNode(server.settings, reader, path, triples)
 	if err != nil {
 		return node, err
 	}
@@ -45,7 +45,7 @@ func (server Server) CreateNonRdfSource(reader io.ReadCloser, parentPath string,
 }
 
 // PUT
-func (server Server) ReplaceNonRdfSource(reader io.ReadCloser, path string, etag string) (ldp.Node, error) {
+func (server Server) ReplaceNonRdfSource(reader io.ReadCloser, path, etag, triples string) (ldp.Node, error) {
 	if isRootPath(path) {
 		return ldp.Node{}, errors.New("Cannot replace root node with an Non-RDF source")
 	}
@@ -57,11 +57,11 @@ func (server Server) ReplaceNonRdfSource(reader io.ReadCloser, path string, etag
 
 	if resource.Error() == textstore.AlreadyExistsError {
 		// Replace existing node
-		return ldp.ReplaceNonRdfNode(server.settings, reader, path, etag)
+		return ldp.ReplaceNonRdfNode(server.settings, reader, path, etag, triples)
 	}
 
 	// Create new node
-	node, err := ldp.NewNonRdfNode(server.settings, reader, path)
+	node, err := ldp.NewNonRdfNode(server.settings, reader, path, triples)
 	if err != nil {
 		return ldp.Node{}, err
 	}

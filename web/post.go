@@ -23,10 +23,9 @@ func handlePost(resp http.ResponseWriter, req *http.Request) {
 
 func doPost(resp http.ResponseWriter, req *http.Request, path string, slug string) (ldp.Node, error) {
 	if isNonRdfRequest(req.Header) {
-		// We should pass some hints too
-		// (e.g. application type, file name)
 		log.Printf("Creating Non-RDF Source at %s", path)
-		return theServer.CreateNonRdfSource(req.Body, path, slug)
+		triples := defaultNonRdfTriples(req.Header)
+		return theServer.CreateNonRdfSource(req.Body, path, slug, triples)
 	}
 
 	log.Printf("Creating RDF Source %s at %s", slug, path)

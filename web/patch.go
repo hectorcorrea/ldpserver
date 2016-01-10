@@ -9,7 +9,7 @@ import (
 )
 
 func handlePatch(resp http.ResponseWriter, req *http.Request) {
-	if !isRdfContentType(req.Header) {
+	if !isRdfRequest(req.Header) {
 		errorMsg := fmt.Sprintf("Invalid Content-Type (%s) received", requestContentType(req.Header))
 		logReqError(req, errorMsg, http.StatusBadRequest)
 		http.Error(resp, errorMsg, http.StatusBadRequest)

@@ -20,6 +20,10 @@ func (t Triple) StringLn() string {
 	return fmt.Sprintf("%s %s %s .\n", t.subject, t.predicate, t.object)
 }
 
+func (t Triple) Object() string {
+	return t.object
+}
+
 func (triple *Triple) ReplaceBlankUri(blank string) {
 	if triple.subject == "<>" {
 		triple.subject = blank

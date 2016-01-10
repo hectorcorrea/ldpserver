@@ -8,8 +8,16 @@ import (
 	"strings"
 )
 
+func isRdfRequest(header http.Header) bool {
+	contentType := requestContentType(header)
+	if contentType == "" {
+		return true
+	}
+	return strings.HasPrefix(contentType, rdf.TurtleContentType)
+}
+
 func isNonRdfRequest(header http.Header) bool {
-	return !isRdfContentType(header)
+	return !isRdfRequest(header)
 }
 
 func safePath(rawPath string) string {
@@ -28,31 +36,37 @@ func setResponseHeaders(resp http.ResponseWriter, node ldp.Node) {
 }
 
 func requestSlug(header http.Header) string {
-	return headerValue(header, "Slug", "")
+	return headerValue(header, "Slug")
 }
 
 func requestContentType(header http.Header) string {
-	return headerValue(header, "Content-Type", rdf.TurtleContentType)
+	return headerValue(header, "Content-Type")
 }
 
 func requestIfNoneMatch(header http.Header) string {
-	return headerValue(header, "If-None-Match", "")
+	return headerValue(header, "If-None-Match")
 }
 
 func requestIfMatch(header http.Header) string {
-	return headerValue(header, "If-Match", "")
+	return headerValue(header, "If-Match")
 }
 
-func headerValue(header http.Header, name, defaultValue string) string {
+func headerValue(header http.Header, name string) string {
 	for _, value := range header[name] {
 		return value
 	}
-	return defaultValue
+	return ""
 }
 
-func isRdfContentType(header http.Header) bool {
+func defaultNonRdfTriples(header http.Header) string {
+	triples := ""
 	contentType := requestContentType(header)
-	return strings.HasPrefix(contentType, rdf.TurtleContentType)
+	if contentType != "" {
+		triples = "<> <" + rdf.ServerContentTypeUri + "> \"" + contentType + "\" ."
+	}
+	// TODO: We should also try to read the file name from the header (if available)
+	log.Printf("default triples: %s\n", triples)
+	return triples
 }
 
 func logHeaders(req *http.Request) {

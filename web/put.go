@@ -29,11 +29,10 @@ func doPut(resp http.ResponseWriter, req *http.Request) (ldp.Node, error) {
 	etag := requestIfMatch(req.Header)
 
 	if isNonRdfRequest(req.Header) {
-		// We should pass some hints too
-		// (e.g. application type, file name)
 		path := req.URL.Path
 		log.Printf("Creating Non-RDF Source at %s", path)
-		return theServer.ReplaceNonRdfSource(req.Body, path, etag)
+		triples := defaultNonRdfTriples(req.Header)
+		return theServer.ReplaceNonRdfSource(req.Body, path, etag, triples)
 	}
 
 	path, slug := util.DirBasePath(safePath(req.URL.Path))

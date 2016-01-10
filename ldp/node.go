@@ -22,6 +22,7 @@ const metaFile = "meta.rdf"
 const dataFile = "data.txt"
 const etagPredicate = "<" + rdf.ServerETagUri + ">"
 const rdfTypePredicate = "<" + rdf.RdfTypeUri + ">"
+const contentTypePredicate = "<" + rdf.ServerContentTypeUri + ">"
 
 type Node struct {
 	isRdf   bool
@@ -59,6 +60,17 @@ func (node Node) Content() string {
 		return node.graph.String()
 	}
 	return node.binary
+}
+
+func (node Node) nonRdfContentType() string {
+	if node.isRdf {
+		panic("Cannot call NonRdfContentType() for an RDF node")
+	}
+	triple, found := node.graph.FindTriple("<"+node.uri+">", contentTypePredicate)
+	if !found {
+		return "application/binary"
+	}
+	return triple.Object()
 }
 
 func (node Node) DebugString() string {
@@ -168,12 +180,16 @@ func NewRdfNode(settings Settings, triples string, path string) (Node, error) {
 	return node, node.writeRdfToDisk(graph)
 }
 
-func NewNonRdfNode(settings Settings, reader io.ReadCloser, path string) (Node, error) {
+func NewNonRdfNode(settings Settings, reader io.ReadCloser, path, triples string) (Node, error) {
 	node := newNode(settings, path)
-	return node, node.writeNonRdfToDisk(reader)
+	graph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
+	if err != nil {
+		return Node{}, err
+	}
+	return node, node.writeNonRdfToDisk(graph, reader)
 }
 
-func ReplaceNonRdfNode(settings Settings, reader io.ReadCloser, path string, etag string) (Node, error) {
+func ReplaceNonRdfNode(settings Settings, reader io.ReadCloser, path, etag, triples string) (Node, error) {
 	node, err := GetHead(settings, path)
 	if err != nil {
 		return Node{}, err
@@ -191,7 +207,16 @@ func ReplaceNonRdfNode(settings Settings, reader io.ReadCloser, path string, eta
 		// log.Printf("Cannot replace RDF source. Etag mismatch. Expected: %s. Found: %s", node.Etag(), etag)
 		return Node{}, EtagMismatchError
 	}
-	return node, node.writeNonRdfToDisk(reader)
+
+	var graph rdf.RdfGraph
+	if triples != "" {
+		graph, err = rdf.StringToGraph(triples, "<"+node.uri+">")
+		if err != nil {
+			return Node{}, err
+		}
+	}
+
+	return node, node.writeNonRdfToDisk(graph, reader)
 }
 
 func ReplaceRdfNode(settings Settings, triples string, path string, etag string) (Node, error) {
@@ -289,8 +314,8 @@ func (node *Node) loadMeta() error {
 	return nil
 }
 
-func (node *Node) writeNonRdfToDisk(reader io.ReadCloser) error {
-	node.graph = rdf.RdfGraph{}
+func (node *Node) writeNonRdfToDisk(graph rdf.RdfGraph, reader io.ReadCloser) error {
+	node.graph = graph
 	node.setETag()
 	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpResourceUri+">")
 	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpNonRdfSourceUri+">")
@@ -371,11 +396,9 @@ func (node *Node) setAsNonRdf() {
 	node.isRdf = false
 	node.binary = ""
 	node.headers = make(map[string][]string)
-	node.headers["Link"] = []string{rdf.LdpNonRdfSourceLink}
+	node.headers["Link"] = []string{rdf.LdpResourceLink, rdf.LdpNonRdfSourceLink}
 	node.headers["Allow"] = []string{"GET, HEAD, PUT"}
-	node.headers["Content-Type"] = []string{"application/binary"}
-	// TODO: guess the content-type from meta
-
+	node.headers["Content-Type"] = []string{node.nonRdfContentType()}
 	node.headers["Etag"] = []string{node.Etag()}
 }
 
