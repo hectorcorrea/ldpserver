@@ -403,7 +403,7 @@ func (node *Node) setAsNonRdf() {
 	node.headers["Link"] = []string{describedByLink, rdf.LdpResourceLink, rdf.LdpNonRdfSourceLink}
 
 	node.headers["Allow"] = []string{"GET, HEAD, PUT"}
-	node.headers["Content-Type"] = []string{node.nonRdfContentType()}
+	node.headers["Content-Type"] = []string{removeQuotes(node.nonRdfContentType())}
 	node.headers["Etag"] = []string{node.Etag()}
 }
 
@@ -429,6 +429,13 @@ func newNode(settings Settings, path string) Node {
 
 func removeAngleBrackets(text string) string {
 	if strings.HasPrefix(text, "<") && strings.HasSuffix(text, ">") {
+		return text[1 : len(text)-1]
+	}
+	return text
+}
+
+func removeQuotes(text string) string {
+	if strings.HasPrefix(text, "\"") && strings.HasSuffix(text, "\"") {
 		return text[1 : len(text)-1]
 	}
 	return text
