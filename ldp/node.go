@@ -69,7 +69,7 @@ func (node Node) contentType() string {
 	if node.isRdf {
 		return rdf.TurtleContentType
 	}
-	triple, found := node.graph.FindTriple(node.subject, contentTypePredicate)
+	triple, found := node.graph.FindPredicate(node.subject, contentTypePredicate)
 	if !found {
 		return "application/binary"
 	}

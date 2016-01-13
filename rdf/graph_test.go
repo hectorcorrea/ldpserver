@@ -56,34 +56,34 @@ func TestHasTriple(t *testing.T) {
 	}
 }
 
-func TestFindTriple(t *testing.T) {
+func TestFindPredicate(t *testing.T) {
 	triple := Triple{subject: "s", predicate: "a", object: "something"}
 	graph := RdfGraph{triple, triple}
 
-	if _, found := graph.FindTriple("s", "a"); !found {
-		t.Errorf("FindTriple test failed for valid triple")
+	if _, found := graph.FindPredicate("s", "a"); !found {
+		t.Errorf("FindPredicate test failed for valid triple")
 	}
 
-	if _, found := graph.FindTriple("s", "b"); found {
-		t.Errorf("FindTriple test failed for invalid triple")
+	if _, found := graph.FindPredicate("s", "b"); found {
+		t.Errorf("FindPredicate test failed for invalid triple")
 	}
 }
 
-func TestFindTripleAliasA(t *testing.T) {
+func TestFindPredicateAliasA(t *testing.T) {
 	triple := Triple{subject: "s", predicate: "a", object: "something"}
 	graph := RdfGraph{triple, triple}
 
-	if _, found := graph.FindTriple("s", "<"+RdfTypeUri+">"); !found {
-		t.Errorf("FindTriple test failed when using rdf type in fullname")
+	if _, found := graph.FindPredicate("s", "<"+RdfTypeUri+">"); !found {
+		t.Errorf("FindPredicate test failed when using rdf type in fullname")
 	}
 }
 
-func TestFindTripleAliasRdfType(t *testing.T) {
+func TestFindPredicateAliasRdfType(t *testing.T) {
 	triple := Triple{subject: "s", predicate: "<" + RdfTypeUri + ">", object: "something"}
 	graph := RdfGraph{triple, triple}
 
-	if _, found := graph.FindTriple("s", "a"); !found {
-		t.Errorf("FindTriple test failed when using 'a' rather than rdf type fullname")
+	if _, found := graph.FindPredicate("s", "a"); !found {
+		t.Errorf("FindPredicate test failed when using 'a' rather than rdf type fullname")
 	}
 }
 
@@ -109,7 +109,6 @@ func TestSetObject(t *testing.T) {
 		t.Errorf("SetObject did not triple with new value (after adding new triple)")
 	}
 }
-
 
 func TestDeleteTriple(t *testing.T) {
 	t1 := Triple{subject: "s1", predicate: "p1", object: "o1"}
