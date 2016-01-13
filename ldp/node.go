@@ -24,8 +24,8 @@ const contentTypePredicate = "<" + rdf.ServerContentTypeUri + ">"
 
 type Node struct {
 	isRdf   bool
-	uri     string
-	subject string
+	uri     string // http://localhost/node1
+	subject string // <http://localhost/node1>
 	headers map[string][]string
 	graph   rdf.RdfGraph
 	binary  string // should be []byte or reader
@@ -65,15 +65,15 @@ func (node Node) Metadata() string {
 	return node.graph.String()
 }
 
-func (node Node) nonRdfContentType() string {
+func (node Node) contentType() string {
 	if node.isRdf {
-		panic("Cannot call NonRdfContentType() for an RDF node")
+		return rdf.TurtleContentType
 	}
 	triple, found := node.graph.FindTriple(node.subject, contentTypePredicate)
 	if !found {
 		return "application/binary"
 	}
-	return triple.Object()
+	return removeQuotes(triple.Object())
 }
 
 func (node Node) DebugString() string {
@@ -138,7 +138,7 @@ func (node *Node) Patch(triples string) error {
 	// This is pretty useless as-is since it does not allow to update
 	// a triple. It always adds triples.
 	node.graph.Append(userGraph)
-	return node.save(nil)
+	return node.save(node.graph, nil)
 }
 
 func (node Node) Path() string {
@@ -150,7 +150,7 @@ func (node Node) String() string {
 }
 
 func (node *Node) appendTriple(predicate, object string) {
-	node.graph.AppendTriple2(node.subject, predicate, object)
+	node.graph.AppendTripleStr(node.subject, predicate, object)
 }
 
 func (node *Node) setETag() {
@@ -168,7 +168,7 @@ func (node *Node) RemoveContainsUri(uri string) error {
 	if !deleted {
 		return errors.New("Failed to deleted the containment triple")
 	}
-	return node.save(nil)
+	return node.save(node.graph, nil)
 }
 
 func GetNode(settings Settings, path string) (Node, error) {
@@ -190,8 +190,7 @@ func NewRdfNode(settings Settings, triples string, path string) (Node, error) {
 	if err != nil {
 		return Node{}, err
 	}
-	node.graph = graph
-	return node, node.save(nil)
+	return node, node.save(graph, nil)
 }
 
 func NewNonRdfNode(settings Settings, reader io.ReadCloser, path, triples string) (Node, error) {
@@ -201,8 +200,7 @@ func NewNonRdfNode(settings Settings, reader io.ReadCloser, path, triples string
 	if err != nil {
 		return Node{}, err
 	}
-	node.graph = graph
-	return node, node.save(reader)
+	return node, node.save(graph, reader)
 }
 
 func ReplaceNonRdfNode(settings Settings, reader io.ReadCloser, path, etag, triples string) (Node, error) {
@@ -231,8 +229,7 @@ func ReplaceNonRdfNode(settings Settings, reader io.ReadCloser, path, etag, trip
 			return Node{}, err
 		}
 	}
-	node.graph = graph
-	return node, node.save(reader)
+	return node, node.save(graph, reader)
 }
 
 func ReplaceRdfNode(settings Settings, triples string, path string, etag string) (Node, error) {
@@ -263,8 +260,7 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 		return Node{}, ServerManagedPropertyError
 	}
 
-	node.graph = graph
-	return node, node.save(nil)
+	return node, node.save(graph, nil)
 }
 
 func (node Node) addDirectContainerChild(child Node) error {
@@ -332,7 +328,8 @@ func (node *Node) loadMeta() error {
 	return nil
 }
 
-func (node *Node) save(reader io.ReadCloser) error {
+func (node *Node) save(graph rdf.RdfGraph, reader io.ReadCloser) error {
+	node.graph = graph
 	node.setETag()
 	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpResourceUri+">")
 	if node.isRdf {
@@ -373,15 +370,15 @@ func (node *Node) writeToDisk(reader io.ReadCloser) error {
 
 func (node *Node) setAsRdf() {
 	node.headers = make(map[string][]string)
-	node.headers["Content-Type"] = []string{rdf.TurtleContentType}
+	node.headers["Content-Type"] = []string{node.contentType()}
 
 	if node.graph.IsBasicContainer(node.subject) {
 		node.headers["Allow"] = []string{"GET, HEAD, POST, PUT, PATCH"}
 	} else {
 		node.headers["Allow"] = []string{"GET, HEAD, PUT, PATCH"}
 	}
-	node.headers["Accept-Post"] = []string{"text/turtle"}
-	node.headers["Accept-Patch"] = []string{"text/turtle"}
+	node.headers["Accept-Post"] = []string{rdf.TurtleContentType}
+	node.headers["Accept-Patch"] = []string{rdf.TurtleContentType}
 
 	node.headers["Etag"] = []string{node.Etag()}
 
@@ -409,7 +406,7 @@ func (node *Node) setAsNonRdf() {
 	node.headers["Link"] = []string{describedByLink, rdf.LdpResourceLink, rdf.LdpNonRdfSourceLink}
 
 	node.headers["Allow"] = []string{"GET, HEAD, PUT"}
-	node.headers["Content-Type"] = []string{removeQuotes(node.nonRdfContentType())}
+	node.headers["Content-Type"] = []string{node.contentType()}
 	node.headers["Etag"] = []string{node.Etag()}
 }
 

@@ -153,7 +153,7 @@ func (graph *RdfGraph) AppendTriple(t Triple) bool {
 	return graph.appendTriple(t.subject, t.predicate, t.object, true)
 }
 
-func (graph *RdfGraph) AppendTriple2(subject, predicate, object string) bool {
+func (graph *RdfGraph) AppendTripleStr(subject, predicate, object string) bool {
 	return graph.appendTriple(subject, predicate, object, true)
 }
 
