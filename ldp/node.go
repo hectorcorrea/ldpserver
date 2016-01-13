@@ -138,7 +138,7 @@ func (node *Node) Patch(triples string) error {
 	// This is pretty useless as-is since it does not allow to update
 	// a triple. It always adds triples.
 	node.graph.Append(userGraph)
-	return node.writeRdfToDisk(node.graph)
+	return node.save(nil)
 }
 
 func (node Node) Path() string {
@@ -169,7 +169,7 @@ func (node *Node) RemoveContainsUri(uri string) error {
 	if !deleted {
 		return errors.New("Failed to deleted the containment triple")
 	}
-	return node.writeRdfToDisk(node.graph)
+	return node.save(nil)
 }
 
 func GetNode(settings Settings, path string) (Node, error) {
@@ -186,20 +186,24 @@ func GetHead(settings Settings, path string) (Node, error) {
 
 func NewRdfNode(settings Settings, triples string, path string) (Node, error) {
 	node := newNode(settings, path)
+	node.isRdf = true
 	graph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
 	if err != nil {
 		return Node{}, err
 	}
-	return node, node.writeRdfToDisk(graph)
+	node.graph = graph
+	return node, node.save(nil)
 }
 
 func NewNonRdfNode(settings Settings, reader io.ReadCloser, path, triples string) (Node, error) {
 	node := newNode(settings, path)
+	node.isRdf = false
 	graph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
 	if err != nil {
 		return Node{}, err
 	}
-	return node, node.writeNonRdfToDisk(graph, reader)
+	node.graph = graph
+	return node, node.save(reader)
 }
 
 func ReplaceNonRdfNode(settings Settings, reader io.ReadCloser, path, etag, triples string) (Node, error) {
@@ -228,8 +232,8 @@ func ReplaceNonRdfNode(settings Settings, reader io.ReadCloser, path, etag, trip
 			return Node{}, err
 		}
 	}
-
-	return node, node.writeNonRdfToDisk(graph, reader)
+	node.graph = graph
+	return node, node.save(reader)
 }
 
 func ReplaceRdfNode(settings Settings, triples string, path string, etag string) (Node, error) {
@@ -260,7 +264,8 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 		return Node{}, ServerManagedPropertyError
 	}
 
-	return node, node.writeRdfToDisk(graph)
+	node.graph = graph
+	return node, node.save(nil)
 }
 
 func (node Node) addDirectContainerChild(child Node) error {
@@ -319,31 +324,28 @@ func (node *Node) loadMeta() error {
 	}
 
 	if node.graph.IsRdfSource("<" + node.uri + ">") {
+		node.isRdf = true
 		node.setAsRdf()
 	} else {
+		node.isRdf = false
 		node.setAsNonRdf()
 	}
 	return nil
 }
 
-func (node *Node) writeNonRdfToDisk(graph rdf.RdfGraph, reader io.ReadCloser) error {
-	node.graph = graph
+func (node *Node) save(reader io.ReadCloser) error {
 	node.setETag()
 	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpResourceUri+">")
-	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpNonRdfSourceUri+">")
-	node.setAsNonRdf()
+	if node.isRdf {
+		node.appendTriple(rdfTypePredicate, "<"+rdf.LdpRdfSourceUri+">")
+		node.appendTriple(rdfTypePredicate, "<"+rdf.LdpContainerUri+">")
+		node.appendTriple(rdfTypePredicate, "<"+rdf.LdpBasicContainerUri+">")
+		node.setAsRdf()
+	} else {
+		node.appendTriple(rdfTypePredicate, "<"+rdf.LdpNonRdfSourceUri+">")
+		node.setAsNonRdf()
+	}
 	return node.writeToDisk(reader)
-}
-
-func (node *Node) writeRdfToDisk(graph rdf.RdfGraph) error {
-	node.graph = graph
-	node.setETag()
-	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpResourceUri+">")
-	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpRdfSourceUri+">")
-	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpContainerUri+">")
-	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpBasicContainerUri+">")
-	node.setAsRdf()
-	return node.writeToDisk(nil)
 }
 
 func (node *Node) writeToDisk(reader io.ReadCloser) error {
@@ -372,7 +374,6 @@ func (node *Node) writeToDisk(reader io.ReadCloser) error {
 
 func (node *Node) setAsRdf() {
 	subject := "<" + node.uri + ">"
-	node.isRdf = true
 	node.headers = make(map[string][]string)
 	node.headers["Content-Type"] = []string{rdf.TurtleContentType}
 
@@ -403,7 +404,6 @@ func (node *Node) setAsRdf() {
 
 func (node *Node) setAsNonRdf() {
 	// TODO Figure out a way to pass the binary as a stream
-	node.isRdf = false
 	node.binary = ""
 	node.headers = make(map[string][]string)
 
