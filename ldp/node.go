@@ -25,6 +25,7 @@ const contentTypePredicate = "<" + rdf.ServerContentTypeUri + ">"
 type Node struct {
 	isRdf   bool
 	uri     string
+	subject string
 	headers map[string][]string
 	graph   rdf.RdfGraph
 	binary  string // should be []byte or reader
@@ -41,7 +42,7 @@ type Node struct {
 }
 
 func (node Node) AddChild(child Node) error {
-	triple := rdf.NewTriple("<"+node.uri+">", "<"+rdf.LdpContainsUri+">", "<"+child.uri+">")
+	triple := rdf.NewTriple(node.subject, "<"+rdf.LdpContainsUri+">", "<"+child.uri+">")
 	err := node.store.AppendToMetaFile(triple.StringLn())
 	if err != nil {
 		return err
@@ -68,7 +69,7 @@ func (node Node) nonRdfContentType() string {
 	if node.isRdf {
 		panic("Cannot call NonRdfContentType() for an RDF node")
 	}
-	triple, found := node.graph.FindTriple("<"+node.uri+">", contentTypePredicate)
+	triple, found := node.graph.FindTriple(node.subject, contentTypePredicate)
 	if !found {
 		return "application/binary"
 	}
@@ -89,8 +90,7 @@ func (node Node) DebugString() string {
 }
 
 func (node *Node) Etag() string {
-	subject := "<" + node.uri + ">"
-	etag, etagFound := node.graph.GetObject(subject, "<"+rdf.ServerETagUri+">")
+	etag, etagFound := node.graph.GetObject(node.subject, "<"+rdf.ServerETagUri+">")
 	if !etagFound {
 		panic(fmt.Sprintf("No etag found for node %s", node.uri))
 	}
@@ -98,7 +98,7 @@ func (node *Node) Etag() string {
 }
 
 func (node Node) HasTriple(predicate, object string) bool {
-	return node.graph.HasTriple("<"+node.uri+">", predicate, object)
+	return node.graph.HasTriple(node.subject, predicate, object)
 }
 
 func (node Node) Headers() map[string][]string {
@@ -126,12 +126,12 @@ func (node *Node) Patch(triples string) error {
 		return errors.New("Cannot PATCH non-RDF Source")
 	}
 
-	userGraph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
+	userGraph, err := rdf.StringToGraph(triples, node.subject)
 	if err != nil {
 		return err
 	}
 
-	if hasServerManagedProperties(userGraph, node.uri) {
+	if hasServerManagedProperties(userGraph, node.subject) {
 		return ServerManagedPropertyError
 	}
 
@@ -150,11 +150,11 @@ func (node Node) String() string {
 }
 
 func (node *Node) appendTriple(predicate, object string) {
-	node.graph.AppendTriple2("<"+node.uri+">", predicate, object)
+	node.graph.AppendTriple2(node.subject, predicate, object)
 }
 
 func (node *Node) setETag() {
-	node.graph.SetObject("<"+node.uri+">", etagPredicate, calculateEtag())
+	node.graph.SetObject(node.subject, etagPredicate, calculateEtag())
 }
 
 func (node *Node) Delete() error {
@@ -162,10 +162,9 @@ func (node *Node) Delete() error {
 }
 
 func (node *Node) RemoveContainsUri(uri string) error {
-	subject := "<" + node.uri + ">"
 	predicate := "<" + rdf.LdpContainsUri + ">"
 	object := uri
-	deleted := node.graph.DeleteTriple(subject, predicate, object)
+	deleted := node.graph.DeleteTriple(node.subject, predicate, object)
 	if !deleted {
 		return errors.New("Failed to deleted the containment triple")
 	}
@@ -187,7 +186,7 @@ func GetHead(settings Settings, path string) (Node, error) {
 func NewRdfNode(settings Settings, triples string, path string) (Node, error) {
 	node := newNode(settings, path)
 	node.isRdf = true
-	graph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
+	graph, err := rdf.StringToGraph(triples, node.subject)
 	if err != nil {
 		return Node{}, err
 	}
@@ -198,7 +197,7 @@ func NewRdfNode(settings Settings, triples string, path string) (Node, error) {
 func NewNonRdfNode(settings Settings, reader io.ReadCloser, path, triples string) (Node, error) {
 	node := newNode(settings, path)
 	node.isRdf = false
-	graph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
+	graph, err := rdf.StringToGraph(triples, node.subject)
 	if err != nil {
 		return Node{}, err
 	}
@@ -227,7 +226,7 @@ func ReplaceNonRdfNode(settings Settings, reader io.ReadCloser, path, etag, trip
 
 	var graph rdf.RdfGraph
 	if triples != "" {
-		graph, err = rdf.StringToGraph(triples, "<"+node.uri+">")
+		graph, err = rdf.StringToGraph(triples, node.subject)
 		if err != nil {
 			return Node{}, err
 		}
@@ -255,12 +254,12 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 		return Node{}, EtagMismatchError
 	}
 
-	graph, err := rdf.StringToGraph(triples, "<"+node.uri+">")
+	graph, err := rdf.StringToGraph(triples, node.subject)
 	if err != nil {
 		return Node{}, err
 	}
 
-	if hasServerManagedProperties(graph, node.uri) {
+	if hasServerManagedProperties(graph, node.subject) {
 		return Node{}, ServerManagedPropertyError
 	}
 
@@ -318,12 +317,12 @@ func (node *Node) loadMeta() error {
 		return err
 	}
 
-	node.graph, err = rdf.StringToGraph(meta, node.uri)
+	node.graph, err = rdf.StringToGraph(meta, node.subject)
 	if err != nil {
 		return err
 	}
 
-	if node.graph.IsRdfSource("<" + node.uri + ">") {
+	if node.graph.IsRdfSource(node.subject) {
 		node.isRdf = true
 		node.setAsRdf()
 	} else {
@@ -373,11 +372,10 @@ func (node *Node) writeToDisk(reader io.ReadCloser) error {
 }
 
 func (node *Node) setAsRdf() {
-	subject := "<" + node.uri + ">"
 	node.headers = make(map[string][]string)
 	node.headers["Content-Type"] = []string{rdf.TurtleContentType}
 
-	if node.graph.IsBasicContainer(subject) {
+	if node.graph.IsBasicContainer(node.subject) {
 		node.headers["Allow"] = []string{"GET, HEAD, POST, PUT, PATCH"}
 	} else {
 		node.headers["Allow"] = []string{"GET, HEAD, PUT, PATCH"}
@@ -389,7 +387,7 @@ func (node *Node) setAsRdf() {
 
 	links := make([]string, 0)
 	links = append(links, rdf.LdpResourceLink)
-	if node.graph.IsBasicContainer(subject) {
+	if node.graph.IsBasicContainer(node.subject) {
 		node.isBasicContainer = true
 		links = append(links, rdf.LdpContainerLink)
 		links = append(links, rdf.LdpBasicContainerLink)
@@ -415,9 +413,7 @@ func (node *Node) setAsNonRdf() {
 	node.headers["Etag"] = []string{node.Etag()}
 }
 
-func hasServerManagedProperties(graph rdf.RdfGraph, uri string) bool {
-	subject := "<" + uri + ">"
-
+func hasServerManagedProperties(graph rdf.RdfGraph, subject string) bool {
 	// TODO: What other server-managed properties should we handle?
 	properties := []string{rdf.LdpResourceUri, rdf.LdpRdfSourceUri, rdf.LdpNonRdfSourceUri,
 		rdf.LdpContainerUri, rdf.LdpBasicContainerUri, rdf.LdpDirectContainerUri, rdf.LdpContainsUri,
@@ -448,6 +444,7 @@ func newNode(settings Settings, path string) Node {
 	node.store = textstore.NewStore(pathOnDisk)
 	node.rootUri = settings.RootUri()
 	node.uri = util.UriConcat(node.rootUri, path)
+	node.subject = "<" + node.uri + ">"
 	return node
 }
 
