@@ -70,14 +70,10 @@ func (graph RdfGraph) HasPredicate(subject, predicate string) bool {
 }
 
 func (graph *RdfGraph) FindTriple(subject, predicate string) (*Triple, bool) {
-	// I don't quite like this dereferrencing of the graph into triples
-	// (*graph) and then getting a pointer to each individual item
-	// &triples[i] but I am not sure if there is a better way.
-	triples := *graph
-	for i, _ := range triples {
-		triple := &triples[i]
+	for i, triple := range *graph {
 		if triple.subject == subject && triple.predicate == predicate {
-			return triple, true
+			// return a reference to the original triple
+			return &(*graph)[i], true
 		}
 	}
 	// "a" is an alias for RdfType
@@ -94,16 +90,12 @@ func (graph *RdfGraph) FindTriple(subject, predicate string) (*Triple, bool) {
 func (graph *RdfGraph) DeleteTriple(subject, predicate, object string) bool {
 	var newGraph RdfGraph
 	deleted := false
-	// I don't quite like this dereferrencing of the graph into triples
-	// (*graph) and then getting a pointer to each individual item
-	// &triples[i] but I am not sure if there is a better way.
-	triples := *graph
-	for i, _ := range triples {
-		triple := &triples[i]
+	for _, triple := range *graph {
 		if triple.subject == subject && triple.predicate == predicate && triple.object == object {
+			// don't add it to the new graph
 			deleted = true
 		} else {
-			newGraph = append(newGraph, triples[i])
+			newGraph = append(newGraph, triple)
 		}
 	}
 
@@ -114,12 +106,7 @@ func (graph *RdfGraph) DeleteTriple(subject, predicate, object string) bool {
 }
 
 func (graph *RdfGraph) appendTriple(subject, predicate, object string, recurr bool) bool {
-	// I don't quite like this dereferrencing of the graph into triples
-	// (*graph) and then getting a pointer to each individual item
-	// &triples[i] but I am not sure if there is a better way.
-	triples := *graph
-	for i, _ := range triples {
-		triple := &triples[i]
+	for _, triple := range *graph {
 		if triple.subject == subject && triple.predicate == predicate && triple.object == object {
 			// nothing to do
 			return false
