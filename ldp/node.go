@@ -330,6 +330,12 @@ func (node *Node) loadMeta() error {
 
 func (node *Node) save(graph rdf.RdfGraph, reader io.ReadCloser) error {
 	node.graph = graph
+
+	if node.graph.IsDirectContainer() {
+		// TODO: we might need a different triple for DCs using isMemberOfRelation
+		node.appendTriple("<"+rdf.LdpInsertedContentRelationUri+">", "<"+rdf.LdpMemberSubjectUri+">")
+	}
+
 	node.setETag()
 	node.appendTriple(rdfTypePredicate, "<"+rdf.LdpResourceUri+">")
 	if node.isRdf {
