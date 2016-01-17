@@ -142,8 +142,6 @@ A lot.
 
 * Support Indirect Containers.
 
-* Do not allow reusing URIs of deleted nodes.
-
 
 ## LDP Test Suite
 The W3C provides a test suite to make sure LDP server implementations meet a minimum criteria. The test suite can be found at http://w3c.github.io/ldp-testsuite/
