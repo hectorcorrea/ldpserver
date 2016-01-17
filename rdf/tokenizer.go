@@ -128,7 +128,7 @@ func (tokenizer Tokenizer) isUriChar() bool {
 		(char == ':') || (char == '/') ||
 		(char == '%') || (char == '#') ||
 		(char == '+') || (char == '-') ||
-		(char == '.')
+		(char == '.') || (char == '_')
 }
 
 func (tokenizer Tokenizer) isWhiteSpaceChar() bool {
