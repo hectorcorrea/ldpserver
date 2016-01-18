@@ -75,6 +75,20 @@ func IsValidSlug(slug string) bool {
 	return re.MatchString(slug)
 }
 
+func RemoveAngleBrackets(text string) string {
+	if strings.HasPrefix(text, "<") && strings.HasSuffix(text, ">") {
+		return text[1 : len(text)-1]
+	}
+	return text
+}
+
+func RemoveQuotes(text string) string {
+	if strings.HasPrefix(text, "\"") && strings.HasSuffix(text, "\"") {
+		return text[1 : len(text)-1]
+	}
+	return text
+}
+
 // Used for testing
 type FakeReaderCloser struct {
 	Text string

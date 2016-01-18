@@ -35,7 +35,7 @@ func TestCreateRdf(t *testing.T) {
 		t.Errorf("Error creating RDF. Error: %s", err)
 	}
 
-	node, err := theServer.GetNode("/slugA")
+	node, err := theServer.GetNode("/slugA", ldp.PreferTriples{})
 	if err != nil {
 		t.Errorf("Error fetching new node /slugA. Error: %s", err)
 	}
@@ -99,7 +99,7 @@ func TestCreateDirectContainer(t *testing.T) {
 		t.Errorf("Error creating direct container", err)
 	}
 
-	dcNode, err = theServer.GetNode(dcNode.Path())
+	dcNode, err = theServer.GetNode(dcNode.Path(), ldp.PreferTriples{})
 	if err != nil {
 		t.Errorf("Error fetching direct container", err)
 	}
@@ -118,7 +118,7 @@ func TestCreateDirectContainer(t *testing.T) {
 	}
 
 	// Reload our helper node and make sure the child is referenced on it.
-	helperNode, err = theServer.GetNode(helperNode.Path())
+	helperNode, err = theServer.GetNode(helperNode.Path(), ldp.PreferTriples{})
 	if !helperNode.HasTriple("<hasXYZ>", "<"+childNode.Uri()+">") {
 		t.Error("Helper node did not get new triple when adding to a Direct Container")
 	}
@@ -165,7 +165,7 @@ func TestCreateRdfWithTriples(t *testing.T) {
 		t.Errorf("Error creating RDF")
 	}
 
-	node, err = theServer.GetNode(node.Path())
+	node, err = theServer.GetNode(node.Path(), ldp.PreferTriples{})
 	if err != nil || node.Uri() != util.UriConcat(rootUrl, node.Path()) {
 		t.Errorf("err %v, uri %s", err, node.Uri())
 	}
@@ -187,7 +187,7 @@ func TestCreateNonRdf(t *testing.T) {
 		t.Errorf("Error creating Non RDF")
 	}
 
-	node, err := theServer.GetNode("hello")
+	node, err := theServer.GetNode("hello", ldp.PreferTriples{})
 	if err != nil {
 		t.Errorf("Could not read new Non-RDF node: %s", err)
 	}
@@ -242,7 +242,7 @@ func TestReplaceNonRdf(t *testing.T) {
 func TestPatchRdf(t *testing.T) {
 	triples := "<> <p1> <o1> .\n<> <p2> <o2> .\n"
 	node, _ := theServer.CreateRdfSource(triples, "/", emptySlug)
-	node, _ = theServer.GetNode(node.Path())
+	node, _ = theServer.GetNode(node.Path(), ldp.PreferTriples{})
 	if !node.HasTriple("<p1>", "<o1>") || !node.HasTriple("<p2>", "<o2>") {
 		t.Errorf("Expected triple not found %s", node.Content())
 	}
@@ -261,7 +261,7 @@ func TestPatchRdf(t *testing.T) {
 func TestPatchNonRdf(t *testing.T) {
 	reader1 := util.FakeReaderCloser{Text: "HELLO"}
 	node, _ := theServer.CreateNonRdfSource(reader1, "/", emptySlug, "")
-	node, _ = theServer.GetNode(node.Path())
+	node, _ = theServer.GetNode(node.Path(), ldp.PreferTriples{})
 	if node.Content() != "HELLO" {
 		t.Errorf("Unexpected non-RDF content found %s", node.Content())
 	}

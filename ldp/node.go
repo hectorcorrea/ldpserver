@@ -22,13 +22,20 @@ const etagPredicate = "<" + rdf.ServerETagUri + ">"
 const rdfTypePredicate = "<" + rdf.RdfTypeUri + ">"
 const contentTypePredicate = "<" + rdf.ServerContentTypeUri + ">"
 
+type PreferTriples struct {
+	Containment      bool
+	Membership       bool
+	MinimalContainer bool
+}
+
 type Node struct {
-	isRdf   bool
-	uri     string // http://localhost/node1
-	subject string // <http://localhost/node1>
-	headers map[string][]string
-	graph   rdf.RdfGraph
-	binary  string // should be []byte or reader
+	isRdf      bool
+	uri        string // http://localhost/node1
+	subject    string // <http://localhost/node1>
+	headers    map[string][]string
+	graph      rdf.RdfGraph
+	graphExtra rdf.RdfGraph // triples from included resources (see PreferTriples)
+	binary     string       // should be []byte or reader
 
 	settings Settings
 	rootUri  string // http://localhost/
@@ -42,7 +49,7 @@ type Node struct {
 }
 
 func (node Node) AddChild(child Node) error {
-	triple := rdf.NewTriple(node.subject, "<"+rdf.LdpContainsUri+">", "<"+child.uri+">")
+	triple := rdf.NewTriple(node.subject, "<"+rdf.LdpContainsUri+">", child.subject)
 	err := node.store.AppendToMetaFile(triple.StringLn())
 	if err != nil {
 		return err
@@ -56,7 +63,11 @@ func (node Node) AddChild(child Node) error {
 
 func (node Node) Content() string {
 	if node.isRdf {
-		return node.graph.String()
+		triples := node.graph.String()
+		if node.graphExtra != nil {
+			triples += "\n" + node.graphExtra.String()
+		}
+		return triples
 	}
 	return node.binary
 }
@@ -73,7 +84,7 @@ func (node Node) contentType() string {
 	if !found {
 		return "application/binary"
 	}
-	return removeQuotes(triple.Object())
+	return util.RemoveQuotes(triple.Object())
 }
 
 func (node Node) DebugString() string {
@@ -171,9 +182,25 @@ func (node *Node) RemoveContainsUri(uri string) error {
 	return node.save(node.graph, nil)
 }
 
-func GetNode(settings Settings, path string) (Node, error) {
+func getNode(settings Settings, path string) (Node, error) {
+	return GetNode(settings, path, PreferTriples{})
+}
+
+func GetNode(settings Settings, path string, pref PreferTriples) (Node, error) {
 	node := newNode(settings, path)
 	err := node.loadNode(true)
+
+	if pref.Membership && node.IsDirectContainer() {
+		// Fetch the triples from the membershipResource
+		log.Printf("Fetching membershipResource's graph: %s", node.membershipResourcePath())
+		memberNode, err := getNode(settings, node.membershipResourcePath())
+		if err != nil {
+			return node, err
+		}
+		node.graphExtra = memberNode.graph
+		// TODO: set node.headers["Preference-Applied"] = "return=representation"
+	}
+
 	return node, err
 }
 
@@ -233,7 +260,7 @@ func ReplaceNonRdfNode(settings Settings, reader io.ReadCloser, path, etag, trip
 }
 
 func ReplaceRdfNode(settings Settings, triples string, path string, etag string) (Node, error) {
-	node, err := GetNode(settings, path)
+	node, err := getNode(settings, path)
 	if err != nil {
 		return Node{}, err
 	}
@@ -265,10 +292,10 @@ func ReplaceRdfNode(settings Settings, triples string, path string, etag string)
 
 func (node Node) addDirectContainerChild(child Node) error {
 	// TODO: account for isMemberOfRelation
-	targetUri := removeAngleBrackets(node.membershipResource)
+	targetUri := util.RemoveAngleBrackets(node.membershipResource)
 	targetPath := util.PathFromUri(node.rootUri, targetUri)
 
-	targetNode, err := GetNode(node.settings, targetPath)
+	targetNode, err := getNode(node.settings, targetPath)
 	if err != nil {
 		log.Printf("Could not find target node %s.", targetPath)
 		return err
@@ -416,6 +443,11 @@ func (node *Node) setAsNonRdf() {
 	node.headers["Etag"] = []string{node.Etag()}
 }
 
+func (node *Node) membershipResourcePath() string {
+	uri := util.RemoveAngleBrackets(node.membershipResource)
+	return strings.Replace(uri, node.settings.rootUri, "", 1)
+}
+
 func hasServerManagedProperties(graph rdf.RdfGraph, subject string) bool {
 	// TODO: What other server-managed properties should we handle?
 	properties := []string{rdf.LdpResourceUri, rdf.LdpRdfSourceUri, rdf.LdpNonRdfSourceUri,
@@ -449,18 +481,4 @@ func newNode(settings Settings, path string) Node {
 	node.uri = util.UriConcat(node.rootUri, path)
 	node.subject = "<" + node.uri + ">"
 	return node
-}
-
-func removeAngleBrackets(text string) string {
-	if strings.HasPrefix(text, "<") && strings.HasSuffix(text, ">") {
-		return text[1 : len(text)-1]
-	}
-	return text
-}
-
-func removeQuotes(text string) string {
-	if strings.HasPrefix(text, "\"") && strings.HasSuffix(text, "\"") {
-		return text[1 : len(text)-1]
-	}
-	return text
 }

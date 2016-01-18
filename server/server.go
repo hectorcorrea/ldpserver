@@ -29,8 +29,8 @@ func NewServer(rootUri string, dataPath string) Server {
 	return server
 }
 
-func (server Server) GetNode(path string) (ldp.Node, error) {
-	return ldp.GetNode(server.settings, path)
+func (server Server) GetNode(path string, pref ldp.PreferTriples) (ldp.Node, error) {
+	return ldp.GetNode(server.settings, path, pref)
 }
 
 func (server Server) GetHead(path string) (ldp.Node, error) {
@@ -38,7 +38,7 @@ func (server Server) GetHead(path string) (ldp.Node, error) {
 }
 
 func (server Server) PatchNode(path string, triples string) error {
-	node, err := ldp.GetNode(server.settings, path)
+	node, err := ldp.GetNode(server.settings, path, ldp.PreferTriples{})
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (server Server) DeleteNode(path string) error {
 		return errors.New("Cannot delete root node")
 	}
 
-	node, err := ldp.GetNode(server.settings, path)
+	node, err := ldp.GetNode(server.settings, path, ldp.PreferTriples{})
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,6 @@ func (server Server) DeleteNode(path string) error {
 	// ...then delete the requested node
 	return node.Delete()
 }
-
 
 func (server Server) addNodeToContainer(node ldp.Node, path string) error {
 	container, err := server.getContainer(path)
@@ -116,7 +115,7 @@ func (server Server) getContainer(path string) (ldp.Node, error) {
 		return ldp.GetHead(server.settings, "/")
 	}
 
-	node, err := ldp.GetNode(server.settings, path)
+	node, err := ldp.GetNode(server.settings, path, ldp.PreferTriples{})
 	if err != nil {
 		return node, err
 	} else if !node.IsBasicContainer() {
@@ -132,7 +131,7 @@ func (server Server) getContainerUri(parentPath string) (string, error) {
 	}
 
 	// Make sure the parent node exists and it's a container
-	parentNode, err := ldp.GetNode(server.settings, parentPath)
+	parentNode, err := ldp.GetNode(server.settings, parentPath, ldp.PreferTriples{})
 	if err != nil {
 		return "", err
 	} else if !parentNode.IsBasicContainer() {

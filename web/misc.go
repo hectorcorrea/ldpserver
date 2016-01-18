@@ -78,6 +78,14 @@ func requestIfMatch(header http.Header) string {
 	return headerValue(header, "If-Match")
 }
 
+func isPreferMembership(header http.Header) bool {
+	// TODO: A more strict parsing of the header to make sure is in the form
+	// return=representation; include="http://www.w3.org/ns/ldp#PreferMembership"
+	// and handle more than one include URI and the existance of omit URIs.
+	prefHeader := headerValue(header, "Prefer")
+	return strings.Contains(prefHeader, "http://www.w3.org/ns/ldp#PreferMembership")
+}
+
 func headerValue(header http.Header, name string) string {
 	for _, value := range header[name] {
 		return value

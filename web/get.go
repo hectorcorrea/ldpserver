@@ -15,7 +15,8 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 
 	if includeBody {
 		log.Printf("GET request %s", path)
-		node, err = theServer.GetNode(path)
+		pref := ldp.PreferTriples{Membership: isPreferMembership(req.Header)}
+		node, err = theServer.GetNode(path, pref)
 	} else {
 		log.Printf("HEAD request %s", path)
 		node, err = theServer.GetHead(path)
