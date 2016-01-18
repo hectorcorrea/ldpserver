@@ -61,13 +61,31 @@ func (node Node) AddChild(child Node) error {
 	return nil
 }
 
+func (node Node) ContentPref(pref PreferTriples) string {
+	if node.isRdf {
+		var triples rdf.RdfGraph
+		if pref.MinimalContainer {
+			// All but ldpContains
+			for _, triple := range node.graph {
+				if !triple.Is("<" + rdf.LdpContainsUri + ">") {
+					triples = append(triples, triple)
+				}
+			}
+		} else {
+			triples = node.graph
+		}
+		triplesStr := triples.String()
+		if node.graphExtra != nil {
+			triplesStr += "\n" + node.graphExtra.String()
+		}
+		return triplesStr
+	}
+	return node.binary
+}
+
 func (node Node) Content() string {
 	if node.isRdf {
-		triples := node.graph.String()
-		if node.graphExtra != nil {
-			triples += "\n" + node.graphExtra.String()
-		}
-		return triples
+		return node.graph.String()
 	}
 	return node.binary
 }

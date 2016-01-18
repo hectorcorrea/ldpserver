@@ -20,8 +20,16 @@ func (t Triple) StringLn() string {
 	return fmt.Sprintf("%s %s %s .\n", t.subject, t.predicate, t.object)
 }
 
+func (t Triple) Predicate() string {
+	return t.predicate
+}
+
 func (t Triple) Object() string {
 	return t.object
+}
+
+func (t Triple) Is(predicate string) bool {
+	return t.predicate == predicate
 }
 
 func (triple *Triple) ReplaceBlankUri(blank string) {

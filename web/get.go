@@ -10,12 +10,15 @@ import (
 func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 	var node ldp.Node
 	var err error
+	var pref ldp.PreferTriples
 
 	path := safePath(req.URL.Path)
 
 	if includeBody {
 		log.Printf("GET request %s", path)
-		pref := ldp.PreferTriples{Membership: isPreferMembership(req.Header)}
+		pref = ldp.PreferTriples{
+			Membership:       isPreferMembership(req.Header),
+			MinimalContainer: isPreferMinimalContainer(req.Header)}
 		node, err = theServer.GetNode(path, pref)
 	} else {
 		log.Printf("HEAD request %s", path)
@@ -41,5 +44,5 @@ func handleGet(includeBody bool, resp http.ResponseWriter, req *http.Request) {
 	}
 
 	setResponseHeaders(resp, node)
-	fmt.Fprint(resp, node.Content())
+	fmt.Fprint(resp, node.ContentPref(pref))
 }

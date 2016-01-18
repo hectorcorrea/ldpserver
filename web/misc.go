@@ -83,7 +83,25 @@ func isPreferMembership(header http.Header) bool {
 	// return=representation; include="http://www.w3.org/ns/ldp#PreferMembership"
 	// and handle more than one include URI and the existance of omit URIs.
 	prefHeader := headerValue(header, "Prefer")
-	return strings.Contains(prefHeader, "http://www.w3.org/ns/ldp#PreferMembership")
+	isInclude := strings.Contains(prefHeader, "include=")
+	if isInclude && strings.Contains(prefHeader, "http://www.w3.org/ns/ldp#PreferMembership") {
+		return true
+	}
+	return false
+}
+
+func isPreferMinimalContainer(header http.Header) bool {
+	// TODO: ditto
+	prefHeader := headerValue(header, "Prefer")
+	isInclude := strings.Contains(prefHeader, "include=")
+	if isInclude && strings.Contains(prefHeader, "http://www.w3.org/ns/ldp#PreferMinimalContainer") {
+		return true
+	}
+	isOmit := strings.Contains(prefHeader, "omit=")
+	if isOmit && strings.Contains(prefHeader, "http://www.w3.org/ns/ldp#PreferContainment") {
+		return true
+	}
+	return false
 }
 
 func headerValue(header http.Header, name string) string {
