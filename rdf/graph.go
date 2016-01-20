@@ -1,6 +1,6 @@
 package rdf
 
-// import "log"
+import "log"
 
 type RdfGraph []Triple
 
@@ -129,8 +129,12 @@ func (graph *RdfGraph) DeleteTriple(subject, predicate, object string) bool {
 }
 
 func (graph *RdfGraph) appendTriple(subject, predicate, object string) bool {
-	_, found := graph.findTriple(subject, predicate, object, true)
+	t, found := graph.findTriple(subject, predicate, object, true)
 	if found {
+		if t.predicate == "a" && predicate != "a" {
+			t.predicate = predicate
+			log.Printf("**> replaced a with %s", predicate)
+		}
 		// nothing to do
 		return false
 	}

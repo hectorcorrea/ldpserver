@@ -33,7 +33,7 @@ func homePage(resp http.ResponseWriter, req *http.Request) {
 		handlePatch(resp, req)
 	} else if req.Method == "OPTIONS" {
 		handleOptions(resp, req)
-	} else if req.Method == "DELETE" {
+	} else if req.Method == "xxDELETE" {
 		handleDelete(resp, req)
 	} else {
 		log.Printf("Unknown request type %s", req.Method)
