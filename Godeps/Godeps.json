@@ -1,0 +1,11 @@
+{
+	"ImportPath": "ldpserver",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v62",
+	"Deps": [
+		{
+			"ImportPath": "github.com/hectorcorrea/rdf",
+			"Rev": "5a24f00a5314ea91d4c12391890668b18683faaf"
+		}
+	]
+}

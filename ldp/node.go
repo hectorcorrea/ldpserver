@@ -3,8 +3,8 @@ package ldp
 import (
 	"errors"
 	"fmt"
+	"github.com/hectorcorrea/rdf"
 	"io"
-	"ldpserver/rdf"
 	"ldpserver/textstore"
 	"ldpserver/util"
 	"log"

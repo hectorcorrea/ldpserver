@@ -2,8 +2,8 @@ package server
 
 import (
 	"fmt"
+	"github.com/hectorcorrea/rdf"
 	"ldpserver/ldp"
-	"ldpserver/rdf"
 	"ldpserver/util"
 	"log"
 	"os"

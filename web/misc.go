@@ -1,8 +1,8 @@
 package web
 
 import (
+	"github.com/hectorcorrea/rdf"
 	"ldpserver/ldp"
-	"ldpserver/rdf"
 	"log"
 	"net/http"
 	"strings"

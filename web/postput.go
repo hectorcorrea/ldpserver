@@ -2,8 +2,8 @@ package web
 
 import (
 	"fmt"
+	"github.com/hectorcorrea/rdf"
 	"ldpserver/ldp"
-	"ldpserver/rdf"
 	"log"
 	"net/http"
 )
