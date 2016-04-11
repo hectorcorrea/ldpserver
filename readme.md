@@ -10,7 +10,10 @@ You can also find a more gentle introduction to LDP in
 
 
 ## Compile and run the server
-If Go is installed on your machine:
+The code compiles without any tweaks with Go 1.6 (and later). If you are using Go 1.5 you'll need to set `GO15VENDOREXPERIMENT=1` in your environment. To find out what version of Go is installed on your machine issue `go version` from the Terminal.
+
+
+If Go 1.6 is installed on your machine:
 
     cd ~/src
     git clone git@github.com:hectorcorrea/ldpserver.git
