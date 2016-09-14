@@ -10,10 +10,7 @@ You can also find a more gentle introduction to LDP in
 
 
 ## Compile and run the server
-The code compiles without any tweaks with Go 1.6 (and later). If you are using Go 1.5 you'll need to set `GO15VENDOREXPERIMENT=1` in your environment. To find out what version of Go is installed on your machine issue `go version` from the Terminal.
-
-
-If Go 1.6 is installed on your machine:
+If Go is installed on your machine:
 
     cd ~/src
     git clone git@github.com:hectorcorrea/ldpserver.git
@@ -172,4 +169,3 @@ As of 1/9/2016 these are the results of all basic container tests (including sup
 
 
 TODO: Document how to test DC and the results 97/5/27
-
