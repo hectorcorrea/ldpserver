@@ -1,0 +1,12 @@
+@base          <http://ourbaseuri> .
+<>      a       <http://www.w3.org/ns/ldp#RDFSource> , <http://www.w3.org/ns/ldp#BasicContainer> , <http://www.w3.org/ns/ldp#Resource> ;
+        <http://example.com/ns#comment>
+                "modified" ;
+        <http://hectorcorrea.com/ldpserver/ns/etag>
+                "2015-10-17T23_34_00-04_00" ;
+        <http://purl.org/dc/terms/created>
+                "2015-10-17T23:34:00-04:00" ;
+        <http://purl.org/dc/terms/title>
+                "This is a new entry" ;
+        <http://www.w3.org/ns/ldp#Contains>
+                <http://localhost:9001/node10> , <http://localhost:9001/node5> , <http://localhost:9001/node6> , <http://localhost:9001/node12> , <http://localhost:9001/node8> , <http://localhost:9001/node1> , <http://localhost:9001/05fc43f8-4a50-4b95-9f24-098d5d055177> , <http://localhost:9001/node2> , <http://localhost:9001/node3> , <http://localhost:9001/node4> .
